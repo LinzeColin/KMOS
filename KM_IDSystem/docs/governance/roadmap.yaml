@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE101"
-current_phase_id: "IDS-STAGE101-P4"
-current_task_id: "IDS-V0_1-STAGE101-P4"
-next_gate_id: "IDS-STAGE101-REVIEW-GATE"
+current_phase_id: "IDS-STAGE101-REVIEW"
+current_task_id: "IDS-V0_1-STAGE101-REVIEW"
+next_gate_id: "IDS-STAGE102-P1-GATE"
 current_transition_history:
+  stage101_review_state:
+    current_stage_id: "IDS-STAGE101"
+    current_phase_id: "IDS-STAGE101-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE101-REVIEW"
+    next_gate_id: "IDS-STAGE102-P1-GATE"
   stage101_phase4_state:
     current_stage_id: "IDS-STAGE101"
     current_phase_id: "IDS-STAGE101-P4"
@@ -1739,23 +1744,24 @@ stages:
     task_id: "IDS-V0_1-STAGE101"
     acceptance_ids:
       - "ACC-STAGE-101"
-    objective: "依据冻结 Stage101 任务包完成 RAG 可复现的 P1 静态边界、P2 纯内存受控最小切片、P3 专项异常场景与 P4 交付证据，固定回答结构、查询、索引、Prompt、模型、检索上下文、所选依据、来源类型、内部依据不足声明、模型输出权限、业务线白箱人工确认、完整可复现元组、未来候选与实际调用分离及双回退说明；本 P1--P4 不创建运行时、业务事实或第二权威事实源。"
-    status: "phase4_completed_local"
+    objective: "依据冻结 Stage101 任务包完成 RAG 可复现的 P1 静态边界、P2 纯内存受控最小切片、P3 专项异常场景、P4 交付证据与整阶段机械复审，固定回答结构、查询、索引、Prompt、模型、检索上下文、所选依据、来源类型、内部依据不足声明、模型输出权限、业务线白箱人工确认、完整可复现元组、未来候选与实际调用分离及双回退说明；本 Stage 不创建运行时、业务事实或第二权威事实源。"
+    status: "completed_reviewed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE101-REVIEW-GATE"
+    next_gate_id: "IDS-STAGE102-P1-GATE"
     gate:
-      gate_id: "IDS-STAGE101-P4-GATE"
+      gate_id: "IDS-STAGE101-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE101-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE102-P1-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage101 任务包、Stage101 P1/P2 与 Stage100 Review 已复审控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。"
       - "P3 精确重放 P2 的 6 条、每条 23 字段、4 组、每条 45 字段、共 270 个 reference-only 控制检查点，形成 6 条、每条 32 字段、共 192 个异常场景检查点、5 个控制视图和 6 条人工处理要求；P4 从六条场景派生回答样例、负向结果、prompt/version、完整可复现日志和输出权限边界各六条，以及 prompt 回滚和模型配置回退各一条，共 456 个交付字段检查点。"
       - "检索文档保持 evidence 身份且文档内指令无法覆盖 IDS 规则；内部依据不足保持 evidence_gap，external_augmentation_opinion 保留 internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 的底层来源类型。"
+      - "Stage101 Review 机械重放 P1 的 15/4/5/5/3/22/4、P2 的 6×23/4/45/270、P3 的 6×32=192/5/6/16 与 P4 的 6/6/6/6/6/2、17/12/14/17/12/12、456 个交付检查点；八元可复现记录键、检索文档 evidence 身份、提示注入拒绝、evidence_gap、业务线白箱人工确认和 P4→P3 回退保持一致。"
       - "高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布；未来模型推理候选引用与实际调用分离，prompt 回滚和模型配置回退保持未来控制目标，真实资料、查询、检索、Prompt、模型 Token、数据库、审计、持久化、Agent、OVH、生产、正式上传和推送保持未执行。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、分类、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、Prompt 正文、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行真实查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传、推送或 Stage101 Review。"
+      - "执行真实查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传、推送或 Stage102 P1。"
     phases:
       - phase_id: "IDS-STAGE101-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1967,11 +1973,67 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-25-stage100-review-local.json"
             risk: "若将回答样例、负向结果、prompt/version、完整可复现元组日志、权限边界、回退说明或聚焦用例通过误作真实 RAG、提示词、模型配置、回答、日志、人工确认、业务结论、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
             rollback: "只回滚本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 PASS_RAG_REPRODUCIBILITY_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；不改变 Stage101 P1/P2/P3、Stage100 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
-    next_phase_projection:
+    review:
       phase_id: "IDS-STAGE101-REVIEW"
-      entry_gate: "IDS-STAGE101-REVIEW-GATE"
+      name: "Stage Review · RAG 可复现整阶段机械复审"
+      objective: "只机械复审冻结 Stage101 P1--P4 控制合同和控制报告，确认八元可复现记录键、来源类型分离、提示注入防护、输出权限、失败关闭、业务线白箱人工处理、P4→P3 回退与零运行时边界；Stage102 只声明下一门禁。"
+      status: "completed"
+      entry_authorized: true
+      next_gate_id: "IDS-STAGE102-P1-GATE"
+      gate:
+        gate_id: "IDS-STAGE101-REVIEW-GATE"
+        status: "passed"
+        next_gate_id: "IDS-STAGE102-P1-GATE"
+        github_upload_allowed: false
+      stop_conditions:
+        - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、分类、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、提示词、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
+        - "执行实际 RAG 回答、提示词、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传、推送或 Stage102 P1。"
+      tasks:
+        - task_id: "IDS-V0_1-STAGE101-REVIEW"
+          name: "机械复审 RAG 可复现控制边界"
+          objective: "在内存中固定复核 P1 的 15/4/5/5/3/22/4、P2 的 6×23/4/45/270、P3 的 6×32=192/5/6/16 与 P4 的 6/6/6/6/6/2、17/12/14/17/12/12、456/4/16；八元记录键、检索文档 evidence 边界、来源类型、提示注入、三类高风险输出、白箱人工处理和 P4→P3 回退保持一致。"
+          status: "completed"
+          dependencies:
+            - "IDS-V0_1-STAGE101-P1"
+            - "IDS-V0_1-STAGE101-P2"
+            - "IDS-V0_1-STAGE101-P3"
+            - "IDS-V0_1-STAGE101-P4"
+            - "IDS-V0_1-STAGE100-REVIEW"
+          acceptance_ids:
+            - "ACC-STAGE-101"
+            - "ACC-STAGE101-REVIEW-01"
+            - "ACC-STAGE101-REVIEW-02"
+            - "ACC-STAGE101-REVIEW-03"
+            - "ACC-STAGE101-REVIEW-04"
+          test_commands:
+            - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage101_rag_reproducibility_stage_review"
+            - "本地治理回归命令记录于 Stage101 Review receipt"
+          test_results: "Stage101 Review 聚焦白箱、P1--Review 前序兼容、Stage088--Stage101 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060、中文视图、文档预算、无登记阻塞和双平面检查的最终本地结果记录于 Stage101 Review receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。本 Review 止于 Stage102 P1 门禁。"
+          evidence_refs:
+            - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-101_RAG可复现.md"
+            - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-102_文档内提示注入防护.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE101_STAGE_REVIEW.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage101_rag_reproducibility_stage_review_contract.json"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage101_rag_reproducibility_stage_review.py"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage101_rag_reproducibility_stage_review.py"
+            - "KM_IDSystem/machine/runs/2026-08-25-stage101-review-local.json"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE101_PHASE4_RAG_REPRODUCIBILITY_DELIVERY_EVIDENCE.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage101_rag_reproducibility_delivery_contract.json"
+            - "KM_IDSystem/machine/runs/2026-08-25-stage101-p4-local.json"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE100_STAGE_REVIEW.md"
+            - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage100_no_internal_evidence_strategy_stage_review_contract.json"
+            - "KM_IDSystem/machine/runs/2026-08-25-stage100-review-local.json"
+          risk: "若将复审结论、固定控制形状、八元记录键、来源类型、提示注入、输出权限、回退说明或聚焦用例误作真实 RAG、提示词、模型配置、回答、日志、人工确认、业务结论、OVH、生产或上传能力，会绕开单一权威与业务线白箱人工处理。"
+          rollback: "只回滚本 Review 的说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 PASS_RAG_REPRODUCIBILITY_DELIVERY_EVIDENCE_RUNTIME_DISABLED；不改变 Stage101 P1/P2/P3/P4、Stage100 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+    next_stage_projection:
+      stage_id: "IDS-STAGE102"
+      name: "文档内提示注入防护"
+      taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-102_文档内提示注入防护.md"
+      acceptance_id: "ACC-STAGE-102"
+      entry_gate: "IDS-STAGE102-P1-GATE"
       status: "not_started"
-      stage_review_started: false
+      stage102_started: false
+      phase1_started: false
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false
@@ -2264,8 +2326,8 @@ stages:
       name: "RAG 可复现"
       taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-101_RAG可复现.md"
       acceptance_id: "ACC-STAGE-101"
-      entry_gate: "IDS-STAGE101-REVIEW-GATE"
-      status: "phase4_completed_local"
+      entry_gate: "IDS-STAGE102-P1-GATE"
+      status: "completed_reviewed_local"
       stage101_started: true
       phase1_started: true
       phase1_completed: true
@@ -2275,7 +2337,9 @@ stages:
       phase3_completed: true
       phase4_started: true
       phase4_completed: true
-      stage_review_started: false
+      stage_review_started: true
+      stage_review_completed: true
+      stage102_started: false
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false

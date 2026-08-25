@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE101",
-  "phase": "IDS-STAGE101-P4",
-  "task": "IDS-V0_1-STAGE101-P4",
-  "next_gate": "IDS-STAGE101-REVIEW-GATE",
+  "phase": "IDS-STAGE101-REVIEW",
+  "task": "IDS-V0_1-STAGE101-REVIEW",
+  "next_gate": "IDS-STAGE102-P1-GATE",
   "items": [
     {
       "id": "ACC-STAGE-101",
-      "criteria": "Stage101 RAG 可复现已形成可执行、可测试、可回滚的 P1 静态工程合同、P2 纯内存控制切片、P3 专项异常场景与 P4 交付证据：未来回答的回答结构、查询、索引、Prompt、模型、检索上下文、所选依据、来源类型、evidence_gap、模型输出权限、完整八元可复现记录键、业务线白箱人工确认门禁、prompt 回滚和模型配置回退均保持为独立控制引用。",
-      "status": "P1/P2/P3/P4 控制工件已完成"
+      "criteria": "Stage101 RAG 可复现已形成可执行、可测试、可回滚的 P1 静态工程合同、P2 纯内存控制切片、P3 专项异常场景、P4 交付证据与整阶段机械复审：未来回答的回答结构、查询、索引、Prompt、模型、检索上下文、所选依据、来源类型、evidence_gap、模型输出权限、完整八元可复现记录键、业务线白箱人工确认门禁、prompt 回滚和模型配置回退均保持为独立控制引用。",
+      "status": "整阶段已复审"
     },
     {
       "id": "ACC-STAGE101-P1-01",
@@ -87,6 +87,26 @@
     {
       "id": "ACC-STAGE101-P4-04",
       "criteria": "P4 保持真实资料、查询、检索、提示词、模型配置、回答、真实日志、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、正式全局上传与推送的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage101 Review。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE101-REVIEW-01",
+      "criteria": "冻结 Stage101 任务包、Stage101 P1/P2/P3/P4 与 Stage100 Review 已复审无内部依据策略控制工件保持为唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE101-REVIEW-02",
+      "criteria": "复审精确重放 P1 的 15/4/5/5/3/22/4、P2 的 6×23/4/45/270、P3 的 6×32＝192/5/6/16，以及 P4 的 6/6/6/6/6/2、17/12/14/17/12/12、456 个交付检查点、16 类失败关闭与 4 条中文反馈；八元可复现记录键保持完整。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE101-REVIEW-03",
+      "criteria": "检索文档保持 evidence 身份且 IDS 规则保持优先级；evidence_gap 保持独立来源类型；提示注入保持拒绝；高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认；P4→P3 回退保持版本化、可验证目标和人工确认前置。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE101-REVIEW-04",
+      "criteria": "Review 的真实资料、查询、检索、提示词、回答、日志、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、正式全局上传与推送保持未执行；Stage102 只开放为下一独立 run 的 P1 门禁。",
       "status": "已遵守"
     },
     {
