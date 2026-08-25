@@ -676,6 +676,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("status") == "completed"
             )
             or (
+                roadmap.get("current_stage_id") == "IDS-STAGE103"
+                and roadmap.get("current_phase_id") == "IDS-STAGE103-P1"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE103-P1"
+                and roadmap.get("next_gate_id") == "IDS-STAGE103-P2-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
+            or (
             roadmap.get("current_stage_id") == "IDS-STAGE038"
             and source_gate.get("gate_id")
             == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -5054,6 +5073,8 @@ ALLOWED_CHANGED_PREFIXES = (
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage101_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE102_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage102_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE103_",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage103_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage051_",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE052_",
@@ -21174,6 +21195,77 @@ def _text_checks(root: Path, tracked_paths: list[str]) -> dict[str, int]:
     return hits
 
 
+def _batch_upload_lock_by_id(batch_text: str, expected_batch_id: str) -> dict:
+    """Return one immutable batch lock from a single file or concatenated locks."""
+    if not isinstance(batch_text, str) or not isinstance(expected_batch_id, str):
+        return {}
+    document_marker = r'(?=^schema_version: "ids\.v0_1\.batch_upload_lock\.v1"$)'
+    for candidate in re.split(document_marker, batch_text, flags=re.MULTILINE):
+        parsed = _parse_yaml_text(candidate)
+        if parsed.get("batch_id") == expected_batch_id:
+            return parsed
+    return {}
+
+
+def validate_batch041_050_historical_projection(batch_text: str) -> bool:
+    """Validate Batch041--050 whenever that immutable lock is in scope."""
+    batch = _batch_upload_lock_by_id(batch_text, "IDS-V0_1-BATCH-041-050")
+    if not batch:
+        return True
+    stage_progress = batch.get("stage_progress")
+    stage_progress = stage_progress if isinstance(stage_progress, dict) else {}
+    required_stages = tuple(f"STAGE-{stage:03d}" for stage in range(41, 51))
+    required_false_fields = {
+        "actual_worker_process_crash_performed",
+        "automatic_recovery_performed",
+        "delete_operation_started",
+        "parser_execution_performed",
+    }
+    expected_numeric_fields = {
+        "STAGE-041": {"review_finding_count": 4},
+        "STAGE-042": {"review_finding_count": 5},
+        "STAGE-043": {"review_finding_count": 6},
+        "STAGE-044": {"review_finding_count": 6},
+        "STAGE-045": {"review_finding_count": 7},
+        "STAGE-046": {"review_finding_count": 6},
+        "STAGE-047": {
+            "review_finding_count": 6,
+            "phase3_scenario_count": 16,
+            "sanitized_output_sample_count": 8,
+        },
+    }
+    return all(
+        isinstance(stage_node, dict)
+        and stage_node.get("review_status") == "passed"
+        and stage_node.get("whole_stage_review_performed") is True
+        and stage_node.get("batch_review_performed") is True
+        and (
+            "review_findings_repaired" not in stage_node
+            or stage_node.get("review_findings_repaired") is True
+        )
+        and all(
+            value is True
+            for key, value in stage_node.items()
+            if key.endswith("_valid")
+        )
+        and not any(
+            isinstance(value, str) and value.endswith(".invalid")
+            for value in stage_node.values()
+        )
+        and all(
+            stage_node.get(field) is False
+            for field in required_false_fields
+            if field in stage_node
+        )
+        and all(
+            stage_node.get(field) == expected
+            for field, expected in expected_numeric_fields.get(stage_id, {}).items()
+        )
+        for stage_id in required_stages
+        for stage_node in [stage_progress.get(stage_id)]
+    )
+
+
 def evaluate_current_state_consistency(
     batch_text: str, roadmap_text: str
 ) -> dict[str, bool]:
@@ -21202,6 +21294,373 @@ def evaluate_current_state_consistency(
     upload_gate = upload_gate if isinstance(upload_gate, dict) else {}
     decision = batch.get("decision")
     decision = decision if isinstance(decision, dict) else {}
+    historical_batch041_050_projection_valid = (
+        validate_batch041_050_historical_projection(batch_text)
+    )
+    if (
+        current_stage_id == "IDS-STAGE103"
+        and roadmap.get("current_phase_id") == "IDS-STAGE103-P1"
+        and roadmap.get("current_task_id") == "IDS-V0_1-STAGE103-P1"
+        and roadmap.get("next_gate_id") == "IDS-STAGE103-P2-GATE"
+    ):
+        roadmap_stages = roadmap.get("stages")
+        roadmap_stages = roadmap_stages if isinstance(roadmap_stages, list) else []
+        current_stage = next(
+            (
+                item
+                for item in roadmap_stages
+                if isinstance(item, dict) and item.get("stage_id") == "IDS-STAGE103"
+            ),
+            {},
+        )
+        predecessor_stage = next(
+            (
+                item
+                for item in roadmap_stages
+                if isinstance(item, dict) and item.get("stage_id") == "IDS-STAGE102"
+            ),
+            {},
+        )
+        phases = current_stage.get("phases") if isinstance(current_stage, dict) else []
+        phases = phases if isinstance(phases, list) else []
+        phase_by_id = {
+            item.get("phase_id"): item
+            for item in phases
+            if isinstance(item, dict) and isinstance(item.get("phase_id"), str)
+        }
+
+        def phase_task(phase: object, task_id: str) -> dict:
+            tasks = phase.get("tasks") if isinstance(phase, dict) else []
+            tasks = tasks if isinstance(tasks, list) else []
+            return next(
+                (
+                    item
+                    for item in tasks
+                    if isinstance(item, dict) and item.get("task_id") == task_id
+                ),
+                {},
+            )
+
+        phase1 = phase_by_id.get("IDS-STAGE103-P1", {})
+        phase1_task = phase_task(phase1, "IDS-V0_1-STAGE103-P1")
+        phase1_evidence = {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-103_模型输出权限门禁.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE103_PHASE1_MODEL_OUTPUT_PERMISSION_GATE_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage103_model_output_permission_gate_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage103_model_output_permission_gate_contract.py",
+            "KM_IDSystem/machine/runs/2026-08-25-stage103-p1-local.json",
+        }
+        phase1_valid = all(
+            (
+                current_stage.get("task_id") == "IDS-V0_1-STAGE103",
+                current_stage.get("status") == "phase1_completed_local",
+                current_stage.get("entry_authorized") is True,
+                current_stage.get("next_gate_id") == "IDS-STAGE103-P2-GATE",
+                isinstance(current_stage.get("gate"), dict),
+                current_stage["gate"].get("gate_id") == "IDS-STAGE103-P1-GATE",
+                current_stage["gate"].get("status") == "passed",
+                current_stage["gate"].get("next_gate_id") == "IDS-STAGE103-P2-GATE",
+                current_stage["gate"].get("github_upload_allowed") is False,
+                phase1.get("status") == "completed",
+                phase1.get("entry_authorized") is True,
+                phase1.get("next_gate_id") == "IDS-STAGE103-P2-GATE",
+                isinstance(phase1.get("gate"), dict),
+                phase1["gate"].get("gate_id") == "IDS-STAGE103-P1-GATE",
+                phase1["gate"].get("status") == "passed",
+                phase1["gate"].get("next_gate_id") == "IDS-STAGE103-P2-GATE",
+                phase1["gate"].get("github_upload_allowed") is False,
+                phase1_task.get("status") == "completed",
+                phase1_task.get("dependencies") == ["IDS-V0_1-STAGE102-REVIEW"],
+                phase1_task.get("acceptance_ids")
+                == [
+                    "ACC-STAGE-103",
+                    "ACC-STAGE103-P1-01",
+                    "ACC-STAGE103-P1-02",
+                    "ACC-STAGE103-P1-03",
+                    "ACC-STAGE103-P1-04",
+                ],
+                isinstance(phase1_task.get("test_results"), str),
+                bool(phase1_task.get("test_results")),
+                phase1_evidence.issubset(
+                    {
+                        item
+                        for item in phase1_task.get("evidence_refs", [])
+                        if isinstance(item, str)
+                    }
+                ),
+            )
+        )
+        future_phase_requirements = {
+            "IDS-STAGE103-P2": (
+                "IDS-V0_1-STAGE103-P2",
+                "IDS-STAGE103-P2-GATE",
+                "IDS-STAGE103-P3-GATE",
+                ["IDS-V0_1-STAGE103-P1", "IDS-V0_1-STAGE102-REVIEW"],
+            ),
+            "IDS-STAGE103-P3": (
+                "IDS-V0_1-STAGE103-P3",
+                "IDS-STAGE103-P3-GATE",
+                "IDS-STAGE103-P4-GATE",
+                [
+                    "IDS-V0_1-STAGE103-P1",
+                    "IDS-V0_1-STAGE103-P2",
+                    "IDS-V0_1-STAGE102-REVIEW",
+                ],
+            ),
+            "IDS-STAGE103-P4": (
+                "IDS-V0_1-STAGE103-P4",
+                "IDS-STAGE103-P4-GATE",
+                "IDS-STAGE103-REVIEW-GATE",
+                [
+                    "IDS-V0_1-STAGE103-P1",
+                    "IDS-V0_1-STAGE103-P2",
+                    "IDS-V0_1-STAGE103-P3",
+                    "IDS-V0_1-STAGE102-REVIEW",
+                ],
+            ),
+        }
+        future_phases_valid = all(
+            (
+                isinstance(phase_by_id.get(phase_id), dict),
+                phase_by_id[phase_id].get("status") == "not_started",
+                phase_by_id[phase_id].get("entry_authorized") is True,
+                phase_by_id[phase_id].get("next_gate_id") == next_gate,
+                isinstance(phase_by_id[phase_id].get("gate"), dict),
+                phase_by_id[phase_id]["gate"].get("gate_id") == gate_id,
+                phase_by_id[phase_id]["gate"].get("status") == "pending",
+                phase_by_id[phase_id]["gate"].get("next_gate_id") == next_gate,
+                phase_by_id[phase_id]["gate"].get("github_upload_allowed") is False,
+                phase_task(phase_by_id[phase_id], task_id).get("status")
+                == "not_started",
+                phase_task(phase_by_id[phase_id], task_id).get("dependencies")
+                == dependencies,
+            )
+            for phase_id, (task_id, gate_id, next_gate, dependencies) in future_phase_requirements.items()
+        )
+        review = current_stage.get("review") if isinstance(current_stage, dict) else {}
+        review = review if isinstance(review, dict) else {}
+        review_task = phase_task(review, "IDS-V0_1-STAGE103-REVIEW")
+        review_valid = all(
+            (
+                review.get("phase_id") == "IDS-STAGE103-REVIEW",
+                review.get("status") == "not_started",
+                review.get("entry_authorized") is True,
+                review.get("next_gate_id") == "IDS-STAGE104-P1-GATE",
+                isinstance(review.get("gate"), dict),
+                review["gate"].get("gate_id") == "IDS-STAGE103-REVIEW-GATE",
+                review["gate"].get("status") == "pending",
+                review["gate"].get("next_gate_id") == "IDS-STAGE104-P1-GATE",
+                review["gate"].get("github_upload_allowed") is False,
+                review_task.get("status") == "not_started",
+                review_task.get("dependencies")
+                == [
+                    "IDS-V0_1-STAGE103-P1",
+                    "IDS-V0_1-STAGE103-P2",
+                    "IDS-V0_1-STAGE103-P3",
+                    "IDS-V0_1-STAGE103-P4",
+                    "IDS-V0_1-STAGE102-REVIEW",
+                ],
+            )
+        )
+        predecessor_review = (
+            predecessor_stage.get("review")
+            if isinstance(predecessor_stage, dict)
+            else {}
+        )
+        predecessor_review = (
+            predecessor_review if isinstance(predecessor_review, dict) else {}
+        )
+        predecessor_projection = (
+            predecessor_stage.get("next_stage_projection")
+            if isinstance(predecessor_stage, dict)
+            else {}
+        )
+        predecessor_projection = (
+            predecessor_projection
+            if isinstance(predecessor_projection, dict)
+            else {}
+        )
+        predecessor_valid = all(
+            (
+                predecessor_stage.get("task_id") == "IDS-V0_1-STAGE102",
+                predecessor_stage.get("status") == "completed_reviewed_local",
+                predecessor_stage.get("next_gate_id") == "IDS-STAGE103-P1-GATE",
+                predecessor_review.get("phase_id") == "IDS-STAGE102-REVIEW",
+                predecessor_review.get("status") == "completed",
+                isinstance(predecessor_review.get("gate"), dict),
+                predecessor_review["gate"].get("gate_id")
+                == "IDS-STAGE102-REVIEW-GATE",
+                predecessor_review["gate"].get("status") == "passed",
+                predecessor_projection.get("stage_id") == "IDS-STAGE103",
+                predecessor_projection.get("status") == "phase1_completed_local",
+                predecessor_projection.get("stage103_started") is True,
+                predecessor_projection.get("phase1_completed") is True,
+                predecessor_projection.get("phase2_started") is False,
+                predecessor_projection.get("next_gate_id") == "IDS-STAGE103-P2-GATE",
+                predecessor_projection.get("entry_authorized") is True,
+                predecessor_projection.get("github_upload_allowed") is False,
+                predecessor_projection.get("push_allowed") is False,
+            )
+        )
+        next_stage = (
+            current_stage.get("next_stage_projection")
+            if isinstance(current_stage, dict)
+            else {}
+        )
+        next_stage = next_stage if isinstance(next_stage, dict) else {}
+        next_stage_valid = all(
+            (
+                next_stage.get("stage_id") == "IDS-STAGE104",
+                next_stage.get("name") == "RAG 负向测试",
+                next_stage.get("acceptance_id") == "ACC-STAGE-104",
+                next_stage.get("entry_gate") == "IDS-STAGE104-P1-GATE",
+                next_stage.get("status") == "not_started",
+                next_stage.get("stage104_started") is False,
+                next_stage.get("phase1_started") is False,
+                next_stage.get("entry_authorized") is True,
+                next_stage.get("github_upload_allowed") is False,
+                next_stage.get("push_allowed") is False,
+            )
+        )
+        transitions = roadmap.get("current_transition_history")
+        transitions = transitions if isinstance(transitions, dict) else {}
+        stage102_phase_history_valid = all(
+            transitions.get(transition_id)
+            == {
+                "current_stage_id": "IDS-STAGE102",
+                "current_phase_id": phase_id,
+                "current_task_id": task_id,
+                "next_gate_id": next_gate_id,
+            }
+            for transition_id, phase_id, task_id, next_gate_id in (
+                (
+                    "stage102_phase1_state",
+                    "IDS-STAGE102-P1",
+                    "IDS-V0_1-STAGE102-P1",
+                    "IDS-STAGE102-P2-GATE",
+                ),
+                (
+                    "stage102_phase2_state",
+                    "IDS-STAGE102-P2",
+                    "IDS-V0_1-STAGE102-P2",
+                    "IDS-STAGE102-P3-GATE",
+                ),
+                (
+                    "stage102_phase3_state",
+                    "IDS-STAGE102-P3",
+                    "IDS-V0_1-STAGE102-P3",
+                    "IDS-STAGE102-P4-GATE",
+                ),
+                (
+                    "stage102_phase4_state",
+                    "IDS-STAGE102-P4",
+                    "IDS-V0_1-STAGE102-P4",
+                    "IDS-STAGE102-REVIEW-GATE",
+                ),
+                (
+                    "stage102_review_state",
+                    "IDS-STAGE102-REVIEW",
+                    "IDS-V0_1-STAGE102-REVIEW",
+                    "IDS-STAGE103-P1-GATE",
+                ),
+            )
+        )
+        transition_valid = all(
+            (
+                stage102_phase_history_valid,
+                transitions.get("stage103_phase1_state")
+                == {
+                    "current_stage_id": "IDS-STAGE103",
+                    "current_phase_id": "IDS-STAGE103-P1",
+                    "current_task_id": "IDS-V0_1-STAGE103-P1",
+                    "next_gate_id": "IDS-STAGE103-P2-GATE",
+                },
+            )
+        )
+        batch_route_verified = (
+            (
+                batch.get("status") == "uploaded_to_github_main"
+                and decision.get("current_task_id")
+                == "IDS-V0_1-BATCH-031-040-MAIN-MERGED"
+                and decision.get("next_allowed_task_id") == "IDS-STAGE041-P1-GATE"
+                and decision.get("github_upload_allowed") is True
+                and upload_gate.get("push_allowed") is True
+            )
+            or (
+                batch.get("status")
+                == "batch041_050_reviewed_local_global_upload_locked"
+                and decision.get("current_task_id")
+                == "IDS-V0_1-BATCH-041-050-REVIEW-GATE"
+                and decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE051-P1"
+                and decision.get("github_upload_allowed") is False
+                and decision.get("push_allowed") is False
+                and upload_gate.get("github_upload_allowed") is False
+                and upload_gate.get("push_allowed") is False
+            )
+            or (
+                batch.get("status")
+                == "batch051_060_reviewed_local_global_upload_locked"
+                and decision.get("current_task_id")
+                == "IDS-V0_1-BATCH-051-060-REVIEW-GATE"
+                and decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE061-P1"
+                and decision.get("github_upload_allowed") is False
+                and decision.get("push_allowed") is False
+                and upload_gate.get("github_upload_allowed") is False
+                and upload_gate.get("push_allowed") is False
+            )
+            or (
+                batch.get("status") == "stage070_completed_reviewed_local"
+                and decision.get("current_task_id") == "IDS-V0_1-STAGE070-REVIEW"
+                and decision.get("next_allowed_task_id") == "IDS-V0_1-STAGE071-P1"
+                and decision.get("github_upload_allowed") is False
+                and decision.get("push_allowed") is False
+                and upload_gate.get("github_upload_allowed") is False
+                and upload_gate.get("push_allowed") is False
+            )
+        )
+        batch_governance_valid = (
+            batch_route_verified and historical_batch041_050_projection_valid
+        )
+        exact = all(
+            (
+                phase1_valid,
+                future_phases_valid,
+                review_valid,
+                predecessor_valid,
+                next_stage_valid,
+                transition_valid,
+                batch_governance_valid,
+            )
+        )
+        return {
+            "yaml_documents_parsed": bool(batch) and bool(roadmap),
+            "current_stage_node_resolved": exact,
+            "current_phase_allowed": exact,
+            "current_task_allowed": exact,
+            "next_gate_allowed": exact,
+            "batch_top_status_matches_stage": batch_governance_valid,
+            "decision_upload_locked": batch_route_verified,
+            "push_locked_structurally": batch_route_verified,
+            "current_state_decision_upload_locked": batch_route_verified,
+            "current_state_push_locked_structurally": batch_route_verified,
+            "current_state_stage102_review_preserved": predecessor_valid,
+            "current_state_stage102_phase_history_preserved": stage102_phase_history_valid,
+            "current_state_batch041_050_projection_preserved": historical_batch041_050_projection_valid,
+            "current_state_stage103_phase1_completed": phase1_valid,
+            "current_state_stage103_future_phases_not_entered": future_phases_valid,
+            "current_state_stage103_review_not_entered": review_valid,
+            "current_state_stage104_not_started": next_stage_valid,
+            "batch031_040_review_consistent": (
+                batch.get("batch_id") != "IDS-V0_1-BATCH-031-040"
+                or (
+                    batch.get("review_task_id")
+                    == "IDS-V0_1-BATCH-031-040-REVIEW-GATE"
+                    and batch.get("review_evidence_ref")
+                    == "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+                    "BATCH031_040_REVIEW_GATE.md"
+                )
+            ),
+        }
     if (
         current_stage_id == "IDS-STAGE102"
         and roadmap.get("current_phase_id") == "IDS-STAGE102-P1"
@@ -41355,65 +41814,8 @@ def evaluate_phase_state(
 ) -> dict[str, bool]:
     batch041_050_document = _parse_yaml_text(batch_text)
     batch041_050_roadmap = _parse_yaml_text(roadmap_text)
-    batch041_050_stage_progress = batch041_050_document.get("stage_progress")
-    batch041_050_stage_progress = (
-        batch041_050_stage_progress
-        if isinstance(batch041_050_stage_progress, dict)
-        else {}
-    )
-    batch041_050_required_stages = tuple(
-        f"STAGE-{stage:03d}" for stage in range(41, 51)
-    )
-    batch041_050_required_false_fields = {
-        "actual_worker_process_crash_performed",
-        "automatic_recovery_performed",
-        "delete_operation_started",
-        "parser_execution_performed",
-    }
-    batch041_050_expected_numeric_fields = {
-        "STAGE-041": {"review_finding_count": 4},
-        "STAGE-042": {"review_finding_count": 5},
-        "STAGE-043": {"review_finding_count": 6},
-        "STAGE-044": {"review_finding_count": 6},
-        "STAGE-045": {"review_finding_count": 7},
-        "STAGE-046": {"review_finding_count": 6},
-        "STAGE-047": {
-            "review_finding_count": 6,
-            "phase3_scenario_count": 16,
-            "sanitized_output_sample_count": 8,
-        },
-    }
-    batch041_050_stage_projection_valid = all(
-        isinstance(stage_node, dict)
-        and stage_node.get("review_status") == "passed"
-        and stage_node.get("whole_stage_review_performed") is True
-        and stage_node.get("batch_review_performed") is True
-        and (
-            "review_findings_repaired" not in stage_node
-            or stage_node.get("review_findings_repaired") is True
-        )
-        and all(
-            value is True
-            for key, value in stage_node.items()
-            if key.endswith("_valid")
-        )
-        and not any(
-            isinstance(value, str) and value.endswith(".invalid")
-            for value in stage_node.values()
-        )
-        and all(
-            stage_node.get(field) is False
-            for field in batch041_050_required_false_fields
-            if field in stage_node
-        )
-        and all(
-            stage_node.get(field) == expected
-            for field, expected in batch041_050_expected_numeric_fields.get(
-                stage_id, {}
-            ).items()
-        )
-        for stage_id in batch041_050_required_stages
-        for stage_node in [batch041_050_stage_progress.get(stage_id)]
+    batch041_050_stage_projection_valid = (
+        validate_batch041_050_historical_projection(batch_text)
     )
     batch041_050_review_route_current = (
         batch041_050_document.get("batch_id") == "IDS-V0_1-BATCH-041-050"

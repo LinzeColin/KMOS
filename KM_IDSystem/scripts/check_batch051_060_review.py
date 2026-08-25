@@ -3405,6 +3405,20 @@ def _governance_checks(batch: Mapping[str, Any], roadmap: Mapping[str, Any]) -> 
                     "next_gate_id": "IDS-STAGE103-P1-GATE",
                 }
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE103"
+                and roadmap.get("current_phase_id") == "IDS-STAGE103-P1"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE103-P1"
+                and roadmap.get("next_gate_id") == "IDS-STAGE103-P2-GATE"
+                and isinstance(roadmap.get("current_transition_history"), dict)
+                and roadmap["current_transition_history"].get("stage103_phase1_state")
+                == {
+                    "current_stage_id": "IDS-STAGE103",
+                    "current_phase_id": "IDS-STAGE103-P1",
+                    "current_task_id": "IDS-V0_1-STAGE103-P1",
+                    "next_gate_id": "IDS-STAGE103-P2-GATE",
+                }
+            )
         ),
         "stage060_route_exact": (
             stage060.get("next_stage") == "STAGE-061"
@@ -3792,6 +3806,17 @@ def _projection_checks() -> dict[str, bool]:
         and status.get("runtime_enabled") is False
         and status.get("push_allowed") is False
     )
+    stage103_phase1_status = (
+        isinstance(status, dict)
+        and status.get("stage") == "IDS-STAGE103"
+        and status.get("phase") == "IDS-STAGE103-P1"
+        and status.get("task") == "IDS-V0_1-STAGE103-P1"
+        and status.get("next_gate") == "IDS-STAGE103-P2-GATE"
+        and status.get("evidence_status")
+        == "STAGE103_MODEL_OUTPUT_PERMISSION_GATE_RUNTIME_DISABLED"
+        and status.get("runtime_enabled") is False
+        and status.get("push_allowed") is False
+    )
     stage097_phase1_plan = (
         isinstance(plan, dict)
         and plan.get("stage") == "IDS-STAGE097"
@@ -4001,6 +4026,13 @@ def _projection_checks() -> dict[str, bool]:
         and plan.get("phase") == "IDS-STAGE102-REVIEW"
         and plan.get("task") == "IDS-V0_1-STAGE102-REVIEW"
         and "IDS-STAGE103-P1-GATE" in str(plan.get("stop_condition", ""))
+    )
+    stage103_phase1_plan = (
+        isinstance(plan, dict)
+        and plan.get("stage") == "IDS-STAGE103"
+        and plan.get("phase") == "IDS-STAGE103-P1"
+        and plan.get("task") == "IDS-V0_1-STAGE103-P1"
+        and "IDS-STAGE103-P2-GATE" in str(plan.get("stop_condition", ""))
     )
     successor_phase2_status = (
         isinstance(status, dict)
@@ -4795,6 +4827,7 @@ def _projection_checks() -> dict[str, bool]:
             or stage102_phase3_status
             or stage102_phase4_status
             or stage102_review_status
+            or stage103_phase1_status
             or successor_status
             or (
                 isinstance(status, dict)
@@ -6051,6 +6084,7 @@ def _projection_checks() -> dict[str, bool]:
             or stage102_phase3_plan
             or stage102_phase4_plan
             or stage102_review_plan
+            or stage103_phase1_plan
             or successor_plan
             or (
                 isinstance(plan, dict)
