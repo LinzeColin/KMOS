@@ -495,49 +495,44 @@ class Stage101RagReproducibilityPhase2Tests(unittest.TestCase):
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
+        self.assertTrue(RECEIPT.is_file())
+        receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+        acceptance_by_id = {
+            item["id"]: item["status"] for item in acceptance["items"]
+        }
+        for acceptance_id in (
+            "ACC-STAGE101-P2-01",
+            "ACC-STAGE101-P2-02",
+            "ACC-STAGE101-P2-03",
+        ):
+            with self.subTest(acceptance_id=acceptance_id):
+                self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE101-P2-04"])
+        self.assertEqual("IDS-STAGE101-P3-GATE", receipt["next_gate"])
+        self.assertEqual(
+            "PASS_RAG_REPRODUCIBILITY_CONTROL_SLICE_RUNTIME_DISABLED",
+            receipt["result"],
+        )
+        self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+        self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+        event_ids = {
+            json.loads(line)["event_id"]
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+        self.assertIn("EVT-IDS-V0_1-STAGE101-P2-20260825-001", event_ids)
+        roadmap_text = ROADMAP.read_text(encoding="utf-8")
+        self.assertIn("stage101_phase2_state:", roadmap_text)
         if current == phase2_current:
             self.assertFalse(is_current_projection)
-            self.assertTrue(RECEIPT.is_file())
-            receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
-            acceptance_by_id = {
-                item["id"]: item["status"] for item in acceptance["items"]
-            }
-            for acceptance_id in (
-                "ACC-STAGE101-P2-01",
-                "ACC-STAGE101-P2-02",
-                "ACC-STAGE101-P2-03",
-            ):
-                with self.subTest(acceptance_id=acceptance_id):
-                    self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE101-P2-04"])
-            self.assertEqual("IDS-STAGE101-P3-GATE", receipt["next_gate"])
-            self.assertEqual(
-                "PASS_RAG_REPRODUCIBILITY_CONTROL_SLICE_RUNTIME_DISABLED",
-                receipt["result"],
-            )
-            self.assertTrue(
-                all(value == 0 for value in receipt["runtime_counts"].values())
-            )
-            self.assertTrue(
-                all(value is False for value in receipt["runtime_flags"].values())
-            )
-            event_ids = {
-                json.loads(line)["event_id"]
-                for line in EVENTS.read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            }
-            self.assertIn("EVT-IDS-V0_1-STAGE101-P2-20260825-001", event_ids)
-            roadmap_text = ROADMAP.read_text(encoding="utf-8")
             for phrase in (
-                "stage101_phase2_state:",
                 'current_phase_id: "IDS-STAGE101-P2"',
                 'next_gate_id: "IDS-STAGE101-P3-GATE"',
             ):
                 with self.subTest(phrase=phrase):
                     self.assertIn(phrase, roadmap_text)
         else:
-            self.assertEqual(phase1_current, current)
-            self.assertFalse(is_current_projection)
+            self.assertTrue(is_current_projection)
 
 
 if __name__ == "__main__":
