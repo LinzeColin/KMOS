@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage100 Review accepted locally - 2026-08-25
+## Current Gate - Stage101 P1 accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE101-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE101 / IDS-STAGE101-P1 / IDS-V0_1-STAGE101-P1 / IDS-STAGE101-P2-GATE`。Stage101 P2 仅作为未启动的下一独立 run 门禁。
+- P1 固定未来 RAG 回答的 `15` 个可复现控制引用：回答结构、查询、索引、Prompt、模型提供方、模型版本、温度、检索上下文、所选依据、内部依据、外部增强、evidence_gap、来源类型、输出权限和人工确认门禁；其中 `8` 个记录键引用覆盖 query、index_version、prompt_version、model_provider、model_version、temperature、retrieval_context 与 selected_evidence。
+- 已验证：P1 聚焦 `8/8`，Stage088--Stage101 精确白箱链 `654/654`；Stage005 当前态治理投影全项为真；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和双平面检查均通过。验证范围只覆盖冻结控制工件、治理兼容和零运行时边界。
+- 检索文档保持 evidence 身份且文档内指令无法覆盖 IDS 规则；内部依据不足保持 `evidence_gap`，外部公开参考与模型推理作为外部增强展示时保留各自底层来源类型。`safe_summary`、`draft_recommendation`、高风险工程建议、合同承诺和生产写回仅定义未来分类语义；高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认，最终结论保持未发布。
+- 本轮继续只使用 `codex/kmids-stage071-p1` 与唯一开发 worktree；main、release、正式全局上传、OVH、生产、模型与 Agent 保持后续门禁范围。运行计数均为 `0`，运行标志均为 `false`，模型 Token 与 Agent 执行计数均为 `0`。
+- 回滚范围仅包括本次 P1 的范围说明、静态合同、聚焦用例、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PASS_REVIEWED_NO_INTERNAL_EVIDENCE_STRATEGY_RUNTIME_DISABLED`。Stage100 P1/P2/P3/P4/Review、冻结任务包、受保护资料、GitHub main/release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage100 Review accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE100-REVIEW` 已完成本地验收；当前治理状态为 `IDS-STAGE100 / IDS-STAGE100-REVIEW / IDS-V0_1-STAGE100-REVIEW / IDS-STAGE101-P1-GATE`。Stage101 仅作为未启动的下一独立 run 门禁。
 - Review 机械复审 P1 的 `9/4/3/17/4`、P2 的 `6×21/4/38/228`、P3 的 `6×29＝174/5/6/15` 与 P4 的 `6/6/6/6/6/2`、`14/12/11/11/12/12`、`384/4/16` 固定控制形状；P4 的回答样例、负向结果、prompt/version、可复现日志、输出权限、prompt 回滚和模型配置回退继续作为复审输入与回退点。

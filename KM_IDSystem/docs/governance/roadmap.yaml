@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE100"
-current_phase_id: "IDS-STAGE100-REVIEW"
-current_task_id: "IDS-V0_1-STAGE100-REVIEW"
-next_gate_id: "IDS-STAGE101-P1-GATE"
+current_stage_id: "IDS-STAGE101"
+current_phase_id: "IDS-STAGE101-P1"
+current_task_id: "IDS-V0_1-STAGE101-P1"
+next_gate_id: "IDS-STAGE101-P2-GATE"
 current_transition_history:
+  stage101_phase1_state:
+    current_stage_id: "IDS-STAGE101"
+    current_phase_id: "IDS-STAGE101-P1"
+    current_task_id: "IDS-V0_1-STAGE101-P1"
+    next_gate_id: "IDS-STAGE101-P2-GATE"
   stage100_review_state:
     current_stage_id: "IDS-STAGE100"
     current_phase_id: "IDS-STAGE100-REVIEW"
@@ -1714,6 +1719,81 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE101"
+    name: "RAG 可复现"
+    task_id: "IDS-V0_1-STAGE101"
+    acceptance_ids:
+      - "ACC-STAGE-101"
+    objective: "依据冻结 Stage101 任务包完成 RAG 可复现的 P1 范围、输入输出与边界确认，固定回答结构、查询、索引、Prompt、模型、检索上下文、所选依据、来源类型、内部依据不足声明、模型输出权限和业务线白箱人工确认的未来控制引用；本 P1 不创建运行时、业务事实或第二权威事实源。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE101-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE101-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE101-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage101 任务包与 Stage100 Review 已复审无内部依据策略控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。"
+      - "静态合同固定 15 个未来回答可复现控制引用，其中查询、索引、Prompt、模型提供方、模型版本、温度、检索上下文与所选依据形成 8 个记录键引用；来源类型、evidence_gap、输出权限和人工确认门禁保持独立。"
+      - "检索文档保持 evidence 身份且 IDS 规则保持优先级；内部依据、外部公开参考、模型推理与 evidence_gap 保持底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认与最终结论未发布。"
+      - "真实资料、查询、检索、Prompt、模型、模型 Token、数据库、审计、持久化、Agent、OVH、生产、正式上传和推送保持未执行。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、分类、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、Prompt 正文、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
+      - "执行真实查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传、推送或 Stage101 P2。"
+    phases:
+      - phase_id: "IDS-STAGE101-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义 RAG 回答结构、Prompt 版本、内部依据、外部增强、无内部依据策略和模型输出权限；确认检索文档永远只是 evidence，并定义模型输出分类和业务线白箱人工确认门禁。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE101-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE101-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE101-P2-GATE"
+          github_upload_allowed: false
+        pass_conditions:
+          - "静态合同固定 15 个未来 RAG 可复现控制引用，以及由查询、索引、Prompt、模型、温度、检索上下文与所选依据组成的 8 个记录键引用。"
+          - "内部依据不足保持 evidence_gap；外部公开参考与模型推理仅在未来展示层组成 external_augmentation_opinion，底层来源类型持续保留；检索文档保持 evidence，IDS 规则保持优先级。"
+          - "模型输出分类与权限边界只作为未来控制语义；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认和最终结论未发布。"
+          - "真实资料、Prompt 正文、模型配置、查询、检索、模型 Token、Agent、OVH、生产、持久化和上传保持未执行。"
+        stop_conditions:
+          - "任何真实 Prompt、provider、模型、查询、检索、回答、资料、证据、审计记录或业务结论被创建、读取、绑定、执行或持久化。"
+          - "任何 Stage101 P2、P3、P4、整阶段复审、OVH、生产或正式全局上传被启动。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE101-P1"
+            name: "固定 RAG 可复现静态边界"
+            objective: "将冻结任务包与 Stage100 Review 控制证据投影为零运行时静态合同，固定回答结构、查询、索引、Prompt、模型、检索上下文、所选依据、来源类型、evidence_gap、输出权限、人工确认门禁、失败关闭和回退路径。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE100-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-101"
+              - "ACC-STAGE101-P1-01"
+              - "ACC-STAGE101-P1-02"
+              - "ACC-STAGE101-P1-03"
+              - "ACC-STAGE101-P1-04"
+            test_results: "Stage101 P1 聚焦静态合同白箱用例、Stage088--Stage101 精确历史白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage101 P1 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-101_RAG可复现.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE101_PHASE1_RAG_REPRODUCIBILITY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage101_rag_reproducibility_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage101_rag_reproducibility_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage101-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE100_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage100_no_internal_evidence_strategy_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage100-review-local.json"
+            risk: "若将未来可复现记录形状、来源语义、输出分类、控制引用或聚焦用例通过误作真实查询、检索、Prompt、模型、回答、证据、审计或业务结论，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage100 Review 的本地零运行时状态；不改变 Stage100 P1--P4、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+    next_phase_projection:
+      phase_id: "IDS-STAGE101-P2"
+      entry_gate: "IDS-STAGE101-P2-GATE"
+      status: "not_started"
+      phase2_started: false
+      entry_authorized: true
+      github_upload_allowed: false
+      push_allowed: false
   - stage_id: "IDS-STAGE100"
     name: "无内部依据策略"
     task_id: "IDS-V0_1-STAGE100"
@@ -2003,10 +2083,12 @@ stages:
       name: "RAG 可复现"
       taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-101_RAG可复现.md"
       acceptance_id: "ACC-STAGE-101"
-      entry_gate: "IDS-STAGE101-P1-GATE"
-      status: "not_started"
-      stage101_started: false
-      phase1_started: false
+      entry_gate: "IDS-STAGE101-P2-GATE"
+      status: "phase1_completed_local"
+      stage101_started: true
+      phase1_started: true
+      phase1_completed: true
+      phase2_started: false
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false
