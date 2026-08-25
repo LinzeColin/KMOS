@@ -16,6 +16,7 @@
 - 已验证：P1 聚焦 `7/7`，Stage088--Stage100 P1 精确白箱链 `609/609`，Stage005 当前态治理投影 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。
 - 历史阶段白箱投影统一从既有 roadmap、status 与 plan 交叉核验，历史阶段工件继续保持各自的显式白箱断言；该测试辅助逻辑不形成业务事实源。高风险工程建议、合同承诺与生产写回保持业务线白箱人工处理，最终结论保持未发布。
 - 本轮继续只使用 `codex/kmids-stage071-p1` 与唯一开发 worktree；本次 P1 未进行 GitHub 上传或推送。main、release、正式全局上传、OVH、生产、模型与 Agent 保持后续门禁范围，运行计数均为 `0`，运行标志均为 `false`。
+- 用户在后续暂停前明确要求同步现有隔离分支恢复检查点；`codex/kmids-stage071-p1` 已与远端同名分支同步。该同步只保存已验收的本地 P1 及本交接，不改变 `main`、release、正式全局上传、OVH、生产、模型或 Agent 的门禁范围。
 - 回滚范围仅包括本次 P1 的范围说明、静态合同、聚焦用例、历史投影测试辅助逻辑、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PASS_REVIEWED_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_RUNTIME_DISABLED`。Stage099 Review 及其 P1--P4、冻结任务包、受保护资料、GitHub main/release、OVH 与应用状态保持原状。
 
 ## Superseded Gate - Stage098 Review accepted locally - 2026-08-25
