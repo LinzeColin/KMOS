@@ -4857,6 +4857,12 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert 'if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then' in entrypoint
     assert 'sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"' in entrypoint
     assert "RAW_ARCHIVE_AUDIT_PID" in entrypoint
+    assert "RAW_ARCHIVE_AUDIT_CHILD_PID" in entrypoint
+    assert "run_startup_raw_archive_audit()" in entrypoint
+    assert "stop_startup_raw_archive_audit_child()" in entrypoint
+    assert 'trap stop_startup_raw_archive_audit_child INT TERM' in entrypoint
+    assert 'kill -TERM "$RAW_ARCHIVE_AUDIT_CHILD_PID"' in entrypoint
+    assert "stop_startup_raw_archive_audit()" in entrypoint
     assert 'if [ -n "$RAW_ARCHIVE_AUDIT_PID" ]; then' in entrypoint
     assert "run_auth_broker.py" not in cron
     assert "run_history_probe_broker.py" not in cron

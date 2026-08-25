@@ -113,27 +113,63 @@ printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
 # not retry any source, integrity, parser, or credential failure.
 STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS=800
 RAW_ARCHIVE_AUDIT_PID=""
-if python3 /opt/daily-funds/scripts/startup_raw_archive_audit_required.py >/dev/null 2>&1; then
-  (
-    set +e
-    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1
-    RAW_ARCHIVE_AUDIT_RC=$?
-    if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then
-      sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"
-      python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 || true
+
+run_startup_raw_archive_audit() {
+  RAW_ARCHIVE_AUDIT_CHILD_PID=""
+
+  stop_startup_raw_archive_audit_child() {
+    if [ -n "$RAW_ARCHIVE_AUDIT_CHILD_PID" ]; then
+      kill -TERM "$RAW_ARCHIVE_AUDIT_CHILD_PID" 2>/dev/null || true
+      wait "$RAW_ARCHIVE_AUDIT_CHILD_PID" 2>/dev/null || true
     fi
     exit 0
-  ) &
+  }
+
+  # The outer entrypoint owns this wrapper. Forward its termination signal to
+  # the actual audit process so a rolling deployment releases the process lock
+  # before the replacement recovery broker resumes the same request.
+  trap stop_startup_raw_archive_audit_child INT TERM
+
+  python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &
+  RAW_ARCHIVE_AUDIT_CHILD_PID=$!
+  if wait "$RAW_ARCHIVE_AUDIT_CHILD_PID"; then
+    RAW_ARCHIVE_AUDIT_RC=0
+  else
+    RAW_ARCHIVE_AUDIT_RC=$?
+  fi
+  RAW_ARCHIVE_AUDIT_CHILD_PID=""
+
+  if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then
+    sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS" &
+    RAW_ARCHIVE_AUDIT_CHILD_PID=$!
+    if ! wait "$RAW_ARCHIVE_AUDIT_CHILD_PID"; then
+      exit 0
+    fi
+    RAW_ARCHIVE_AUDIT_CHILD_PID=""
+    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &
+    RAW_ARCHIVE_AUDIT_CHILD_PID=$!
+    wait "$RAW_ARCHIVE_AUDIT_CHILD_PID" || true
+    RAW_ARCHIVE_AUDIT_CHILD_PID=""
+  fi
+}
+
+stop_startup_raw_archive_audit() {
+  if [ -n "$RAW_ARCHIVE_AUDIT_PID" ]; then
+    kill -TERM "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
+    wait "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
+    RAW_ARCHIVE_AUDIT_PID=""
+  fi
+}
+
+if python3 /opt/daily-funds/scripts/startup_raw_archive_audit_required.py >/dev/null 2>&1; then
+  run_startup_raw_archive_audit &
   RAW_ARCHIVE_AUDIT_PID=$!
 fi
 
 shutdown() {
   kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
   wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
-  if [ -n "$RAW_ARCHIVE_AUDIT_PID" ]; then
-    kill -TERM "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
-    wait "$RAW_ARCHIVE_AUDIT_PID" 2>/dev/null || true
-  fi
+  stop_startup_raw_archive_audit
   rm -f "$CRON_PID_FILE"
   exit 0
 }
@@ -147,5 +183,6 @@ while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null 
 done
 kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
 wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
+stop_startup_raw_archive_audit
 rm -f "$CRON_PID_FILE"
 exit 1
