@@ -5402,7 +5402,9 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
         0, "funds.csv", ACCOUNT_FAMILY, payload, __import__("hashlib").sha256(payload).hexdigest(), "text/csv",
     )
     patterns = writer._attachment_sparse_patterns((attachment,))
-    writer._clone_sparse(tmp_path / "narrow-sparse", env={}, ref="main", patterns=patterns)
+    sparse_repo = tmp_path / "narrow-sparse"
+    sparse_repo.mkdir()
+    writer._clone_sparse(sparse_repo, env={}, ref="main", patterns=patterns)
 
     assert commands[0][:7] == [
         "clone", "--branch", "main", "--depth=1", "--filter=blob:none", "--sparse", "--no-checkout",
@@ -5416,6 +5418,34 @@ def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, m
     assert writer._publication_sparse_patterns("2026-07-31") == (
         f"{(SPARSE_PATH / 'publications/2026-07-31').as_posix()}/",
     )
+
+
+def test_sparse_scope_validation_prunes_git_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import daily_funds.ingestion as ingestion
+
+    repo = tmp_path / "sparse-clone"
+    metadata = repo / ".git" / "objects" / "pack"
+    metadata.mkdir(parents=True)
+    (metadata / "large-pack-placeholder").write_bytes(b"metadata")
+    allowed = repo / SPARSE_PATH / "raw" / "allowed.json"
+    allowed.parent.mkdir(parents=True)
+    allowed.write_text("{}\n", encoding="utf-8")
+
+    observed_roots: list[Path] = []
+    original_walk = ingestion.os.walk
+
+    def observe_walk(*args, **kwargs):
+        assert kwargs["topdown"] is True
+        assert kwargs["followlinks"] is False
+        for current, directories, files in original_walk(*args, **kwargs):
+            observed_roots.append(Path(current).relative_to(repo))
+            yield current, directories, files
+
+    monkeypatch.setattr(ingestion.os, "walk", observe_walk)
+    GitSparseWriter._assert_sparse_checkout_scope(repo)
+
+    assert Path(".") in observed_roots
+    assert all(".git" not in root.parts for root in observed_roots)
 
 
 def test_sparse_writer_pins_a_sparse_checkout_to_an_exact_audited_commit(
@@ -5432,9 +5462,11 @@ def test_sparse_writer_pins_a_sparse_checkout_to_an_exact_audited_commit(
     monkeypatch.setattr(writer, "_git", fake_git)
     commit_sha = "a" * 40
     patterns = (f"{SPARSE_PATH.as_posix()}/raw/",)
+    sparse_repo = tmp_path / "pinned-sparse"
+    sparse_repo.mkdir()
 
     writer._clone_sparse(
-        tmp_path / "pinned-sparse",
+        sparse_repo,
         env={},
         ref="main",
         patterns=patterns,
