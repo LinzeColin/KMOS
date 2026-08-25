@@ -874,6 +874,10 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "RECOVERY|RECOVERY_STATUS)" in step
     assert "RETRY)" in step
     assert "sleep 10" in step
+    policy_ready = step.index("policy_created=1")
+    access_settle = step.index("sleep 10", policy_ready)
+    status_post_guard = step.index('if [ "$CONTROL_KIND" != "RECOVERY_STATUS" ]; then')
+    assert policy_ready < access_settle < status_post_guard
     assert "reconcile_owned_resources()" in step
     assert "write-owned-resource-env" in step
     assert "owned-resource-state" in step
