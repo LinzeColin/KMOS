@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -526,9 +527,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
             self.assertTrue(
                 all(value == 0 for value in review_receipt["runtime_counts"].values())
             )
-        self.assertIn(
-            current,
-            (
+        legacy_projections = (
                 phase2_current,
                 phase3_current,
                 phase4_current,
@@ -550,7 +549,14 @@ class Stage096KnowledgeBasePoisoningDefensePhase3Tests(unittest.TestCase):
                 stage097_review_current,
                 stage098_phase1_current,
                 stage098_phase2_current,
-            ),
+            )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            legacy_projections,
+            status,
+            plan,
+            ROADMAP,
         )
 
 

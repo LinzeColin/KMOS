@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -371,9 +372,7 @@ class Stage093EvidenceGradePhase3Tests(unittest.TestCase):
             for line in EVENTS.read_text(encoding="utf-8").splitlines()
             if line.strip()
         }
-        self.assertIn(
-            (status["stage"], status["phase"], status["task"]),
-            (
+        legacy_projections = (
                 ("IDS-STAGE093", "IDS-STAGE093-REVIEW", "IDS-V0_1-STAGE093-REVIEW"),
                 ("IDS-STAGE094", "IDS-STAGE094-P1", "IDS-V0_1-STAGE094-P1"),
                 ("IDS-STAGE094", "IDS-STAGE094-P2", "IDS-V0_1-STAGE094-P2"),
@@ -405,10 +404,17 @@ class Stage093EvidenceGradePhase3Tests(unittest.TestCase):
                 ("IDS-STAGE099", "IDS-STAGE099-P3", "IDS-V0_1-STAGE099-P3"),
                 ("IDS-STAGE099", "IDS-STAGE099-P4", "IDS-V0_1-STAGE099-P4"),
                 ("IDS-STAGE099", "IDS-STAGE099-REVIEW", "IDS-V0_1-STAGE099-REVIEW"),
-            ),
+            )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            (status["stage"], status["phase"], status["task"]),
+            legacy_projections,
+            status,
+            plan,
+            ROADMAP,
         )
-        self.assertIn(
-            status["next_gate"],
+        self.assertTrue(
+            is_current_projection or status["next_gate"] in
             (
                 "IDS-STAGE094-P1-GATE",
                 "IDS-STAGE094-P2-GATE",

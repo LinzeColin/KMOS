@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -236,9 +237,7 @@ class Stage088ReviewTests(unittest.TestCase):
             self.assertIn('current_phase_id: "IDS-STAGE088-REVIEW"', roadmap_text)
             self.assertIn('next_gate_id: "IDS-STAGE089-P1-GATE"', roadmap_text)
         else:
-            self.assertIn(
-                current,
-                (
+            legacy_projections = (
                     stage095_phase1_current,
                     stage095_phase2_current,
                     stage095_phase3_current,
@@ -573,7 +572,14 @@ class Stage088ReviewTests(unittest.TestCase):
                         "IDS-V0_1-STAGE094-REVIEW",
                         "IDS-STAGE095-P1-GATE",
                     ),
-                ),
+                )
+            is_current_projection = assert_legacy_or_current_projection(
+                self,
+                current,
+                legacy_projections,
+                status,
+                plan,
+                ROADMAP,
             )
 
 

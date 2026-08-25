@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import json
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 from pathlib import Path
 
 
@@ -449,7 +450,15 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             stage098_phase2_current,
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, legal_history)
+        legacy_projections = legal_history
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            legacy_projections,
+            status,
+            plan,
+            ROADMAP,
+        )
         if current == phase4_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))

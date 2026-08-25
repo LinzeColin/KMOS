@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import json
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 from pathlib import Path
 
 
@@ -343,7 +344,17 @@ class Stage099InternalEvidenceExternalAugmentationReviewTests(unittest.TestCase)
             "IDS-STAGE100-P1-GATE",
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertEqual(review_current, current)
+        legacy_projections = (
+            review_current,
+        )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            legacy_projections,
+            status,
+            plan,
+            ROADMAP,
+        )
         self.assertTrue(REVIEW_RUN.is_file())
         receipt = json.loads(REVIEW_RUN.read_text(encoding="utf-8"))
         self.assertEqual(self.module.PASS_RESULT, receipt["result"])

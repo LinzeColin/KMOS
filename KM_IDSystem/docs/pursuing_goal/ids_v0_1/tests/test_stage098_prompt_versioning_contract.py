@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -312,9 +313,7 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE099-REVIEW",
             "IDS-STAGE100-P1-GATE",
         )
-        self.assertIn(
-            current,
-            (
+        legacy_projections = (
                 phase1_current,
                 phase2_current,
                 phase3_current,
@@ -325,9 +324,18 @@ class Stage098PromptVersioningPhase1Tests(unittest.TestCase):
                 stage099_phase3_current,
                 stage099_phase4_current,
                 stage099_review_current,
-            ),
+            )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            legacy_projections,
+            status,
+            plan,
+            ROADMAP,
         )
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
+        if is_current_projection:
+            return
         expected_stage_status = {
             phase1_current: "P1 静态合同已完成",
             phase2_current: "P2 受控最小切片已完成",

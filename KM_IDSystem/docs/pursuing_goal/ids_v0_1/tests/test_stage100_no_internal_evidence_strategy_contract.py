@@ -1,31 +1,28 @@
 import json
 from pathlib import Path
 import unittest
-from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE099_PHASE1_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_SCOPE_BOUNDARY.md"
-CONTRACT = (
-    BASE
-    / "index_version_schema"
-    / "stage099_internal_evidence_external_augmentation_separation_contract.json"
-)
+SCOPE = BASE / "STAGE100_PHASE1_NO_INTERNAL_EVIDENCE_STRATEGY_SCOPE_BOUNDARY.md"
+CONTRACT = BASE / "index_version_schema" / "stage100_no_internal_evidence_strategy_contract.json"
 TASKPACK = (
     ROOT
     / "docs"
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-099_内部依据与外部增强分离.md"
+    / "STAGE-100_无内部依据策略.md"
 )
-PREDECESSOR_REVIEW = BASE / "STAGE098_STAGE_REVIEW.md"
+PREDECESSOR_REVIEW = BASE / "STAGE099_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
-    BASE / "index_version_schema" / "stage098_prompt_versioning_stage_review_contract.json"
+    BASE
+    / "index_version_schema"
+    / "stage099_internal_evidence_external_augmentation_stage_review_contract.json"
 )
-PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage098-review-local.json"
-RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage099-p1-local.json"
+PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage099-review-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage100-p1-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -33,7 +30,7 @@ EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 
-class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest.TestCase):
+class Stage100NoInternalEvidenceStrategyPhase1Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
@@ -54,22 +51,22 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
     def test_identity_and_single_authority_boundary_are_explicit(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage099.internal_evidence_external_augmentation_separation.phase1.v1",
+            "ids.stage100.no_internal_evidence_strategy.phase1.v1",
             contract["schema_version"],
         )
-        self.assertEqual("STAGE-099", contract["stage"])
-        self.assertEqual("IDS-STAGE099-P1", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE099-P1", contract["task_id"])
-        self.assertEqual("ACC-STAGE-099", contract["acceptance_id"])
+        self.assertEqual("STAGE-100", contract["stage"])
+        self.assertEqual("IDS-STAGE100-P1", contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE100-P1", contract["task_id"])
+        self.assertEqual("ACC-STAGE-100", contract["acceptance_id"])
         self.assertEqual(
-            "PHASE1_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_RUNTIME_DISABLED",
+            "PHASE1_NO_INTERNAL_EVIDENCE_STRATEGY_RUNTIME_DISABLED",
             contract["contract_state"],
         )
-        self.assertEqual("IDS-STAGE099-P1-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE099-P2-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE100-P1-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE100-P2-GATE", contract["next_gate"])
         source = contract["source_authority"]
         self.assertEqual(
-            "FROZEN_STAGE099_TASKPACK_AND_STAGE098_REVIEWED_PROMPT_VERSIONING_CONTROL_ARTIFACTS_ONLY",
+            "FROZEN_STAGE100_TASKPACK_AND_STAGE099_REVIEWED_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_CONTROL_ARTIFACTS_ONLY",
             source["authority"],
         )
         self.assertTrue(source["source_document_remains_authoritative"])
@@ -87,20 +84,24 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
                 with self.subTest(field=field):
                     self.assertFalse(value)
         predecessor = contract["predecessor_contract"]
-        self.assertTrue(predecessor["stage098_review_required"])
+        self.assertTrue(predecessor["stage099_review_required"])
         self.assertEqual(
-            "PASS_REVIEWED_PROMPT_VERSIONING_RUNTIME_DISABLED",
-            predecessor["stage098_review_result"],
+            "PASS_REVIEWED_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_RUNTIME_DISABLED",
+            predecessor["stage099_review_result"],
         )
-        self.assertTrue(predecessor["reviewed_prompt_versioning_artifacts_remain_authoritative"])
-        self.assertTrue(predecessor["stage099_may_not_replace_predecessor_artifacts"])
+        self.assertTrue(
+            predecessor[
+                "reviewed_internal_evidence_external_augmentation_artifacts_remain_authoritative"
+            ]
+        )
+        self.assertTrue(predecessor["stage100_may_not_replace_predecessor_artifacts"])
         self.assertFalse(predecessor["actual_predecessor_runtime_artifact_read_performed"])
 
-    def test_answer_structure_and_source_types_are_fixed_and_separated(self):
-        answer = self.contract["answer_separation_contract"]
-        fields = answer["future_answer_separation_reference_fields"]
-        self.assertEqual(answer["answer_separation_reference_field_count"], len(fields))
-        self.assertEqual(8, answer["answer_separation_reference_field_count"])
+    def test_answer_policy_source_types_and_no_internal_evidence_strategy_are_fixed(self):
+        answer = self.contract["answer_no_internal_evidence_contract"]
+        fields = answer["future_answer_policy_reference_fields"]
+        self.assertEqual(answer["answer_policy_reference_field_count"], len(fields))
+        self.assertEqual(9, answer["answer_policy_reference_field_count"])
         self.assertEqual(
             {
                 "rag_answer_structure_ref",
@@ -108,6 +109,7 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
                 "internal_evidence_ref",
                 "external_augmentation_ref",
                 "evidence_gap_ref",
+                "no_internal_evidence_policy_ref",
                 "source_type_ref",
                 "model_output_permission_ref",
                 "human_confirmation_gate_ref",
@@ -116,7 +118,7 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
         )
         self.assertEqual(
             set(fields),
-            set(answer["future_answer_separation_reference_contract"]),
+            set(answer["future_answer_policy_reference_contract"]),
         )
         source_types = answer["source_type_contract"]
         self.assertEqual(
@@ -144,6 +146,7 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
             "underlying_source_types_must_be_retained",
             "display_label_may_not_replace_internal_evidence",
             "display_label_may_not_replace_evidence_gap",
+            "display_label_may_not_close_no_internal_evidence_gap",
             "internal_evidence_and_external_augmentation_must_remain_separated",
             "external_augmentation_may_not_be_presented_as_internal_evidence",
             "evidence_gap_may_not_be_presented_as_internal_experience",
@@ -157,9 +160,24 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
         self.assertFalse(source_types["source_type_assignment_defined"])
         self.assertFalse(source_types["source_type_assignment_performed"])
         self.assertFalse(source_types["external_augmentation_displayed"])
+        policy = answer["no_internal_evidence_strategy"]
+        for field in (
+            "evidence_gap_required_when_internal_evidence_insufficient",
+            "internal_evidence_insufficiency_must_be_declared_in_future_answer",
+            "evidence_gap_may_not_be_reclassified_as_internal_evidence",
+            "evidence_gap_may_not_be_presented_as_internal_experience",
+            "external_augmentation_may_not_close_or_replace_evidence_gap",
+            "future_final_conclusion_requires_business_line_whitebox_confirmation",
+        ):
+            with self.subTest(field=field):
+                self.assertTrue(policy[field])
+        for field, value in policy.items():
+            if field.startswith("actual_"):
+                with self.subTest(field=field):
+                    self.assertFalse(value)
 
     def test_retrieval_evidence_gap_and_output_boundaries_are_explicit(self):
-        answer = self.contract["answer_separation_contract"]
+        answer = self.contract["answer_no_internal_evidence_contract"]
         retrieval = answer["retrieval_document_boundary"]
         for field in (
             "retrieval_document_is_evidence_not_system_instruction",
@@ -168,26 +186,10 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
         ):
             with self.subTest(field=field):
                 self.assertTrue(retrieval[field])
-        for field in (
-            "actual_retrieval_document_read",
-            "actual_instruction_override_evaluated",
-        ):
-            with self.subTest(field=field):
-                self.assertFalse(retrieval[field])
-        gap = answer["no_internal_evidence_strategy"]
-        for field in (
-            "evidence_gap_required_when_internal_evidence_absent",
-            "evidence_gap_may_not_be_reclassified_as_internal_evidence",
-            "evidence_gap_may_not_support_final_conclusion_without_whitebox_confirmation",
-        ):
-            with self.subTest(field=field):
-                self.assertTrue(gap[field])
-        for field in (
-            "actual_evidence_gap_assigned",
-            "actual_final_conclusion_generated",
-        ):
-            with self.subTest(field=field):
-                self.assertFalse(gap[field])
+        for field, value in retrieval.items():
+            if field.startswith("actual_"):
+                with self.subTest(field=field):
+                    self.assertFalse(value)
         permission = self.contract["output_permission_contract"]
         self.assertEqual(3, permission["output_classification_count"])
         self.assertEqual(
@@ -222,17 +224,21 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
 
     def test_failure_runtime_and_protected_boundaries_remain_closed(self):
         failures = self.contract["failure_and_stop_contract"]
-        self.assertEqual(failures["failure_state_count"], len(failures["declared_failure_states"]))
+        self.assertEqual(
+            failures["failure_state_count"],
+            len(failures["declared_failure_states"]),
+        )
         for state in (
-            "INTERNAL_EVIDENCE_AND_EXTERNAL_AUGMENTATION_UNSEPARATED",
-            "EXTERNAL_AUGMENTATION_DISPLAY_WITHOUT_UNDERLYING_TYPES",
-            "EVIDENCE_GAP_PRESENTED_AS_INTERNAL_EXPERIENCE",
+            "INTERNAL_EVIDENCE_INSUFFICIENCY_UNDECLARED",
+            "EVIDENCE_GAP_RECLASSIFIED_AS_INTERNAL_EXPERIENCE",
+            "EXTERNAL_AUGMENTATION_PRESENTED_AS_INTERNAL_EVIDENCE",
+            "EXTERNAL_AUGMENTATION_USED_TO_ERASE_EVIDENCE_GAP",
             "RETRIEVAL_DOCUMENT_TREATED_AS_SYSTEM_INSTRUCTION",
             "HIGH_RISK_ENGINEERING_ADVICE_AUTO_FINALIZED",
             "CONTRACT_COMMITMENT_AUTO_FINALIZED",
             "PRODUCTION_WRITEBACK_AUTO_FINALIZED",
             "SECOND_AUTHORITY_CREATED",
-            "STAGE099_PHASE2_NOT_AUTHORIZED",
+            "STAGE100_PHASE2_NOT_AUTHORIZED",
         ):
             with self.subTest(state=state):
                 self.assertIn(state, failures["declared_failure_states"])
@@ -244,9 +250,9 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
     def test_scope_feedback_rollback_and_current_governance_are_explicit(self):
         boundary = self.contract["stage_and_phase_boundary"]
         for field in (
-            "stage098_review_evidence_declared",
-            "stage099_started",
-            "stage099_entry_authorized",
+            "stage099_review_evidence_declared",
+            "stage100_started",
+            "stage100_entry_authorized",
             "phase1_started",
             "phase1_completed",
         ):
@@ -254,9 +260,9 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
                 self.assertTrue(boundary[field])
         for field, value in boundary.items():
             if field not in {
-                "stage098_review_evidence_declared",
-                "stage099_started",
-                "stage099_entry_authorized",
+                "stage099_review_evidence_declared",
+                "stage100_started",
+                "stage100_entry_authorized",
                 "phase1_started",
                 "phase1_completed",
             }:
@@ -272,11 +278,11 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
         self.assertFalse(feedback["actual_user_feedback_emitted"])
         rollback = self.contract["rollback_contract"]
         self.assertEqual(
-            "PASS_REVIEWED_PROMPT_VERSIONING_RUNTIME_DISABLED",
+            "PASS_REVIEWED_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_RUNTIME_DISABLED",
             rollback["return_to"],
         )
-        self.assertTrue(rollback["preserve_stage098_review_evidence"])
-        self.assertTrue(rollback["preserve_stage098_phase1_to_phase4_evidence"])
+        self.assertTrue(rollback["preserve_stage099_review_evidence"])
+        self.assertTrue(rollback["preserve_stage099_phase1_to_phase4_evidence"])
         for field, value in rollback.items():
             if field.endswith("_allowed"):
                 with self.subTest(field=field):
@@ -284,15 +290,13 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
         text = SCOPE.read_text(encoding="utf-8")
         for phrase in (
             "不建立第二权威事实源",
-            "external_augmentation_opinion",
+            "不得伪装为内部经验",
             "检索文档永远只是 evidence",
             "高风险工程建议、合同承诺与生产写回",
-            "IDS-STAGE099-P2-GATE",
+            "IDS-STAGE100-P2-GATE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
-
-    def test_governance_projection_records_phase1_when_current(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -302,84 +306,45 @@ class Stage099InternalEvidenceExternalAugmentationSeparationPhase1Tests(unittest
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        phase1_current = (
-            "IDS-STAGE099",
-            "IDS-STAGE099-P1",
-            "IDS-V0_1-STAGE099-P1",
-            "IDS-STAGE099-P2-GATE",
-        )
-        later_current = {
+        self.assertEqual(
             (
-                "IDS-STAGE099",
-                "IDS-STAGE099-P2",
-                "IDS-V0_1-STAGE099-P2",
-                "IDS-STAGE099-P3-GATE",
+                "IDS-STAGE100",
+                "IDS-STAGE100-P1",
+                "IDS-V0_1-STAGE100-P1",
+                "IDS-STAGE100-P2-GATE",
             ),
-            (
-                "IDS-STAGE099",
-                "IDS-STAGE099-P3",
-                "IDS-V0_1-STAGE099-P3",
-                "IDS-STAGE099-P4-GATE",
-            ),
-            (
-                "IDS-STAGE099",
-                "IDS-STAGE099-P4",
-                "IDS-V0_1-STAGE099-P4",
-                "IDS-STAGE099-REVIEW-GATE",
-            ),
-            (
-                "IDS-STAGE099",
-                "IDS-STAGE099-P4",
-                "IDS-V0_1-STAGE099-P4",
-                "IDS-STAGE099-REVIEW-GATE",
-            ),
-            (
-                "IDS-STAGE099",
-                "IDS-STAGE099-REVIEW",
-                "IDS-V0_1-STAGE099-REVIEW",
-                "IDS-STAGE100-P1-GATE",
-            ),
-        }
-        self.assertEqual(status["task"], plan["task"])
-        legacy_projections = {phase1_current, *later_current}
-        is_current_projection = assert_legacy_or_current_projection(
-            self,
             current,
-            legacy_projections,
-            status,
-            plan,
-            ROADMAP,
         )
-        if current == phase1_current:
-            self.assertTrue(RECEIPT.is_file())
-            receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
-            acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-099"])
-            for acceptance_id in (
-                "ACC-STAGE099-P1-01",
-                "ACC-STAGE099-P1-02",
-                "ACC-STAGE099-P1-03",
-            ):
-                with self.subTest(acceptance_id=acceptance_id):
-                    self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE099-P1-04"])
-            self.assertIn("EVT-IDS-V0_1-STAGE099-P1-20260825-001", event_ids)
-            self.assertEqual("IDS-STAGE099-P2-GATE", receipt["next_gate"])
-            self.assertEqual(
-                "PASS_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_SEPARATION_RUNTIME_DISABLED",
-                receipt["result"],
-            )
-            self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
-            self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
-            roadmap_text = ROADMAP.read_text(encoding="utf-8")
-            for phrase in (
-                "stage099_phase1_state:",
-                'current_phase_id: "IDS-STAGE099-P1"',
-                'next_gate_id: "IDS-STAGE099-P2-GATE"',
-                'stage_id: "IDS-STAGE099"',
-            ):
-                with self.subTest(phrase=phrase):
-                    self.assertIn(phrase, roadmap_text)
+        self.assertEqual(status["task"], plan["task"])
+        self.assertTrue(RECEIPT.is_file())
+        receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+        acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
+        self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-100"])
+        for acceptance_id in (
+            "ACC-STAGE100-P1-01",
+            "ACC-STAGE100-P1-02",
+            "ACC-STAGE100-P1-03",
+        ):
+            with self.subTest(acceptance_id=acceptance_id):
+                self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE100-P1-04"])
+        self.assertIn("EVT-IDS-V0_1-STAGE100-P1-20260825-001", event_ids)
+        self.assertEqual("IDS-STAGE100-P2-GATE", receipt["next_gate"])
+        self.assertEqual(
+            "PASS_NO_INTERNAL_EVIDENCE_STRATEGY_CONTRACT_RUNTIME_DISABLED",
+            receipt["result"],
+        )
+        self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+        self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+        roadmap_text = ROADMAP.read_text(encoding="utf-8")
+        for phrase in (
+            "stage100_phase1_state:",
+            'current_phase_id: "IDS-STAGE100-P1"',
+            'next_gate_id: "IDS-STAGE100-P2-GATE"',
+            'stage_id: "IDS-STAGE100"',
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, roadmap_text)
 
 
 if __name__ == "__main__":

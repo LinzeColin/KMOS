@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import assert_legacy_or_current_projection
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -450,7 +451,15 @@ class Stage099InternalEvidenceExternalAugmentationPhase2Tests(unittest.TestCase)
             ),
         }
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, {phase2_current, *later_current})
+        legacy_projections = {phase2_current, *later_current}
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            legacy_projections,
+            status,
+            plan,
+            ROADMAP,
+        )
         if current == phase2_current:
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))

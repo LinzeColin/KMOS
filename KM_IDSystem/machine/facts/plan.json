@@ -1,20 +1,20 @@
 {
-  "stage": "IDS-STAGE099",
-  "phase": "IDS-STAGE099-REVIEW",
-  "task": "IDS-V0_1-STAGE099-REVIEW",
-  "now": "IDS-V0_1-STAGE099-REVIEW 已完成 Stage099 P1--P4 的纯内存机械复审与本地治理投影；下一独立 run 才可进入 Stage100 P1。",
+  "stage": "IDS-STAGE100",
+  "phase": "IDS-STAGE100-P1",
+  "task": "IDS-V0_1-STAGE100-P1",
+  "now": "IDS-V0_1-STAGE100-P1 已完成无内部依据策略的纯内存静态合同与本地治理投影；下一独立 run 才可进入 Stage100 P2。",
   "owner": "KMOS 开发负责人；本阶段使用唯一既有开发工作树、单一分支与本地验证节奏。",
-  "objective": "以冻结 Stage099 任务包、Stage099 P1--P4 控制工件与 Stage098 Review 已复审 Prompt 版本化控制工件为唯一控制上下文，机械复审固定形状、来源类型、提示注入防护、输出权限、业务线白箱人工处理、P4→P3 回退和零运行时边界。",
+  "objective": "以冻结 Stage100 任务包与 Stage099 Review 已复审内部依据与外部增强分离控制工件为唯一控制上下文，固定无内部依据时的 evidence_gap、内部经验声明禁止、外部增强边界、提示注入防护、输出权限、业务线白箱人工处理与零运行时边界。",
   "scope": [
-    "机械复审 P1 的 8/4/3/15/4、P2 的 6×19/4/35/210、P3 的 6×28=168/5/6/15 与 P4 的 6/6/6/6/6/2、14/12/11/11/12/12、384/4/16 固定控制形状",
-    "保持检索文档 evidence 身份、IDS 规则优先级、evidence_gap、底层来源类型分离、external_augmentation_opinion 展示标签与三类高风险输出白箱门禁",
-    "保持最终结论未发布、人工确认未记录与 P4→P3 未来回退白箱前置",
-    "Stage100 只开放 P1 门禁，保持未启动"
+    "固定 rag_answer_structure_ref、prompt_version_ref、internal_evidence_ref、external_augmentation_ref、evidence_gap_ref、no_internal_evidence_policy_ref、source_type_ref、model_output_permission_ref 与 human_confirmation_gate_ref 九个未来控制引用",
+    "保持内部依据不足时 evidence_gap、不得伪装为内部经验、外部增强不得替代缺口、检索文档 evidence 身份、IDS 规则优先级与四类底层来源类型",
+    "保持三类高风险输出业务线白箱门禁、最终结论未发布与人工确认未记录",
+    "Stage100 只完成 P1，P2 仅开放下一独立 run 门禁"
   ],
   "non_goals": [
     "真实业务源、原始元数据、授权 fixture、检索结果、证据账本、提示词正文、回答、报告、数据库、参数和业务结论继续由受保护边界管理",
     "真实查询、版本治理、来源类型绑定、外部增强展示、提示词执行、模型选择或调用、引用生成、模型输出分类、回答发布、人工确认、合同承诺、生产写回、Prompt 回滚、模型配置回退、模型 Token、Agent、OVH 与生产继续由后续授权阶段管理",
-    "Stage100 P1 之后的实现、合并、正式全局上传、OVH 部署、生产激活与应用重装继续由后续阶段管理"
+    "Stage100 P2--P4、整阶段复审、合并、正式全局上传、OVH 部署、生产激活与应用重装继续由后续阶段管理"
   ],
-  "stop_condition": "本 run 在 Stage099 Review 的本地验证与可恢复提交完成后结束；下一独立 run 才可进入 IDS-STAGE100-P1-GATE，继续使用同一既有开发 worktree。真实资料、提示词正文、provider、模型、查询、检索、回答、报告、证据账本、数据库、来源绑定、外部增强展示、模型 Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
+  "stop_condition": "本 run 在 Stage100 P1 的本地验证与可恢复提交完成后结束；下一独立 run 才可进入 IDS-STAGE100-P2-GATE，继续使用同一既有开发 worktree。真实资料、提示词正文、provider、模型、查询、检索、回答、报告、证据账本、数据库、来源绑定、外部增强展示、模型 Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
 }
