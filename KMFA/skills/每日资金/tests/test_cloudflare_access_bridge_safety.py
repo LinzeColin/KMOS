@@ -945,3 +945,34 @@ def test_workflow_component_restart_requires_an_exact_compose_component_mapping(
     assert "trap 'rm -f" in step
     assert "json.dumps" not in step
     assert "inputs.command" not in step
+
+
+def test_workflow_force_rebuild_uses_the_documented_deploy_route_only() -> None:
+    workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
+    start = workflow.index("受控强制重建每日资金恢复目标")
+    step = workflow[start:]
+
+    assert "daily-funds-recovery-force-rebuild" in workflow
+    assert "inputs.mode == 'daily-funds-recovery-force-rebuild'" in step
+    assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
+    assert "daily_funds_force_rebuild=MAIN_REF_REQUIRED" in step
+    assert "daily_funds_force_rebuild=APP_REQUIRED" in step
+    assert "daily_funds_force_rebuild=APP_INVALID" in step
+    assert 'app.get("name") != "kmfa-kmos-p1"' in step
+    assert 'app.get("build_pack") != "dockercompose"' in step
+    assert 'app.get("docker_compose_location") != "KMFA/deploy/coolify/docker-compose.yml"' in step
+    assert '"docker_compose_custom_start_command"' in step
+    assert '"docker_compose_custom_build_command"' in step
+    assert "COMPOSE_COMMAND_STATE_UNAVAILABLE" in step
+    assert "COMPOSE_COMMAND_CONFIGURED" in step
+    assert '"$BASE/api/v1/deployments/applications/$APP"' in step
+    assert "DEPLOYMENT_ALREADY_ACTIVE" in step
+    assert '"$BASE/api/v1/deploy?uuid=$APP&force=true"' in step
+    assert '"$BASE/api/v1/deployments/$deployment_uuid"' in step
+    assert "daily_funds_force_rebuild_deployment=QUEUED" in step
+    assert "daily_funds_force_rebuild=FINISHED" in step
+    assert "-X PATCH" not in step
+    assert "--force-recreate" not in step
+    assert "json.dumps" not in step
+    assert "inputs.command" not in step
+    assert "rm -rf" not in step
