@@ -120,8 +120,10 @@
     "stage106_p3_evidence_preserved": true,
     "stage106_p4_evidence_preserved": true,
     "stage105_review_evidence_preserved": true,
-    "stage106_review_github_upload_performed": false,
-    "stage106_review_push_performed": false,
+    "formal_stage106_review_github_upload_performed": false,
+    "formal_stage106_review_push_performed": false,
+    "user_authorized_recovery_checkpoint_branch": "codex/kmids-stage071-p1",
+    "user_authorized_recovery_checkpoint_requested": true,
     "main_or_release_changed": false
   },
   "validation": {
@@ -141,13 +143,13 @@
     "github_upload_allowed": false,
     "push_allowed": false,
     "repository_wide_green_claimed": false,
-    "final_validation_recorded": false
+    "final_validation_recorded": true
   },
   "final_validation": {
-    "completed_at": "PENDING_FINAL_VALIDATION",
+    "completed_at": "2026-08-26T09:45:22+1000",
     "focused_review_test_count": 7,
     "stage106_phase1_to_review_compatibility_test_count": 38,
-    "stage088_to_stage106_precise_chain_test_count": 0,
+    "stage088_to_stage106_precise_chain_test_count": 891,
     "stage005_direct_validation_valid": true,
     "batch041_050_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
     "batch051_060_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
