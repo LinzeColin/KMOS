@@ -4315,11 +4315,21 @@ def test_capability_scope_does_not_reuse_an_orphaned_success_receipt(tmp_path: P
     ) == {}
 
 
-def test_raw_archive_audit_fails_closed_when_private_raw_census_is_missing(
+@pytest.mark.parametrize(("internal_code", "expected_code"), (
+    ("SOURCE_MISSING", "RAW_ARCHIVE_AUDIT_SOURCE_MISSING"),
+    ("GIT_AUDIT_TRANSPORT_RETRYABLE", "RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE"),
+    ("RAW_ARCHIVE_CENSUS_LIMIT_EXCEEDED", "RAW_ARCHIVE_AUDIT_CENSUS_LIMIT"),
+    ("GIT_READBACK_FAILED", "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW"),
+    ("GIT_SPARSE_SCOPE_VIOLATION", "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW"),
+    ("RAW_PATH_HASH_COLLISION", "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"),
+))
+def test_raw_archive_audit_projects_safe_failure_classes_without_receipt(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    internal_code: str,
+    expected_code: str,
 ) -> None:
-    """An unreadable raw census cannot create a capability or money receipt."""
+    """A raw failure keeps exact evidence private and blocks every receipt."""
 
     import daily_funds.runtime as runtime_module
 
@@ -4330,14 +4340,14 @@ def test_raw_archive_audit_fails_closed_when_private_raw_census_is_missing(
             pass
 
         def audit_raw_archive(self, *, on_attachment=None):
-            raise IngestionError("SOURCE_MISSING")
+            raise IngestionError(internal_code)
 
     runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime_module, "GitSparseWriter", MissingArchiveWriter)
 
     assert runtime.raw_archive_audit() == {
         "ok": False,
-        "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+        "code": expected_code,
     }
     assert not (config.publication_dir / "current.json").exists()
     with runtime.state.connection() as connection:
@@ -4496,7 +4506,7 @@ def test_raw_archive_audit_rejects_readback_payload_hash_mismatch_without_receip
 
     assert runtime.raw_archive_audit() == {
         "ok": False,
-        "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+        "code": "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW",
     }
     assert not (config.publication_dir / "current.json").exists()
     with runtime.state.connection() as connection:

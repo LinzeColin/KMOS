@@ -637,6 +637,28 @@ def test_daily_funds_recovery_is_a_fixed_access_api_and_never_returns_raw_result
         "active_step": "NONE",
     }
 
+    (control / "daily_funds_recovery_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.recovery_session.v1",
+        "request_id": request["request_id"],
+        "state": "FAILED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_AUDIT_SOURCE_MISSING",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    }), encoding="utf-8")
+    diagnostic = client.get("/ops/api/daily-funds/recovery")
+    assert diagnostic.status_code == 200
+    assert diagnostic.json() == {
+        "state": "FAILED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_AUDIT_SOURCE_MISSING",
+        "updated_at": diagnostic.json()["updated_at"],
+        "expires_at": diagnostic.json()["expires_at"],
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    }
+
 
 def test_daily_funds_recovery_marks_a_real_control_volume_failure(tmp_path, monkeypatch):
     publication = tmp_path / "publication"

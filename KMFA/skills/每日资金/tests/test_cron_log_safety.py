@@ -130,6 +130,17 @@ def test_raw_archive_audit_uses_the_same_fixed_values_free_cron_contract() -> No
     }
 
 
+@pytest.mark.parametrize("machine_code", (
+    "RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE",
+    "RAW_ARCHIVE_AUDIT_SOURCE_MISSING",
+    "RAW_ARCHIVE_AUDIT_CENSUS_LIMIT",
+    "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW",
+))
+def test_raw_archive_audit_safe_failure_classes_are_admitted_without_raw_detail(machine_code: str) -> None:
+    event = cron_event("raw-archive-audit", "NEEDS_ATTENTION", machine_code)
+    assert event["machine_code"] == machine_code
+
+
 def test_raw_coverage_repair_uses_the_same_fixed_values_free_cron_contract() -> None:
     event = cron_event("raw-coverage-repair", "SUCCEEDED", "RAW_COVERAGE_REPAIRED")
     assert event == {

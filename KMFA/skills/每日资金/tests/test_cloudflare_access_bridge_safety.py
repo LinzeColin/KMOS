@@ -586,7 +586,7 @@ def test_probe_start_does_not_attribute_an_unmarked_503_to_the_control_volume(tm
     assert "edge-body-must-not-escape" not in json.dumps(summary)
 
 
-def test_recovery_receipt_accepts_only_fixed_progress_and_publication_states(tmp_path: Path) -> None:
+def test_recovery_receipt_accepts_only_fixed_recovery_states(tmp_path: Path) -> None:
     response = tmp_path / "recovery.json"
     headers = _recovery_headers(tmp_path / "recovery.headers")
     _write(response, {
@@ -616,6 +616,32 @@ def test_recovery_receipt_accepts_only_fixed_progress_and_publication_states(tmp
     }
     _write(response, summary)
     assert recovery_poll_state(response) == "PUBLISHED_NEEDS_REVIEW"
+
+    _write(response, {
+        "state": "FAILED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_AUDIT_SOURCE_MISSING",
+        "updated_at": "2026-08-25T10:00:00Z",
+        "expires_at": "2026-08-25T10:50:00Z",
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    })
+    failure = summarize_recovery_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+    assert failure == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "recovery_state": "FAILED",
+        "completed_step_count": "0",
+        "active_step": "RAW_ARCHIVE_AUDIT",
+        "machine_code": "DAILY_FUNDS_RECOVERY_AUDIT_SOURCE_MISSING",
+        "result": "NOT_MET",
+    }
+    _write(response, failure)
+    assert recovery_poll_state(response) == "TERMINAL_NOT_MET"
 
     _write(response, {
         "state": "RUNNING",
