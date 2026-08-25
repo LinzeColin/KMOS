@@ -1,12 +1,22 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage104 Review accepted locally - 2026-08-26
+## Current Gate - Stage105 P1 accepted locally - 2026-08-26
+
+- `IDS-V0_1-STAGE105-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE105 / IDS-STAGE105-P1 / IDS-V0_1-STAGE105-P1 / IDS-STAGE105-P2-GATE`。P2 只可由新的独立 run 进入。
+- P1 固定 `24` 个未来报告控制引用，关键结论未来关联 `evidence_id` 或 `evidence_gap`；固定引用来源与页码、索引版本、生成时间、`data/index/evidence/model snapshot` 五项快照、外部增强章节、业务线白箱人工确认、报告快照、影响分析、质量评分、导出审计、模板限制、重新生成、撤回与 PDF 引用来源。
+- 已验证：P1 聚焦 `7/7`，Stage104 Review 与 Stage105 P1 显式兼容 `49/49`，Stage088--Stage105 精确白箱链 `822/822`，Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞与双平面检查均通过。
+- 来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威；外部增强保留 `external_public_reference` 与 `model_reasoning` 的底层来源类型，不能写成内部项目依据或替代 `evidence_gap`。人工确认未记录，最终结论未发布。
+- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户明确授权的远端恢复检查点固定在 `codex/kmids-stage071-p1@2d2e7a75a`；本 P1 不新增远端写入，`main`、release、OVH 与生产保持后续门禁。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、历史治理投影、machine run、机器事实、生成中文视图、事件、变更日志和本交接，返回 `PASS_REVIEWED_RAG_NEGATIVE_TEST_RUNTIME_DISABLED`；Stage104 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 `IDS-STAGE105-P2-GATE`，继续复用唯一既有开发 worktree 与分支。
+
+## Superseded Gate - Stage104 Review accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE104-REVIEW` 已完成本地验收；当前治理状态为 `IDS-STAGE104 / IDS-STAGE104-REVIEW / IDS-V0_1-STAGE104-REVIEW / IDS-STAGE105-P1-GATE`。Stage105 P1 只可由新的独立 run 进入。
 - Review 固定复核 P1 的 `13/5/4/5/19/4`、P2 的 `5×29/4×57/285`、P3 的 `5×34=170/5/5/28` 与 P4 的 `5/5/5/5/5/2`、`17/12/14/17/12/12`、`384/4/16`；八元控制引用、文档 evidence 边界、IDS 规则优先、来源类型、输出权限、业务线白箱人工处理、失败关闭和 P4→P3 回退保持一致。
 - 已验证：Review 聚焦 `10/10`，Stage104 P1--Review 显式兼容 `42/42`，Stage088--Stage104 精确白箱链 `815/815`，Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。十个历史白箱断言已明确接受现行 Stage104 Review 投影。
 - 文档 evidence 与文档内潜在指令保持不可信、不可执行参考，无法覆盖 IDS 规则、输出权限或人工确认；`evidence_gap` 保持独立来源类型。外部增强展示保留 `external_public_reference` 与 `model_reasoning` 的底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，人工确认未记录，最终结论未发布。prompt 回滚和模型配置回退只描述未来白箱批准、版本化依据与可验证目标。
-- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户明确授权的 `07f3a0970` 远端恢复检查点只保全历史恢复能力；本 Review 完成态没有新增远端写入，正式全局上传、`main`、release、OVH 与生产保持未变。
+- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户明确授权的远端恢复检查点已将既有开发分支同步至 `codex/kmids-stage071-p1@2d2e7a75a`，仅保全已验收恢复能力；正式全局上传、`main`、release、OVH 与生产保持未变。
 - 回滚只撤回本 Review 的范围说明、执行器、合同、聚焦用例、历史投影断言、machine run、机器事实、治理路线、生成中文视图、事件、变更日志和本交接，返回 `PASS_RAG_NEGATIVE_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage104 P1--P4、Stage103 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
 - 下一步：只在新的独立 run 进入 `IDS-STAGE105-P1-GATE`，继续复用唯一既有开发 worktree 与分支。
 

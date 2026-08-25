@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage105-p1-local",
+    "date": "2026-08-26",
+    "summary": "完成 Stage105 报告证据绑定 P1 静态合同：固定 24 个未来报告控制引用、data/index/evidence/model 五项生成快照、外部增强章节与业务线白箱人工确认项、报告快照/影响分析/质量评分/导出审计/模板限制/重新生成与撤回控制引用；关键结论未来关联 evidence_id 或 evidence_gap，PDF 未来显示引用来源。已通过 P1 聚焦 7/7、Stage104 Review 与 Stage105 P1 显式兼容 49/49、Stage088--Stage105 精确白箱链 822/822、Stage005 直接治理校验 valid=true、Batch041-050、Batch051-060、7 个机器生成中文视图、文档预算、无登记阻塞与双平面检查。运行计数均为 0、运行标志均为 false；用户明确授权的远端恢复检查点固定在 `codex/kmids-stage071-p1@2d2e7a75a`，P1 本身没有新增远端写入，main、release、OVH 与生产保持后续门禁，下一步仅可在新的独立 run 进入 IDS-STAGE105-P2-GATE。"
+  },
+  {
     "version": "v0.1-stage104-review-local",
     "date": "2026-08-26",
     "summary": "完成 Stage104 RAG 负向测试 P1--P4 的纯内存机械复审：固定复核 P1 的 13/5/4/5/19/4、P2 的 5×29/4×57/285、P3 的 5×34=170/5/5/28 与 P4 的 5/5/5/5/5/2、17/12/14/17/12/12、384/4/16；八元控制引用、文档 evidence 边界、IDS 规则优先、来源类型、输出权限、业务线白箱人工处理、失败关闭与 P4→P3 回退保持一致。已通过 Review 聚焦 10/10、Stage104 P1--Review 显式兼容 42/42、Stage088--Stage104 精确白箱链 815/815、Stage005 直接治理校验 valid=true、Batch041-050、Batch051-060、7 个机器生成中文视图、文档预算、无登记阻塞与双平面检查。运行计数均为 0、运行标志均为 false；用户明确授权的 07f3a0970 恢复检查点保持不变，本 Review 没有新增远端写入，正式全局上传、main、release、OVH 与生产继续由 Stage105 及后续门禁承接。"
