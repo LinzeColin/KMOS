@@ -307,22 +307,35 @@ class Stage103ModelOutputPermissionGatePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P1",
             "IDS-STAGE103-P2-GATE",
         )
-        self.assertEqual(stage103_phase1_current, current)
-        self.assertTrue(
-            assert_legacy_or_current_projection(
-                self,
-                current,
-                set(),
-                status,
-                plan,
-                ROADMAP,
-            )
+        stage103_phase2_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-P2",
+            "IDS-V0_1-STAGE103-P2",
+            "IDS-STAGE103-P3-GATE",
         )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            {stage103_phase1_current},
+            status,
+            plan,
+            ROADMAP,
+        )
+        if current == stage103_phase1_current:
+            self.assertFalse(is_current_projection)
+        else:
+            self.assertEqual(stage103_phase2_current, current)
+            self.assertTrue(is_current_projection)
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_by_id = {
             item["id"]: item["status"] for item in acceptance["items"]
         }
-        self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-103"])
+        if current == stage103_phase1_current:
+            self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-103"])
+        else:
+            self.assertEqual(
+                "P2 受控最小切片已完成", acceptance_by_id["ACC-STAGE-103"]
+            )
         for acceptance_id in (
             "ACC-STAGE103-P1-01",
             "ACC-STAGE103-P1-02",

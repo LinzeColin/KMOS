@@ -1,3 +1,10 @@
+## 2026-08-25 · Stage103 模型输出权限门禁 P2
+
+- 完成冻结 P2 的纯内存受控最小切片：固定 `5` 条、每条 `26` 字段的非业务 `reference-only` 控制请求，记录 `query`、`index_version`、`prompt_version`、`model_version` 与 `selected evidence` 的未来可复现形状，形成 `4` 组、每条 `46` 字段、共 `230` 个控制检查点、`33` 类失败关闭与 `4` 条中文反馈。
+- 文档 evidence 与文档内潜在指令保持不可信、不可执行参考；IDS 规则、输出权限与业务线白箱人工确认保持优先。`external_augmentation_opinion` 作为展示标签保留外部公开参考和模型推理的底层来源类型，`evidence_gap` 保持独立来源类型。
+- 本地验收记录：P2/前序聚焦 `49/49`、Stage088--Stage103 精确白箱链 `747/747`、Stage005 治理回归 `178/178` 与直接校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- 运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`；既有隔离分支 `codex/kmids-stage071-p1` 的远端恢复检查点为 `ce7b234898a8d03a34bcb19430a62029eb904323`，本 P2 没有新增远端写入。下一步仅在新的独立 run 进入 `IDS-STAGE103-P3-GATE`。
+
 ## 2026-08-25 · Stage103 模型输出权限门禁 P1
 
 - 完成冻结 P1 的纯内存静态合同：固定 `13` 个未来控制引用、`5` 个回答结构区段、`4` 类底层来源类型、`5` 类输出权限、`24` 类失败关闭与 `4` 条中文反馈；文档 evidence、文档内潜在指令、IDS 规则、`evidence_gap`、外部增强、业务线白箱人工确认和审计边界保持各自职责。

@@ -450,6 +450,12 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P1",
             "IDS-STAGE103-P2-GATE",
         )
+        stage103_phase2_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-P2",
+            "IDS-V0_1-STAGE103-P2",
+            "IDS-STAGE103-P3-GATE",
+        )
         legacy_projections = {phase1_current, phase2_current}
         if current in {
             phase4_current,
@@ -460,6 +466,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_phase4_current,
             successor_review_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             legacy_projections.add(phase3_current)
         if current in {
@@ -470,6 +477,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_phase4_current,
             successor_review_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             legacy_projections.add(phase4_current)
         if current in {
@@ -479,6 +487,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_phase4_current,
             successor_review_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             legacy_projections.add(review_current)
         if current in {
@@ -486,6 +495,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_phase3_current,
             successor_phase4_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             legacy_projections.add(successor_current)
         if current in {
@@ -493,12 +503,14 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_phase4_current,
             successor_review_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             legacy_projections.add(successor_phase2_current)
         if current in {
             successor_phase4_current,
             successor_review_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             legacy_projections.add(successor_phase3_current)
         is_current_projection = assert_legacy_or_current_projection(
@@ -558,6 +570,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             successor_phase4_current,
             successor_review_current,
             stage103_phase1_current,
+            stage103_phase2_current,
         }:
             self.assertTrue(is_current_projection)
         else:

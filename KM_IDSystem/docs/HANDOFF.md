@@ -9,16 +9,26 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage103 P1 accepted locally - 2026-08-25
+## Current Gate - Stage103 P2 accepted locally - 2026-08-25
 
-- `IDS-V0_1-STAGE103-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-P1 / IDS-V0_1-STAGE103-P1 / IDS-STAGE103-P2-GATE`。P2 只可由新的独立 run 进入。
+- `IDS-V0_1-STAGE103-P2` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-P2 / IDS-V0_1-STAGE103-P2 / IDS-STAGE103-P3-GATE`。P3 只可由新的独立 run 进入。
+- P2 固定 `5` 条非业务、`reference-only` 控制请求，每条 `26` 个控制字段；`query`、`index_version`、`prompt_version`、`model_version` 与 `selected evidence` 保持未来可复现记录形状。四组白箱投影每条 `46` 字段，共 `230` 个检查点，覆盖回答合同、文档 evidence 防护、来源类型与外部增强展示、输出权限和业务线白箱人工确认。
+- 已验证：P2/前序聚焦 `49/49`，Stage088--Stage103 精确白箱链 `747/747`，Stage005 治理回归 `178/178` 与直接校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
+- 文档 evidence 与文档内潜在指令保持不可信、不可执行参考；IDS 规则、输出权限与业务线白箱人工确认保持优先。`external_augmentation_opinion` 作为展示标签保留外部公开参考与模型推理的底层来源类型，`evidence_gap` 保持独立来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。
+- 回执记录所有运行计数为 `0`、所有运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。真实资料、文档正文、查询、检索、Prompt、模型、OVH、生产、main 与 release 保持既有门禁。
+- 用户授权的隔离分支远端恢复检查点为 `codex/kmids-stage071-p1@ce7b234898a8d03a34bcb19430a62029eb904323`，保全 Stage103 P1；P2 没有新增远端写入，正式全局上传继续保持关闭。
+- 回滚只撤回本 P2 的说明、纯内存控制切片、合同、聚焦用例、machine run、机器事实、治理路线、生成中文视图、事件和本交接，返回 `PHASE1_MODEL_OUTPUT_PERMISSION_GATE_RUNTIME_DISABLED`；Stage103 P1、Stage102 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 `IDS-STAGE103-P3-GATE`，继续复用唯一开发 worktree 与分支。
+
+## Superseded Gate - Stage103 P1 accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE103-P1` 已完成本地验收；完成时治理状态为 `IDS-STAGE103 / IDS-STAGE103-P1 / IDS-V0_1-STAGE103-P1 / IDS-STAGE103-P2-GATE`。当前门禁已由上方 Stage103 P2 承接。
 - P1 固定 `13` 个未来控制引用、`5` 个未来回答结构区段、`4` 类底层来源类型、`5` 类输出权限、`24` 类失败关闭和 `4` 条中文反馈；回答结构、Prompt 版本、内部依据、外部增强、`evidence_gap`、文档 evidence、文档内潜在指令、IDS 规则、输出权限、业务线白箱人工确认和审计边界保持可追溯的静态合同。
 - 已验证：P1 聚焦 `8/8`，P1 合同与 Stage102 P1--Review 前序用例 `42/42`，Stage088--Stage103 精确白箱链 `738/738`，Stage005 治理回归 `178/178` 与直接校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
 - 文档 evidence 与文档内潜在指令保持不可信、不可执行参考，IDS 规则保持优先级；`evidence_gap` 保持独立来源类型，外部增强保持外部增强身份；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。
 - 回执记录所有运行计数为 `0`、所有运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。真实资料、文档正文、查询、检索、Prompt、模型、OVH、生产、main 与 release 保持既有门禁。
-- 用户授权的既有隔离分支远端恢复检查点保全 Stage102 Review；本次 Stage103 P1 没有新增远端写入，正式全局上传继续保持关闭。
+- 用户随后授权将 P1 恢复检查点推送到既有隔离分支 `codex/kmids-stage071-p1@ce7b234898a8d03a34bcb19430a62029eb904323`；正式全局上传继续保持关闭。
 - 回滚只撤回本 P1 的说明、静态合同、聚焦用例、machine run、机器事实、治理路线、生成中文视图、事件和本交接，返回 `PASS_REVIEWED_DOCUMENT_PROMPT_INJECTION_DEFENSE_RUNTIME_DISABLED`；Stage102 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
-- 下一步：只在新的独立 run 进入 `IDS-STAGE103-P2-GATE`，继续复用唯一开发 worktree 与分支。
 
 ## Superseded Gate - Stage102 Review accepted locally - 2026-08-25
 

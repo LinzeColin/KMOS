@@ -419,10 +419,22 @@ class Stage102DocumentPromptInjectionDefensePhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P1",
             "IDS-STAGE103-P2-GATE",
         )
+        stage103_phase2_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-P2",
+            "IDS-V0_1-STAGE103-P2",
+            "IDS-STAGE103-P3-GATE",
+        )
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
         self.assertIn(
             current,
-            {phase3_current, phase4_current, review_current, stage103_phase1_current},
+            {
+                phase3_current,
+                phase4_current,
+                review_current,
+                stage103_phase1_current,
+                stage103_phase2_current,
+            },
         )
         self.assertTrue(
             assert_legacy_or_current_projection(

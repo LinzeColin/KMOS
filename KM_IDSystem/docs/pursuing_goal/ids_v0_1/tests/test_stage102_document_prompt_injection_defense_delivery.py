@@ -400,6 +400,12 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P1",
             "IDS-STAGE103-P2-GATE",
         )
+        stage103_phase2_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-P2",
+            "IDS-V0_1-STAGE103-P2",
+            "IDS-STAGE103-P3-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -433,7 +439,11 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
                 if line.strip()
             }
             self.assertIn("EVT-IDS-V0_1-STAGE102-P4-20260825-001", event_ids)
-        elif current in {review_current, stage103_phase1_current}:
+        elif current in {
+            review_current,
+            stage103_phase1_current,
+            stage103_phase2_current,
+        }:
             self.assertTrue(is_current_projection)
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
