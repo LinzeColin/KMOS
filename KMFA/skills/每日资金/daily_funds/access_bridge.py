@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 
 ACCESS_BRIDGE_SCHEMA = "kmfa.daily_funds.cloudflare_access_bridge.v1"
 PROBE_PATH = "/ops/api/daily-funds/history-probe"
+RECOVERY_PATH = "/ops/api/daily-funds/recovery"
 SERVICE_TOKEN_DURATION = "60m"
 _MAX_RESPONSE_BYTES = 512 * 1024
 _AUD_RE = re.compile(r"^[a-f0-9]{64}$")
@@ -84,7 +85,27 @@ _MACHINE_CODES = frozenset({
 _HTTP_STATUS_RE = re.compile(r"^(?:[1-5][0-9]{2}|000)$")
 _PROBE_ORIGIN_HEADER = b"x-kmfa-daily-funds-probe"
 _PROBE_ORIGIN_VALUE = b"v1"
+_RECOVERY_ORIGIN_HEADER = b"x-kmfa-daily-funds-recovery"
+_RECOVERY_ORIGIN_VALUE = b"v1"
 _MAX_RESPONSE_HEADER_BYTES = 65_536
+
+_RECOVERY_STATES = frozenset({"NOT_REQUESTED", "REQUESTED", "RUNNING", "WAITING", "SUCCEEDED", "FAILED", "EXPIRED"})
+_RECOVERY_STEPS = ("RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY")
+_RECOVERY_MACHINE_CODES = frozenset({
+    "DAILY_FUNDS_RECOVERY_NOT_REQUESTED",
+    "DAILY_FUNDS_RECOVERY_QUEUED",
+    "DAILY_FUNDS_RECOVERY_RUNNING",
+    "DAILY_FUNDS_RECOVERY_WAITING_FOR_LOCK",
+    "DAILY_FUNDS_RECOVERY_PUBLISHED",
+    "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW",
+    "DAILY_FUNDS_RECOVERY_AUDIT_FAILED",
+    "DAILY_FUNDS_RECOVERY_COVERAGE_FAILED",
+    "DAILY_FUNDS_RECOVERY_NO_COMPLETE_PAIR",
+    "DAILY_FUNDS_RECOVERY_REPLAY_FAILED",
+    "DAILY_FUNDS_RECOVERY_CONFIG_INVALID",
+    "DAILY_FUNDS_RECOVERY_EXPIRED",
+    "DAILY_FUNDS_RECOVERY_UNHANDLED",
+})
 
 
 class AccessBridgeInputError(ValueError):
@@ -438,8 +459,8 @@ def validate_success_response(response_path: str | Path) -> bool:
         return False
 
 
-def _probe_origin_confirmed(response_headers_path: str | Path) -> bool:
-    """Accept only the fixed marker from the final HTTP response block.
+def _origin_confirmed(response_headers_path: str | Path, *, header: bytes, expected_value: bytes) -> bool:
+    """Accept one fixed app marker from the final HTTP response block.
 
     A Cloudflare or proxy 503 may share an HTTP status with the application's
     deliberate control-volume response.  The headers stay in the runner's
@@ -459,10 +480,26 @@ def _probe_origin_confirmed(response_headers_path: str | Path) -> bool:
         return False
     values: list[bytes] = []
     for line in final_block.splitlines()[1:]:
-        name, separator, value = line.partition(b":")
-        if separator and name.lower() == _PROBE_ORIGIN_HEADER:
-            values.append(value.strip())
-    return values == [_PROBE_ORIGIN_VALUE]
+        name, separator, header_value = line.partition(b":")
+        if separator and name.lower() == header:
+            values.append(header_value.strip())
+    return values == [expected_value]
+
+
+def _probe_origin_confirmed(response_headers_path: str | Path) -> bool:
+    return _origin_confirmed(
+        response_headers_path,
+        header=_PROBE_ORIGIN_HEADER,
+        expected_value=_PROBE_ORIGIN_VALUE,
+    )
+
+
+def _recovery_origin_confirmed(response_headers_path: str | Path) -> bool:
+    return _origin_confirmed(
+        response_headers_path,
+        header=_RECOVERY_ORIGIN_HEADER,
+        expected_value=_RECOVERY_ORIGIN_VALUE,
+    )
 
 
 def summarize_probe_response(
@@ -671,6 +708,190 @@ def probe_poll_state(receipt_path: str | Path) -> str:
     if payload.get("transport") != "OK":
         return "TERMINAL_NOT_MET"
     if payload.get("probe_state") in {"REQUESTED", "RUNNING"}:
+        return "PENDING"
+    return "TERMINAL_NOT_MET"
+
+
+def _recovery_completed_steps(value: object) -> tuple[str, ...] | None:
+    if not isinstance(value, list) or any(not isinstance(step, str) for step in value):
+        return None
+    completed = tuple(value)
+    return completed if completed == _RECOVERY_STEPS[:len(completed)] else None
+
+
+def _recovery_summary(transport: str) -> dict[str, str]:
+    return {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": transport,
+        "recovery_state": "UNCLASSIFIED",
+        "completed_step_count": "UNCLASSIFIED",
+        "active_step": "UNCLASSIFIED",
+        "machine_code": "UNCLASSIFIED",
+        "result": "NOT_MET",
+    }
+
+
+def summarize_recovery_response(
+    response_path: str | Path,
+    *,
+    response_headers_path: str | Path,
+    http_status: object,
+    curl_exit: object,
+) -> dict[str, str]:
+    """Turn the fixed recovery API reply into a finite, values-free receipt."""
+
+    try:
+        curl_ok = int(curl_exit) == 0
+    except (TypeError, ValueError):
+        curl_ok = False
+    status = str(http_status)
+    if not curl_ok or _HTTP_STATUS_RE.fullmatch(status) is None:
+        return _recovery_summary("TRANSPORT_FAILED")
+    if status in {"401", "403"}:
+        return _recovery_summary("HTTP_DENIED")
+    if status != "200":
+        return _recovery_summary("HTTP_UNAVAILABLE")
+    if not _recovery_origin_confirmed(response_headers_path):
+        return _recovery_summary("HTTP_ORIGIN_UNVERIFIED")
+    try:
+        payload = _read_object(response_path)
+    except AccessBridgeInputError:
+        return _recovery_summary("INVALID_RESPONSE")
+    if set(payload) != {
+        "state", "machine_code", "updated_at", "expires_at", "completed_steps", "active_step",
+    }:
+        return _recovery_summary("INVALID_RESPONSE")
+    state = payload.get("state")
+    machine_code = payload.get("machine_code")
+    completed = _recovery_completed_steps(payload.get("completed_steps"))
+    active_step = payload.get("active_step")
+    if completed is None:
+        return _recovery_summary("INVALID_RESPONSE")
+    next_step = "NONE" if len(completed) == len(_RECOVERY_STEPS) else _RECOVERY_STEPS[len(completed)]
+    if (
+        state not in _RECOVERY_STATES
+        or machine_code not in _RECOVERY_MACHINE_CODES
+        or active_step != next_step
+        or not isinstance(payload.get("updated_at"), str)
+        or (payload.get("expires_at") is not None and not isinstance(payload.get("expires_at"), str))
+    ):
+        return _recovery_summary("INVALID_RESPONSE")
+    assert isinstance(state, str)
+    assert isinstance(machine_code, str)
+    assert isinstance(active_step, str)
+    result = "NOT_MET"
+    if state == "SUCCEEDED" and machine_code == "DAILY_FUNDS_RECOVERY_PUBLISHED":
+        result = "RECOVERY_PUBLISHED"
+    elif state == "SUCCEEDED" and machine_code == "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW":
+        result = "RECOVERY_PUBLISHED_NEEDS_REVIEW"
+    return {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "recovery_state": state,
+        "completed_step_count": str(len(completed)),
+        "active_step": active_step,
+        "machine_code": machine_code,
+        "result": result,
+    }
+
+
+def _recovery_start_summary(transport: str, result: str) -> dict[str, str]:
+    return {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": transport,
+        "result": result,
+    }
+
+
+def summarize_recovery_start_response(
+    response_path: str | Path,
+    *,
+    response_headers_path: str | Path,
+    http_status: object,
+    curl_exit: object,
+) -> dict[str, str]:
+    """Classify the fixed no-body recovery start request without its body."""
+
+    try:
+        curl_ok = int(curl_exit) == 0
+    except (TypeError, ValueError):
+        curl_ok = False
+    status = str(http_status)
+    if not curl_ok or _HTTP_STATUS_RE.fullmatch(status) is None:
+        return _recovery_start_summary("TRANSPORT_FAILED", "RECOVERY_START_TRANSPORT_FAILED")
+    if status in {"401", "403"}:
+        return _recovery_start_summary("HTTP_DENIED", "RECOVERY_START_ACCESS_OR_ORIGIN_DENIED")
+    origin_confirmed = _recovery_origin_confirmed(response_headers_path)
+    if status == "409":
+        return _recovery_start_summary(
+            "HTTP_CONFLICT" if origin_confirmed else "HTTP_UPSTREAM_UNAVAILABLE",
+            "RECOVERY_ALREADY_PENDING" if origin_confirmed else "RECOVERY_START_UPSTREAM_UNAVAILABLE",
+        )
+    if status == "422":
+        return _recovery_start_summary(
+            "HTTP_BODY_REJECTED" if origin_confirmed else "HTTP_UPSTREAM_UNAVAILABLE",
+            "RECOVERY_START_BODY_REJECTED" if origin_confirmed else "RECOVERY_START_UPSTREAM_UNAVAILABLE",
+        )
+    if status == "503":
+        return _recovery_start_summary(
+            "HTTP_CONTROL_UNAVAILABLE" if origin_confirmed else "HTTP_UPSTREAM_UNAVAILABLE",
+            "RECOVERY_START_CONTROL_UNAVAILABLE" if origin_confirmed else "RECOVERY_START_UPSTREAM_UNAVAILABLE",
+        )
+    if status != "202":
+        return _recovery_start_summary("HTTP_UNAVAILABLE", "RECOVERY_START_HTTP_UNAVAILABLE")
+    if not origin_confirmed:
+        return _recovery_start_summary("HTTP_ORIGIN_UNVERIFIED", "RECOVERY_START_ORIGIN_UNVERIFIED")
+    try:
+        payload = _read_object(response_path)
+    except AccessBridgeInputError:
+        return _recovery_start_summary("INVALID_RESPONSE", "RECOVERY_START_INVALID_RESPONSE")
+    if set(payload) != {
+        "state", "machine_code", "updated_at", "expires_at", "completed_steps", "active_step",
+    } or (
+        payload.get("state") != "REQUESTED"
+        or payload.get("machine_code") != "DAILY_FUNDS_RECOVERY_QUEUED"
+        or payload.get("completed_steps") != []
+        or payload.get("active_step") != "RAW_ARCHIVE_AUDIT"
+        or not isinstance(payload.get("updated_at"), str)
+        or not isinstance(payload.get("expires_at"), str)
+    ):
+        return _recovery_start_summary("INVALID_RESPONSE", "RECOVERY_START_INVALID_RESPONSE")
+    return _recovery_start_summary("OK", "RECOVERY_REQUESTED")
+
+
+def recovery_start_poll_state(receipt_path: str | Path) -> str:
+    """Return whether a values-free recovery start receipt permits GET polling."""
+
+    try:
+        payload = _read_object(receipt_path)
+    except AccessBridgeInputError:
+        return "TERMINAL_NOT_MET"
+    if set(payload) != {"schema_version", "transport", "result"} or payload.get("schema_version") != ACCESS_BRIDGE_SCHEMA:
+        return "TERMINAL_NOT_MET"
+    if payload.get("result") in {"RECOVERY_REQUESTED", "RECOVERY_ALREADY_PENDING"}:
+        return "POLL"
+    return "TERMINAL_NOT_MET"
+
+
+def recovery_poll_state(receipt_path: str | Path) -> str:
+    """Return the finite recovery polling decision from one local receipt."""
+
+    try:
+        payload = _read_object(receipt_path)
+    except AccessBridgeInputError:
+        return "TERMINAL_NOT_MET"
+    expected = {
+        "schema_version", "transport", "recovery_state", "completed_step_count", "active_step", "machine_code", "result",
+    }
+    if set(payload) != expected or payload.get("schema_version") != ACCESS_BRIDGE_SCHEMA:
+        return "TERMINAL_NOT_MET"
+    if payload.get("result") == "RECOVERY_PUBLISHED":
+        return "PUBLISHED"
+    if payload.get("result") == "RECOVERY_PUBLISHED_NEEDS_REVIEW":
+        return "PUBLISHED_NEEDS_REVIEW"
+    if payload.get("transport") != "OK":
+        return "TERMINAL_NOT_MET"
+    if payload.get("recovery_state") in {"REQUESTED", "RUNNING", "WAITING"}:
         return "PENDING"
     return "TERMINAL_NOT_MET"
 

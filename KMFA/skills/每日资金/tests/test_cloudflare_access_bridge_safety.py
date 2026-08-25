@@ -24,8 +24,12 @@ from daily_funds.access_bridge import (  # noqa: E402
     policy_payload,
     probe_poll_state,
     probe_start_poll_state,
+    recovery_poll_state,
+    recovery_start_poll_state,
     resolve_bridge_target,
     service_token_payload,
+    summarize_recovery_start_response,
+    summarize_recovery_response,
     summarize_probe_start_response,
     summarize_probe_response,
 )
@@ -43,6 +47,12 @@ def _write(path: Path, payload: object) -> None:
 
 def _probe_headers(path: Path, *, origin_marker: bool = True) -> Path:
     marker = b"X-KMFA-Daily-Funds-Probe: v1\r\n" if origin_marker else b""
+    path.write_bytes(b"HTTP/2 200\r\n" + marker + b"Cache-Control: private, no-store\r\n\r\n")
+    return path
+
+
+def _recovery_headers(path: Path, *, origin_marker: bool = True) -> Path:
+    marker = b"X-KMFA-Daily-Funds-Recovery: v1\r\n" if origin_marker else b""
     path.write_bytes(b"HTTP/2 200\r\n" + marker + b"Cache-Control: private, no-store\r\n\r\n")
     return path
 
@@ -505,6 +515,97 @@ def test_probe_start_does_not_attribute_an_unmarked_503_to_the_control_volume(tm
     assert "edge-body-must-not-escape" not in json.dumps(summary)
 
 
+def test_recovery_receipt_accepts_only_fixed_progress_and_publication_states(tmp_path: Path) -> None:
+    response = tmp_path / "recovery.json"
+    headers = _recovery_headers(tmp_path / "recovery.headers")
+    _write(response, {
+        "state": "SUCCEEDED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW",
+        "updated_at": "2026-08-09T00:00:00Z",
+        "expires_at": "2026-08-09T00:50:00Z",
+        "completed_steps": ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY"],
+        "active_step": "NONE",
+    })
+
+    summary = summarize_recovery_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+
+    assert summary == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "recovery_state": "SUCCEEDED",
+        "completed_step_count": "3",
+        "active_step": "NONE",
+        "machine_code": "DAILY_FUNDS_RECOVERY_PUBLISHED_NEEDS_REVIEW",
+        "result": "RECOVERY_PUBLISHED_NEEDS_REVIEW",
+    }
+    _write(response, summary)
+    assert recovery_poll_state(response) == "PUBLISHED_NEEDS_REVIEW"
+
+    _write(response, {
+        "state": "RUNNING",
+        "machine_code": "DAILY_FUNDS_RECOVERY_RUNNING",
+        "updated_at": "2026-08-09T00:00:00Z",
+        "expires_at": "2026-08-09T00:50:00Z",
+        "completed_steps": ["RAW_ARCHIVE_AUDIT"],
+        "active_step": "RAW_COVERAGE_REPAIR",
+        "private_raw": "must-not-escape",
+    })
+    malformed = summarize_recovery_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+    assert malformed["result"] == "NOT_MET"
+    assert "must-not-escape" not in json.dumps(malformed)
+
+
+def test_recovery_start_receipt_is_fixed_and_only_pending_is_pollable(tmp_path: Path) -> None:
+    response = tmp_path / "recovery-start.json"
+    headers = _recovery_headers(tmp_path / "recovery-start.headers")
+    _write(response, {
+        "state": "REQUESTED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_QUEUED",
+        "updated_at": "2026-08-09T00:00:00Z",
+        "expires_at": "2026-08-09T00:50:00Z",
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    })
+
+    summary = summarize_recovery_start_response(
+        response,
+        response_headers_path=headers,
+        http_status="202",
+        curl_exit=0,
+    )
+    assert summary == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "result": "RECOVERY_REQUESTED",
+    }
+    _write(response, summary)
+    assert recovery_start_poll_state(response) == "POLL"
+
+    _write(response, {"untrusted": "must-not-escape"})
+    denied = summarize_recovery_start_response(
+        response,
+        response_headers_path=headers,
+        http_status="403",
+        curl_exit=0,
+    )
+    assert denied == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "HTTP_DENIED",
+        "result": "RECOVERY_START_ACCESS_OR_ORIGIN_DENIED",
+    }
+    assert "must-not-escape" not in json.dumps(denied)
+
+
 def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     manager = _load_script()
     envs, access_apps = _target_inputs(tmp_path)
@@ -535,18 +636,23 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     step = workflow[start:] if end == -1 else workflow[start:end]
 
     assert "inputs.mode == 'daily-funds-history-probe-bridge'" in step
+    assert "inputs.mode == 'daily-funds-recovery-bridge'" in step
     assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
     assert "access/service_tokens" in step
     assert "/access/apps/${CF_ACCESS_APP_ID}/policies" in step
     assert "CF-Access-Client-Secret" in step
-    assert '"$PROBE_ORIGIN/ops/api/daily-funds/history-probe"' in step
+    assert "CONTROL_PATH=/ops/api/daily-funds/history-probe" in step
+    assert "CONTROL_PATH=/ops/api/daily-funds/recovery" in step
+    assert '"$PROBE_ORIGIN$CONTROL_PATH"' in step
     assert "capture-service-token-id" in step
     assert "capture-policy" in step
     assert "summarize-probe-start" in step
+    assert "summarize-recovery-start" in step
     assert '-D "$output.headers"' in step
     assert "probe-post.json.headers" in step
     assert "probe-get.json.headers" in step
     assert "probe-start-poll-state" in step
+    assert "recovery-start-poll-state" in step
     assert "sleep 10" in step
     assert "reconcile_owned_resources()" in step
     assert "write-owned-resource-env" in step
