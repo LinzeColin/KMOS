@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import base64
+import fcntl
 import json
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -25,7 +27,7 @@ from daily_funds.recovery import (
     SESSION_SCHEMA,
     DailyFundsRecoveryBroker,
 )
-from daily_funds.state import atomic_json_write
+from daily_funds.state import RuntimeState, atomic_json_write
 
 UTC = timezone.utc
 
@@ -146,6 +148,99 @@ def test_recovery_resumes_a_valid_server_side_window_for_a_long_archive_audit(
     session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
     assert session["state"] == "SUCCEEDED"
     assert session["machine_code"] == "DAILY_FUNDS_RECOVERY_PUBLISHED"
+
+
+def test_recovery_replaces_a_stale_durable_lease_with_the_worker_process_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+    calls: list[str] = []
+
+    class FakeRuntime:
+        def __init__(self, _actual_config: DailyFundsConfig) -> None:
+            return None
+
+        def raw_archive_audit(self):
+            calls.append("RAW_ARCHIVE_AUDIT")
+            return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
+
+        def raw_coverage_repair(self, *, now: datetime):
+            assert now.tzinfo is UTC
+            calls.append("RAW_COVERAGE_REPAIR")
+            return {"ok": True, "code": "RAW_COVERAGE_VERIFIED"}
+
+        def raw_fact_replay(self, *, now: datetime):
+            assert now.tzinfo is UTC
+            calls.append("RAW_FACT_REPLAY")
+            return {"ok": True, "code": "RAW_FACT_REPLAY_PUBLISHED"}
+
+    assert RuntimeState(config.state_dir).acquire_lease(
+        "daily_funds_recovery_lock",
+        "stale-holder",
+        ttl_seconds=RECOVERY_MAX_SECONDS,
+    )
+    monkeypatch.setattr(recovery_module, "DailyFundsRuntime", FakeRuntime)
+    _request(config, "1" * 64)
+
+    DailyFundsRecoveryBroker(config).run_once()
+
+    session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert session["state"] == "SUCCEEDED"
+    assert session["machine_code"] == "DAILY_FUNDS_RECOVERY_PUBLISHED"
+    assert calls == ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY"]
+
+
+def test_recovery_waits_for_an_active_worker_process_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+    constructed = False
+    calls: list[str] = []
+
+    class FakeRuntime:
+        def __init__(self, _actual_config: DailyFundsConfig) -> None:
+            nonlocal constructed
+            constructed = True
+
+        def raw_archive_audit(self):
+            calls.append("RAW_ARCHIVE_AUDIT")
+            return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
+
+        def raw_coverage_repair(self, *, now: datetime):
+            assert now.tzinfo is UTC
+            calls.append("RAW_COVERAGE_REPAIR")
+            return {"ok": True, "code": "RAW_COVERAGE_VERIFIED"}
+
+        def raw_fact_replay(self, *, now: datetime):
+            assert now.tzinfo is UTC
+            calls.append("RAW_FACT_REPLAY")
+            return {"ok": True, "code": "RAW_FACT_REPLAY_PUBLISHED"}
+
+    monkeypatch.setattr(recovery_module, "DailyFundsRuntime", FakeRuntime)
+    _request(config, "2" * 64)
+    config.state_dir.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(config.state_dir / "daily_funds_recovery.lock", os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        DailyFundsRecoveryBroker(config).run_once()
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+    session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert session["state"] == "WAITING"
+    assert session["machine_code"] == "DAILY_FUNDS_RECOVERY_WAITING_FOR_LOCK"
+    assert session["completed_steps"] == []
+    assert session["active_step"] == "RAW_ARCHIVE_AUDIT"
+    assert constructed is False
+
+    DailyFundsRecoveryBroker(config).run_once()
+
+    resumed = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert resumed["state"] == "SUCCEEDED"
+    assert calls == ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR", "RAW_FACT_REPLAY"]
 
 
 def test_recovery_waits_for_a_runtime_lock_then_resumes_at_the_same_fixed_step(
