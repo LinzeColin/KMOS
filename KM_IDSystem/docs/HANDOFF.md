@@ -1,6 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage104 P2 accepted locally - 2026-08-26
+## Current Gate - Stage104 P3 accepted locally - 2026-08-26
+
+- `IDS-V0_1-STAGE104-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE104 / IDS-STAGE104-P3 / IDS-V0_1-STAGE104-P3 / IDS-STAGE104-P4-GATE`。P4 只可由新的独立 run 进入。
+- P3 严格重放 P2 的 `5` 条非业务、`reference-only` 控制请求，每条 `29` 个字段；四组白箱投影每条 `57` 字段，共 `285` 个前序检查点。P3 固定形成 `5` 条、每条 `34` 字段、共 `170` 个场景检查点、`5` 个控制视图、`5` 条业务线白箱处理记录、`3` 类高风险人工确认与 `28` 类失败关闭。
+- 已验证：P3 聚焦 `8/8`，Stage104 P1--P3 显式兼容 `24/24`，Stage088--Stage104 精确白箱链 `797/797`，Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。八个历史白箱断言已明确接受现行 Stage104 P3 投影。
+- 文档 evidence 与文档内潜在指令保持不可信、不可执行参考，无法覆盖 IDS 规则、输出权限或人工确认；`evidence_gap` 保持独立来源类型。外部增强展示保留 `external_public_reference` 与 `model_reasoning` 的底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，本阶段没有形成业务结论、业务线确认或最终发布记录。
+- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。P2 的既有远端恢复检查点 `934d16a51` 保持不变；P3 作为本地恢复提交保留，正式全局上传、`main`、release、OVH 与生产保持未变。
+- 回滚只撤回本 P3 的执行器、合同、范围说明、聚焦用例、历史投影断言、machine run、机器事实、治理路线、生成中文视图、事件、变更日志和本交接，返回 `PASS_RAG_NEGATIVE_TEST_CONTROL_SLICE_RUNTIME_DISABLED`；Stage104 P1/P2、Stage103 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 `IDS-STAGE104-P4-GATE`，继续复用唯一既有开发 worktree 与分支。
+
+## Superseded Gate - Stage104 P2 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE104-P2` 已完成本地验收；当前治理状态为 `IDS-STAGE104 / IDS-STAGE104-P2 / IDS-V0_1-STAGE104-P2 / IDS-STAGE104-P3-GATE`。P3 只可由新的独立 run 进入。
 - P2 固定 `5` 条非业务、`reference-only` 控制请求，每条 `29` 个字段；`query`、`index_version`、`prompt_version`、`model_version` 与 `selected evidence` 保持未来可复现记录形状。四组白箱投影每条 `57` 字段，共 `285` 个检查点，覆盖回答合同、文档 evidence 与 IDS 规则优先、来源类型与外部增强展示、输出权限与业务线白箱人工确认。
