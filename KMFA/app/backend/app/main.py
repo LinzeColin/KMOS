@@ -4609,7 +4609,14 @@ def _daily_funds_history_probe_error(*, status_code: int, detail: str) -> JSONRe
 def _daily_funds_recovery_response(payload: dict[str, Any], *, status_code: int = 200) -> JSONResponse:
     """Mark the fixed values-free recovery state as an app-origin reply."""
 
-    response = _daily_funds_auth_response(payload, status_code=status_code)
+    response = _daily_funds_auth_response({
+        "state": payload["state"],
+        "machine_code": payload["machine_code"],
+        "updated_at": payload["updated_at"],
+        "expires_at": payload["expires_at"],
+        "completed_steps": payload["completed_steps"],
+        "active_step": payload["active_step"],
+    }, status_code=status_code)
     response.headers[DAILY_FUNDS_RECOVERY_ENDPOINT_HEADER] = DAILY_FUNDS_RECOVERY_ENDPOINT_VALUE
     return response
 
@@ -5063,6 +5070,7 @@ def _daily_funds_recovery_read_session(now: datetime) -> dict[str, Any] | None:
         return None
     if state in DAILY_FUNDS_RECOVERY_LIVE_STATES and expires_at.astimezone(timezone.utc) <= now.astimezone(timezone.utc):
         return {
+            "request_id": request_id,
             "state": "EXPIRED",
             "machine_code": "DAILY_FUNDS_RECOVERY_EXPIRED",
             "updated_at": _daily_funds_auth_iso(now),
@@ -5071,6 +5079,7 @@ def _daily_funds_recovery_read_session(now: datetime) -> dict[str, Any] | None:
             "active_step": next_step,
         }
     return {
+        "request_id": request_id,
         "state": state,
         "machine_code": payload["machine_code"],
         "updated_at": _daily_funds_auth_iso(updated_at),
@@ -5100,10 +5109,14 @@ def daily_funds_recovery():
 
     now = datetime.now(timezone.utc)
     session = _daily_funds_recovery_read_session(now)
-    if session is not None:
-        return _daily_funds_recovery_response(session)
     pending = _daily_funds_recovery_read_request(now)
-    if pending is not None and not pending["expired"]:
+    if session is not None and session["state"] in DAILY_FUNDS_RECOVERY_LIVE_STATES:
+        return _daily_funds_recovery_response(session)
+    if (
+        pending is not None
+        and not pending["expired"]
+        and (session is None or session["request_id"] != pending["request_id"])
+    ):
         return _daily_funds_recovery_response({
             "state": "REQUESTED",
             "machine_code": "DAILY_FUNDS_RECOVERY_QUEUED",
@@ -5112,6 +5125,8 @@ def daily_funds_recovery():
             "completed_steps": [],
             "active_step": "RAW_ARCHIVE_AUDIT",
         })
+    if session is not None:
+        return _daily_funds_recovery_response(session)
     return _daily_funds_recovery_response({
         "state": "NOT_REQUESTED",
         "machine_code": "DAILY_FUNDS_RECOVERY_NOT_REQUESTED",

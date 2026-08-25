@@ -663,6 +663,42 @@ def test_daily_funds_recovery_is_a_fixed_access_api_and_never_returns_raw_result
     }
 
 
+def test_daily_funds_recovery_prefers_a_fresh_request_over_a_terminal_prior_session(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    control = tmp_path / "control"
+    _write_projection(publication)
+    control.mkdir()
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_CONTROL_DIR", control)
+
+    now = datetime.now(timezone.utc)
+    (control / "daily_funds_recovery_session.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.recovery_session.v1",
+        "request_id": "a" * 64,
+        "state": "EXPIRED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_EXPIRED",
+        "created_at": (now - timedelta(hours=2)).isoformat().replace("+00:00", "Z"),
+        "updated_at": (now - timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
+        "expires_at": (now - timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
+        "completed_steps": ["RAW_ARCHIVE_AUDIT", "RAW_COVERAGE_REPAIR"],
+        "active_step": "RAW_FACT_REPLAY",
+    }), encoding="utf-8")
+
+    started = client.post("/ops/api/daily-funds/recovery", headers=_same_origin_headers())
+    assert started.status_code == 202
+
+    observed = client.get("/ops/api/daily-funds/recovery")
+    assert observed.status_code == 200
+    assert observed.json() == {
+        "state": "REQUESTED",
+        "machine_code": "DAILY_FUNDS_RECOVERY_QUEUED",
+        "updated_at": observed.json()["updated_at"],
+        "expires_at": observed.json()["expires_at"],
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    }
+
+
 def test_daily_funds_recovery_marks_a_real_control_volume_failure(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     control_file = tmp_path / "control-file"
