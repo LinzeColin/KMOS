@@ -1,3 +1,9 @@
+## 2026-08-26 · Stage106 外部增强意见章节 P1
+
+- 完成冻结 Stage106 P1 的静态控制合同：固定外部增强意见章节的 27 个未来控制引用、external_public_reference/model_reasoning 两类底层来源语义、关键结论独立 evidence_id/evidence_gap、PDF 引用来源与页码、data/index/evidence/model/generated_at 五项快照、业务线白箱人工确认、报告状态影响、质量评分、导出审计、模板限制、重新生成和撤回控制引用。
+- 本地验收记录：P1 聚焦 7/7、Stage088--Stage106 连续白箱链 860/860、Stage005 直接治理校验 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- 外部增强意见保持章节性、可审阅与业务线白箱受控，不能成为内部项目依据或关闭 evidence_gap。运行计数均为 0、运行标志均为 false，模型 Token 与 Agent 执行均为 0；用户授权的恢复检查点保存在 codex/kmids-stage071-p1@e30c3fcd1363df3a044e9cd309b1e0370dcc9b38，正式全局上传、main、release、OVH 与生产继续由后续门禁承接。下一步仅在新的独立 run 进入 IDS-STAGE106-P2-GATE。
+
 ## 2026-08-26 · Stage105 报告证据绑定整阶段机械复审
 
 - 完成冻结 P1--P4 控制工件的纯内存复审：P1 为 24/5/22/4，P2 为 5×26/4×66/330，P3 为 5×34=170/5/5/15，P4 为 5/5/5/5/5/2、17/13/13/15/14/14、388/4/17；关键结论证据绑定、引用来源与页码、生成快照、来源语义、报告状态影响、业务线白箱确认和 P4→P3 回退保持一致。

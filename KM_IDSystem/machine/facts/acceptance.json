@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE105",
-  "phase": "IDS-STAGE105-P4",
-  "task": "IDS-V0_1-STAGE105-P4",
-  "next_gate": "IDS-STAGE105-REVIEW-GATE",
+  "stage": "IDS-STAGE106",
+  "phase": "IDS-STAGE106-P1",
+  "task": "IDS-V0_1-STAGE106-P1",
+  "next_gate": "IDS-STAGE106-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-106",
+      "criteria": "Stage106 外部增强意见章节 P1 已形成可执行、可测试、可回滚的静态工程合同：外部增强意见保持独立章节与两类底层来源语义，内部依据隔离、关键结论 evidence_id/evidence_gap 独立性、PDF 引用来源与页码、五项生成快照、业务线白箱人工确认、报告生命周期、失败关闭和回滚边界保持可审阅。",
+      "status": "P1 静态合同已完成"
+    },
+    {
+      "id": "ACC-STAGE106-P1-01",
+      "criteria": "冻结 Stage106 任务包与 Stage105 Review 已复审报告证据绑定控制工件保持为唯一控制上下文；P1 不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE106-P1-02",
+      "criteria": "合同固定 27 个未来控制引用、external_public_reference 与 model_reasoning 两类底层来源类型、关键结论独立 evidence_id/evidence_gap、PDF 引用来源与页码、data/index/evidence/model/generated_at 五项快照以及报告生命周期控制引用。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE106-P1-03",
+      "criteria": "外部增强意见不能写成内部项目依据，不能替代或关闭 evidence_gap，不能形成最终结论；业务线白箱人工确认保持未来业务使用和最终结论前置，人工确认与最终结论均未记录。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE106-P1-04",
+      "criteria": "P1 期间真实资料、外部参考、证据账本、报告、PDF、引用、快照、报告状态、影响分析、质量评分、导出审计、数据库、模型、模型 Token、Agent、OVH、生产和正式全局上传保持未执行；本轮本地验收完成后才可在新 run 进入 Stage106 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-105",
     "criteria": "Stage105 报告证据绑定 P1 静态合同、P2 纯内存受控最小切片、P3 专项异常场景、P4 交付证据与 Review 机械复审已形成可执行、可测试、可回滚的工程控制结构：关键结论严格关联 evidence_id 或 evidence_gap，报告样例、快照、质量评分、影响分析、模板限制、人工确认、重新生成与撤回保持 reference-only 控制边界，资料撤回、证据降级与索引版本变化保持报告状态影响控制，P4→P3 回退和业务线白箱门禁保持一致。",

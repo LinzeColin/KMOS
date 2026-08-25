@@ -1,14 +1,14 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage105 Review accepted locally - 2026-08-26
+## Current Gate - Stage106 P1 accepted locally - 2026-08-26
 
-- IDS-V0_1-STAGE105-REVIEW 已完成本地验收；当前治理状态为 IDS-STAGE105 / IDS-STAGE105-REVIEW / IDS-V0_1-STAGE105-REVIEW / IDS-STAGE106-P1-GATE。Stage106 P1 只可由新的独立 run 进入。
-- Review 只机械复审 P1 的 24 个控制引用、5 项生成快照、22 类失败状态、P2 的 5×26 和 4×66 共 330 个检查点、P3 的 5×34 共 170 个场景检查点、5 个控制视图与 5 条业务线白箱处理记录，以及 P4 的 5/5/5/5/5/2、17/13/13/15/14/14、388 个 metadata-only 交付字段检查点。
-- 已验证：Review 聚焦 7/7，Stage105 P1--Review 显式兼容 38/38，Stage088--Stage105 精确白箱链 853/853，Stage005 直接治理校验 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查通过。
-- 关键结论保持 evidence_id 或 evidence_gap 严格二选一；引用来源与页码、生成快照、外部增强底层来源语义、报告状态影响、业务线白箱人工确认与 P4→P3 回退保持可审阅。真实报告、PDF、快照、评分、影响分析、审计、数据库、模型、模型 Token、Agent、OVH、生产、main、release 与正式全局上传继续由后续门禁承接。
-- 回执记录运行计数为 0、运行标志为 false，模型 Token 与 Agent 执行均为 0；本阶段没有改变业务事实权威或形成业务结论。
-- 回滚只撤回本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、历史治理投影、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 PASS_REPORT_EVIDENCE_BINDING_DELIVERY_EVIDENCE_RUNTIME_DISABLED；Stage105 P1--P4、Stage104 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
-- 下一步：只在新的独立 run 进入 IDS-STAGE106-P1-GATE，继续复用唯一既有开发 worktree 与分支。
+- IDS-V0_1-STAGE106-P1 已完成本地验收；当前治理状态为 IDS-STAGE106 / IDS-STAGE106-P1 / IDS-V0_1-STAGE106-P1 / IDS-STAGE106-P2-GATE。P2 只可由新的独立 run 进入。
+- P1 固定外部增强意见章节的 27 个未来控制引用、external_public_reference/model_reasoning 两类底层来源语义、关键结论独立 evidence_id/evidence_gap、PDF 引用来源与页码、data/index/evidence/model/generated_at 五项快照、业务线白箱人工确认、报告状态影响、质量评分、导出审计、模板限制、重新生成和撤回控制引用。
+- 已验证：Stage106 P1 聚焦 7/7，Stage088--Stage106 连续白箱链 860/860，Stage005 直接治理校验 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- 外部增强意见只作为可审阅章节，不能成为内部项目依据、不能替代或关闭 evidence_gap；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。真实资料、外部参考、报告、PDF、快照、审计、数据库、模型、模型 Token、Agent、OVH、生产与正式全局上传继续由后续门禁承接。
+- 回执记录运行计数为 0、运行标志为 false，模型 Token 与 Agent 执行均为 0。用户授权的恢复检查点已读回确认在 codex/kmids-stage071-p1@e30c3fcd1363df3a044e9cd309b1e0370dcc9b38；它只保全既有开发分支，不构成正式全局上传，main、release、OVH 和生产状态保持原状。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、历史治理投影、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 PASS_REVIEWED_REPORT_EVIDENCE_BINDING_RUNTIME_DISABLED；Stage105 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 IDS-STAGE106-P2-GATE，继续复用唯一既有开发 worktree 与分支。
 
 ## Superseded Gate - Stage105 P4 accepted locally - 2026-08-26
 

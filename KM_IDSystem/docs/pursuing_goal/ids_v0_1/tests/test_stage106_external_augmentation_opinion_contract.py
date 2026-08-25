@@ -298,6 +298,47 @@ class Stage106ExternalAugmentationOpinionPhase1Tests(unittest.TestCase):
             self.assertTrue(
                 all(value is False for value in receipt["runtime_flags"].values())
             )
+            validation = receipt["validation"]
+            self.assertTrue(validation["final_validation_recorded"])
+            self.assertEqual(
+                {
+                    "focused_test_count": 7,
+                    "historical_whitebox_chain_test_count": 860,
+                    "stage005_governance_valid": True,
+                    "batch041_050_review_valid": True,
+                    "batch051_060_review_valid": True,
+                    "human_rendered_file_count": 7,
+                    "document_budget_valid": True,
+                    "blocker_stop_valid": True,
+                    "dual_plane_valid": True,
+                    "all_local_validation_passed": True,
+                },
+                {
+                    key: validation["final_validation"][key]
+                    for key in (
+                        "focused_test_count",
+                        "historical_whitebox_chain_test_count",
+                        "stage005_governance_valid",
+                        "batch041_050_review_valid",
+                        "batch051_060_review_valid",
+                        "human_rendered_file_count",
+                        "document_budget_valid",
+                        "blocker_stop_valid",
+                        "dual_plane_valid",
+                        "all_local_validation_passed",
+                    )
+                },
+            )
+            checkpoint = receipt["user_authorized_recovery_checkpoint"]
+            self.assertTrue(checkpoint["remote_readback_verified"])
+            self.assertTrue(checkpoint["checkpoint_push_performed"])
+            for field in (
+                "formal_global_upload_performed",
+                "main_or_release_changed",
+                "ovh_or_production_changed",
+            ):
+                with self.subTest(field=field):
+                    self.assertFalse(checkpoint[field])
             acceptance_by_id = {
                 item["id"]: item["status"] for item in acceptance["items"]
             }
