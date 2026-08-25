@@ -2529,6 +2529,7 @@ DAILY_FUNDS_RECOVERY_SESSION_SCHEMA = "kmfa.daily_funds.recovery_session.v1"
 DAILY_FUNDS_RECOVERY_REQUEST_FILE = "daily_funds_recovery_request.json"
 DAILY_FUNDS_RECOVERY_SESSION_FILE = "daily_funds_recovery_session.json"
 DAILY_FUNDS_RECOVERY_ACTOR = "kmfa_private_owner_ui"
+DAILY_FUNDS_RECOVERY_MAX_SECONDS = 6 * 60 * 60
 DAILY_FUNDS_RECOVERY_ENDPOINT_HEADER = "X-KMFA-Daily-Funds-Recovery"
 DAILY_FUNDS_RECOVERY_ENDPOINT_VALUE = "v1"
 DAILY_FUNDS_RECOVERY_LIVE_STATES = {"REQUESTED", "RUNNING", "WAITING"}
@@ -4790,7 +4791,7 @@ def _daily_funds_history_probe_read_request(now: datetime) -> dict[str, Any] | N
         or requested_at is None
         or expires_at is None
         or requested_at > now + timedelta(minutes=2)
-        or requested_at < now - timedelta(hours=1)
+        or requested_at < now - timedelta(seconds=DAILY_FUNDS_RECOVERY_MAX_SECONDS)
         or expires_at <= requested_at
         or (expires_at - requested_at).total_seconds() > 660
     ):
@@ -5018,7 +5019,7 @@ def _daily_funds_recovery_read_request(now: datetime) -> dict[str, Any] | None:
         or requested_at > now + timedelta(minutes=2)
         or requested_at < now - timedelta(hours=1)
         or expires_at <= requested_at
-        or (expires_at - requested_at).total_seconds() > 55 * 60
+        or (expires_at - requested_at).total_seconds() > DAILY_FUNDS_RECOVERY_MAX_SECONDS
     ):
         return None
     return {
@@ -5056,7 +5057,7 @@ def _daily_funds_recovery_read_session(now: datetime) -> dict[str, Any] | None:
         or updated_at is None
         or expires_at is None
         or expires_at <= created_at
-        or (expires_at - created_at).total_seconds() > 55 * 60
+        or (expires_at - created_at).total_seconds() > DAILY_FUNDS_RECOVERY_MAX_SECONDS
         or active_step != next_step
     ):
         return None
@@ -5146,7 +5147,7 @@ async def start_daily_funds_recovery(request: Request):
             status_code=409,
             detail="daily_funds_recovery_already_pending",
         )
-    expires_at = now + timedelta(minutes=50)
+    expires_at = now + timedelta(seconds=DAILY_FUNDS_RECOVERY_MAX_SECONDS)
     payload = {
         "schema_version": DAILY_FUNDS_RECOVERY_REQUEST_SCHEMA,
         "request_id": secrets.token_hex(32),

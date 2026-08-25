@@ -945,7 +945,7 @@ def recovery_poll_state(receipt_path: str | Path) -> str:
     if payload.get("transport") != "OK":
         return "TERMINAL_NOT_MET"
     if payload.get("recovery_state") in {"REQUESTED", "RUNNING", "WAITING"}:
-        return "PENDING"
+        return "ASYNC_RUNNING"
     return "TERMINAL_NOT_MET"
 
 
