@@ -855,12 +855,12 @@ jobs:
               CONTROL_KIND=RECOVERY
               CONTROL_LABEL=daily_funds_recovery_bridge
               CONTROL_PATH=/ops/api/daily-funds/recovery
-              CONTROL_POLL_ATTEMPTS=300
-              CONTROL_POLL_SECONDS=10
-              # A recovery request and its status polling share this fixed
-              # 50-minute window.  Each transient upstream read consumes one
-              # regular poll attempt, preserving the worker's complete
-              # recovery interval and the 60-minute temporary service token.
+              CONTROL_POLL_ATTEMPTS=3
+              CONTROL_POLL_SECONDS=5
+              # The short-lived Access identity proves that the fixed recovery
+              # was accepted, then exits.  The worker completes its bounded
+              # server-side transaction independently, so an archive audit
+              # never competes with a caller credential deadline.
               ;;
             *) echo "daily_funds_control_bridge=MODE_INVALID"; exit 1 ;;
           esac
@@ -1174,6 +1174,10 @@ jobs:
                 probe_outcome=RECOVERY_PUBLISHED_NEEDS_REVIEW
                 break
                 ;;
+              ASYNC_RUNNING)
+                probe_outcome=RECOVERY_ASYNC_RUNNING
+                break
+                ;;
               PENDING)
                 if [ "$attempt" -lt "$CONTROL_POLL_ATTEMPTS" ]; then sleep "$CONTROL_POLL_SECONDS"; fi
                 ;;
@@ -1191,7 +1195,7 @@ jobs:
           case "$CONTROL_KIND" in
             HISTORY) test "$probe_outcome" = "HISTORY_PROBE_COMPLETED" ;;
             RECOVERY)
-              test "$probe_outcome" = "RECOVERY_PUBLISHED" || test "$probe_outcome" = "RECOVERY_PUBLISHED_NEEDS_REVIEW"
+              test "$probe_outcome" = "RECOVERY_ASYNC_RUNNING" || test "$probe_outcome" = "RECOVERY_PUBLISHED" || test "$probe_outcome" = "RECOVERY_PUBLISHED_NEEDS_REVIEW"
               ;;
           esac
 

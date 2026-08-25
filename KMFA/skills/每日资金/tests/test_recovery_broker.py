@@ -20,6 +20,7 @@ from daily_funds.recovery import (
     ACTOR,
     REQUEST_FILE,
     REQUEST_SCHEMA,
+    RECOVERY_MAX_SECONDS,
     SESSION_FILE,
     SESSION_SCHEMA,
     DailyFundsRecoveryBroker,
@@ -46,15 +47,21 @@ def _timestamp(value: datetime) -> str:
     return value.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def _request(config: DailyFundsConfig, request_id: str) -> None:
-    now = datetime.now(UTC)
+def _request(
+    config: DailyFundsConfig,
+    request_id: str,
+    *,
+    duration_seconds: int = 50 * 60,
+    requested_at: datetime | None = None,
+) -> None:
+    now = requested_at or datetime.now(UTC)
     atomic_json_write(config.control_dir / REQUEST_FILE, {
         "schema_version": REQUEST_SCHEMA,
         "request_id": request_id,
         "action": "RECOVER",
         "actor": ACTOR,
         "requested_at": _timestamp(now),
-        "expires_at": _timestamp(now + timedelta(minutes=50)),
+        "expires_at": _timestamp(now + timedelta(seconds=duration_seconds)),
     })
 
 
@@ -104,6 +111,41 @@ def test_recovery_runs_only_the_fixed_chain_and_persists_no_raw_result_fields(
     assert "group-fixture" not in json.dumps(session)
     assert "sender-fixture" not in json.dumps(session)
     assert not (config.control_dir / REQUEST_FILE).exists()
+
+
+def test_recovery_resumes_a_valid_server_side_window_for_a_long_archive_audit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _config(tmp_path)
+
+    class FakeRuntime:
+        def __init__(self, _actual_config: DailyFundsConfig) -> None:
+            return None
+
+        def raw_archive_audit(self):
+            return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
+
+        def raw_coverage_repair(self, *, now: datetime):
+            assert now.tzinfo is UTC
+            return {"ok": True, "code": "RAW_COVERAGE_VERIFIED"}
+
+        def raw_fact_replay(self, *, now: datetime):
+            assert now.tzinfo is UTC
+            return {"ok": True, "code": "RAW_FACT_REPLAY_PUBLISHED"}
+
+    monkeypatch.setattr(recovery_module, "DailyFundsRuntime", FakeRuntime)
+    _request(
+        config,
+        "f" * 64,
+        duration_seconds=RECOVERY_MAX_SECONDS,
+        requested_at=datetime.now(UTC) - timedelta(hours=2),
+    )
+    DailyFundsRecoveryBroker(config).run_once()
+
+    session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert session["state"] == "SUCCEEDED"
+    assert session["machine_code"] == "DAILY_FUNDS_RECOVERY_PUBLISHED"
 
 
 def test_recovery_waits_for_a_runtime_lock_then_resumes_at_the_same_fixed_step(

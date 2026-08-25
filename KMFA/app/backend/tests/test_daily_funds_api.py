@@ -594,6 +594,9 @@ def test_daily_funds_recovery_is_a_fixed_access_api_and_never_returns_raw_result
     assert request["schema_version"] == "kmfa.daily_funds.recovery_request.v1"
     assert request["action"] == "RECOVER"
     assert not {"command", "group", "sender", "cursor", "amount"}.intersection(request)
+    requested_at = datetime.fromisoformat(request["requested_at"].replace("Z", "+00:00"))
+    expires_at = datetime.fromisoformat(request["expires_at"].replace("Z", "+00:00"))
+    assert expires_at - requested_at == timedelta(seconds=main_module.DAILY_FUNDS_RECOVERY_MAX_SECONDS)
 
     now = datetime.now(timezone.utc)
     raw_sentinel = "recovery-private-raw-result-must-not-escape"

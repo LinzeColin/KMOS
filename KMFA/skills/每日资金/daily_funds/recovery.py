@@ -52,8 +52,12 @@ MACHINE_CODES = frozenset({
     "DAILY_FUNDS_RECOVERY_UNHANDLED",
 })
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
-_MAX_REQUEST_SECONDS = 55 * 60
-_RECOVERY_LEASE_SECONDS = 55 * 60
+# The recovery worker owns a fixed, server-side transaction after the control
+# request is accepted.  Its lifetime must cover a complete private archive
+# audit and remains independent from the short-lived Access credential used to
+# enqueue it.
+RECOVERY_MAX_SECONDS = 6 * 60 * 60
+_RECOVERY_LEASE_SECONDS = RECOVERY_MAX_SECONDS
 
 
 @dataclass(frozen=True)
@@ -134,9 +138,9 @@ class DailyFundsRecoveryBroker:
             or requested_at is None
             or expires_at is None
             or requested_at > now + timedelta(minutes=2)
-            or requested_at < now - timedelta(hours=1)
+            or requested_at < now - timedelta(seconds=RECOVERY_MAX_SECONDS)
             or expires_at <= requested_at
-            or (expires_at - requested_at).total_seconds() > _MAX_REQUEST_SECONDS
+            or (expires_at - requested_at).total_seconds() > RECOVERY_MAX_SECONDS
         ):
             return None
         return DailyFundsRecoveryRequest(

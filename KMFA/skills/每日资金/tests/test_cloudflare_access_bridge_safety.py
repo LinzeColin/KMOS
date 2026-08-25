@@ -661,6 +661,23 @@ def test_recovery_receipt_accepts_only_fixed_recovery_states(tmp_path: Path) -> 
     assert malformed["result"] == "NOT_MET"
     assert "must-not-escape" not in json.dumps(malformed)
 
+    _write(response, {
+        "state": "RUNNING",
+        "machine_code": "DAILY_FUNDS_RECOVERY_RUNNING",
+        "updated_at": "2026-08-09T00:00:00Z",
+        "expires_at": "2026-08-09T06:00:00Z",
+        "completed_steps": [],
+        "active_step": "RAW_ARCHIVE_AUDIT",
+    })
+    active = summarize_recovery_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+    _write(response, active)
+    assert recovery_poll_state(response) == "ASYNC_RUNNING"
+
 
 @pytest.mark.parametrize(
     ("http_status", "origin_marker", "expected_transport"),
@@ -848,7 +865,9 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "probe-get.json.headers" in step
     assert "probe-start-poll-state" in step
     assert "recovery-start-poll-state" in step
-    assert "CONTROL_POLL_ATTEMPTS=300" in step
+    assert "CONTROL_POLL_ATTEMPTS=3" in step
+    assert "ASYNC_RUNNING)" in step
+    assert "RECOVERY_ASYNC_RUNNING" in step
     assert "RETRY)" in step
     assert "sleep 10" in step
     assert "reconcile_owned_resources()" in step
