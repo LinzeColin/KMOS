@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE100",
-  "phase": "IDS-STAGE100-P1",
-  "task": "IDS-V0_1-STAGE100-P1",
-  "real_progress": "Stage100 已在纯内存中完成无内部依据策略 P1 静态控制合同：固定 9 个未来回答策略引用、4 类底层来源类型、2 类外部增强展示组成来源、3 类高风险输出门禁、17 类失败关闭与 4 条中文反馈。",
-  "report_grade": "冻结 Stage100 任务包与已复审 Stage099 内部依据与外部增强分离控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
+  "phase": "IDS-STAGE100-P2",
+  "task": "IDS-V0_1-STAGE100-P2",
+  "real_progress": "Stage100 已在纯内存中完成无内部依据策略 P2 受控最小切片：固定 6 条、每条 21 字段的未来控制请求，投影 4 组、每条 38 字段、共 228 个控制检查点，保留 5 类版本与所选 evidence 记录形状、2 类内部依据状态、4 类底层来源类型、3 类高风险输出门禁、17 类失败关闭与 4 条中文反馈。",
+  "report_grade": "冻结 Stage100 任务包、Stage100 P1 静态合同与已复审 Stage099 内部依据与外部增强分离控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
   "business_verdict": "内部依据不足时保持 evidence_gap 与未来答案声明，不能伪装为内部经验，外部增强不能填补或替代该缺口。检索文档保持 evidence 身份且 IDS 规则保持优先级；高风险工程建议、合同承诺与生产写回保持业务线白箱人工处理，人工确认未记录，最终结论未发布。",
-  "evidence_status": "STAGE100_NO_INTERNAL_EVIDENCE_STRATEGY_CONTRACT_RUNTIME_DISABLED",
+  "evidence_status": "STAGE100_NO_INTERNAL_EVIDENCE_STRATEGY_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE100-P2-GATE",
+  "next_gate": "IDS-STAGE100-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

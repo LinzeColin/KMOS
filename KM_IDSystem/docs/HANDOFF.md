@@ -9,15 +9,14 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage100 P1 accepted locally - 2026-08-25
+## Current Gate - Stage100 P2 accepted locally - 2026-08-25
 
-- `IDS-V0_1-STAGE100-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE100 / IDS-STAGE100-P1 / IDS-V0_1-STAGE100-P1 / IDS-STAGE100-P2-GATE`。本 run 只完成 P1，下一步仅可在新的独立 run 进入 P2。
-- P1 固定回答结构、提示词版本、内部依据、外部增强、`evidence_gap`、无内部依据策略、来源类型、模型输出权限与人工确认门禁 `9` 个未来控制引用；`4` 类底层来源类型、检索文档 evidence 身份、IDS 规则优先级、内部依据不足声明和外部增强边界保持受控。
-- 已验证：P1 聚焦 `7/7`，Stage088--Stage100 P1 精确白箱链 `609/609`，Stage005 当前态治理投影 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和单项目双平面检查均通过。
-- 历史阶段白箱投影统一从既有 roadmap、status 与 plan 交叉核验，历史阶段工件继续保持各自的显式白箱断言；该测试辅助逻辑不形成业务事实源。高风险工程建议、合同承诺与生产写回保持业务线白箱人工处理，最终结论保持未发布。
-- 本轮继续只使用 `codex/kmids-stage071-p1` 与唯一开发 worktree；本次 P1 未进行 GitHub 上传或推送。main、release、正式全局上传、OVH、生产、模型与 Agent 保持后续门禁范围，运行计数均为 `0`，运行标志均为 `false`。
-- 用户在后续暂停前明确要求同步现有隔离分支恢复检查点；`codex/kmids-stage071-p1` 已与远端同名分支同步。该同步只保存已验收的本地 P1 及本交接，不改变 `main`、release、正式全局上传、OVH、生产、模型或 Agent 的门禁范围。
-- 回滚范围仅包括本次 P1 的范围说明、静态合同、聚焦用例、历史投影测试辅助逻辑、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PASS_REVIEWED_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_RUNTIME_DISABLED`。Stage099 Review 及其 P1--P4、冻结任务包、受保护资料、GitHub main/release、OVH 与应用状态保持原状。
+- `IDS-V0_1-STAGE100-P2` 已完成本地验收；当前治理状态为 `IDS-STAGE100 / IDS-STAGE100-P2 / IDS-V0_1-STAGE100-P2 / IDS-STAGE100-P3-GATE`。下一步仅可在新的独立 run 进入 P3。
+- P2 固定 `6` 条、每条 `21` 字段的非业务 reference-only 控制请求；四组投影每条 `38` 字段，共 `228` 个检查点，固化回答合同与无内部依据策略引用、查询/索引/提示词/模型版本和所选 evidence 记录、来源类型与外部增强展示、提示注入与输出权限门禁。
+- 已验证：P2 聚焦 `10/10`，P1/P2 聚焦 `17/17`，Stage088--Stage100 P2 精确白箱链 `619/619`；Stage005 当前态治理投影全项为真；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和双平面检查均通过。
+- 单一冻结任务包继续保持权威；内部依据不足统一声明为 `evidence_gap`，外部公开参考与模型推理作为外部增强展示时保留各自底层来源类型。高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认，最终结论保持未发布。
+- 本轮继续只使用 `codex/kmids-stage071-p1` 与唯一开发 worktree；P2 建立本地提交，远端维持已同步的 P1 恢复检查点。main、release、正式全局上传、OVH、生产、模型与 Agent 保持后续门禁范围，运行计数均为 `0`，运行标志均为 `false`，模型 Token 与 Agent 执行计数均为 `0`。
+- 回滚范围仅包括本次 P2 的范围说明、纯内存控制切片、合同、聚焦用例、历史投影测试辅助逻辑、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PHASE1_NO_INTERNAL_EVIDENCE_STRATEGY_RUNTIME_DISABLED`。Stage100 P1、Stage099 Review 及其 P1--P4、冻结任务包、受保护资料、GitHub main/release、OVH 与应用状态保持原状。
 
 ## Superseded Gate - Stage098 Review accepted locally - 2026-08-25
 

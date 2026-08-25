@@ -2,6 +2,10 @@ import json
 from pathlib import Path
 import unittest
 
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import (
+    assert_legacy_or_current_projection,
+)
+
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
@@ -306,20 +310,24 @@ class Stage100NoInternalEvidenceStrategyPhase1Tests(unittest.TestCase):
             if line.strip()
         }
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        self.assertEqual(
-            (
-                "IDS-STAGE100",
-                "IDS-STAGE100-P1",
-                "IDS-V0_1-STAGE100-P1",
-                "IDS-STAGE100-P2-GATE",
-            ),
+        phase1_current = (
+            "IDS-STAGE100",
+            "IDS-STAGE100-P1",
+            "IDS-V0_1-STAGE100-P1",
+            "IDS-STAGE100-P2-GATE",
+        )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
             current,
+            {phase1_current},
+            status,
+            plan,
+            ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
         self.assertTrue(RECEIPT.is_file())
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-100"])
         for acceptance_id in (
             "ACC-STAGE100-P1-01",
             "ACC-STAGE100-P1-02",
@@ -337,14 +345,19 @@ class Stage100NoInternalEvidenceStrategyPhase1Tests(unittest.TestCase):
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
         self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
-        for phrase in (
-            "stage100_phase1_state:",
-            'current_phase_id: "IDS-STAGE100-P1"',
-            'next_gate_id: "IDS-STAGE100-P2-GATE"',
-            'stage_id: "IDS-STAGE100"',
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, roadmap_text)
+        self.assertIn("stage100_phase1_state:", roadmap_text)
+        if current == phase1_current:
+            self.assertFalse(is_current_projection)
+            self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-100"])
+            for phrase in (
+                'current_phase_id: "IDS-STAGE100-P1"',
+                'next_gate_id: "IDS-STAGE100-P2-GATE"',
+                'stage_id: "IDS-STAGE100"',
+            ):
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, roadmap_text)
+        else:
+            self.assertTrue(is_current_projection)
 
 
 if __name__ == "__main__":
