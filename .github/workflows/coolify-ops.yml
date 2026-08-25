@@ -1047,7 +1047,14 @@ jobs:
           if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
             --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" \
             --output "$bridge_dir/target.env"; then
-            echo "$CONTROL_LABEL=ACCESS_TARGET_NOT_RESOLVED"
+            target_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
+              --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
+            case "$target_diagnostic" in
+              COOLIFY_AUDIENCE_INVALID|ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|CONFIGURED_AUDIENCE_NOT_FOUND|ACCESS_TARGET_SCOPE_INVALID|ACCESS_TARGET_AMBIGUOUS)
+                ;;
+              *) target_diagnostic=UNCLASSIFIED_INPUT_INVALID ;;
+            esac
+            echo "$CONTROL_LABEL=ACCESS_TARGET_${target_diagnostic}"
             exit 1
           fi
           . "$bridge_dir/target.env"
@@ -1217,7 +1224,14 @@ jobs:
           if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
             --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" \
             --output "$bridge_dir/target.env"; then
-            echo "daily_funds_history_probe_cleanup=ACCESS_TARGET_NOT_RESOLVED"; exit 1
+            target_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
+              --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
+            case "$target_diagnostic" in
+              COOLIFY_AUDIENCE_INVALID|ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|CONFIGURED_AUDIENCE_NOT_FOUND|ACCESS_TARGET_SCOPE_INVALID|ACCESS_TARGET_AMBIGUOUS)
+                ;;
+              *) target_diagnostic=UNCLASSIFIED_INPUT_INVALID ;;
+            esac
+            echo "daily_funds_history_probe_cleanup=ACCESS_TARGET_${target_diagnostic}"; exit 1
           fi
           . "$bridge_dir/target.env"
           echo "::add-mask::$CF_ACCESS_APP_ID"
