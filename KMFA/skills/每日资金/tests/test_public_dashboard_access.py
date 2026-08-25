@@ -35,6 +35,8 @@ API_ID = "20b0c6f3-77f1-4591-8f4a-d643709b42cf"
 ROOT_ID = "b2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
 ROOT_WILDCARD_ID = "c2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
 POLICY_ID = "a2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
+PROBE_CONTROL_ID = "d2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
+RECOVERY_CONTROL_ID = "e2b3c4d5-1e2f-4a5b-8c9d-0e1f2a3b4c5d"
 
 
 def _apps(items: list[object]) -> dict[str, object]:
@@ -52,6 +54,8 @@ def test_selects_only_exact_host_dashboard_access_applications() -> None:
         {"id": POLICY_ID, "type": "self_hosted", "domain": "other.linzezhang.com/api/*"},
         {"id": ROOT_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/"},
         {"id": ROOT_WILDCARD_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/*"},
+        {"id": PROBE_CONTROL_ID, "type": "self_hosted", "domain": "kmfa.linzezhang.com/ops/api/daily-funds/history-probe"},
+        {"id": RECOVERY_CONTROL_ID, "type": "self_hosted", "destinations": [{"type": "public", "uri": "kmfa.linzezhang.com/ops/api/daily-funds/recovery/*"}]},
     ])
 
     assert select_public_dashboard_application_ids(payload) == tuple(

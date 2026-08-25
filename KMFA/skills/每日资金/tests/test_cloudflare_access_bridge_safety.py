@@ -18,8 +18,12 @@ if str(ROOT) not in sys.path:
 from daily_funds.access_bridge import (  # noqa: E402
     ACCESS_BRIDGE_SCHEMA,
     AccessBridgeInputError,
+    PROBE_PATH,
+    RECOVERY_PATH,
     capture_policy,
     capture_service_token,
+    control_application_payload,
+    control_application_policy_state,
     diagnose_bridge_target,
     owned_bridge_resource_ids,
     policy_payload,
@@ -67,7 +71,7 @@ def _target_inputs(tmp_path: Path, *, apps: list[object] | None = None) -> Path:
             "id": APP_ID,
             "aud": AUDIENCE,
             "type": "self_hosted",
-            "domain": "kmfa.linzezhang.com/ops/*",
+            "domain": f"kmfa.linzezhang.com{PROBE_PATH}",
         }],
     })
     return access_apps
@@ -119,16 +123,23 @@ def _load_script():
     return module
 
 
-def test_bridge_resolves_only_one_exact_host_narrow_ops_application(tmp_path: Path) -> None:
+def test_bridge_resolves_only_one_exact_control_child_application(tmp_path: Path) -> None:
     access_apps = _target_inputs(tmp_path)
 
-    assert resolve_bridge_target(access_apps) == {
+    assert resolve_bridge_target(access_apps, PROBE_PATH) == {
         "app_id": APP_ID,
         "origin": "https://kmfa.linzezhang.com",
     }
 
 
-@pytest.mark.parametrize("domain", ["kmfa.linzezhang.com/*", "kmfa.linzezhang.com/", "http://kmfa.linzezhang.com/ops/*", "localhost/ops/*"])
+@pytest.mark.parametrize("domain", [
+    "kmfa.linzezhang.com/*",
+    "kmfa.linzezhang.com/ops/*",
+    "kmfa.linzezhang.com/ops/api/daily-funds/*",
+    "kmfa.linzezhang.com/",
+    "http://kmfa.linzezhang.com/ops/api/daily-funds/history-probe",
+    "localhost/ops/api/daily-funds/history-probe",
+])
 def test_bridge_rejects_broad_or_non_https_access_targets(tmp_path: Path, domain: str) -> None:
     access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
@@ -138,7 +149,7 @@ def test_bridge_rejects_broad_or_non_https_access_targets(tmp_path: Path, domain
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(access_apps)
+        resolve_bridge_target(access_apps, PROBE_PATH)
 
 
 def test_bridge_rejects_ambiguous_or_paginated_access_application_list(tmp_path: Path) -> None:
@@ -146,40 +157,40 @@ def test_bridge_rejects_ambiguous_or_paginated_access_application_list(tmp_path:
         "id": "b3b4c5d6-1e2f-4a5b-8c9d-0e1f2a3b4c5d",
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.linzezhang.com/ops/api/*",
+        "domain": f"kmfa.linzezhang.com{PROBE_PATH}",
     }
     access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.linzezhang.com/ops/*",
+        "domain": f"kmfa.linzezhang.com{PROBE_PATH}",
     }, duplicate])
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(access_apps)
+        resolve_bridge_target(access_apps, PROBE_PATH)
 
     payload = json.loads(access_apps.read_text(encoding="utf-8"))
     payload["result"] = [payload["result"][0]]
     payload["result_info"] = {"total_pages": 2}
     _write(access_apps, payload)
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(access_apps)
+        resolve_bridge_target(access_apps, PROBE_PATH)
 
 
 def test_bridge_target_diagnostic_is_finite_and_values_free(tmp_path: Path) -> None:
     access_apps = _target_inputs(tmp_path)
-    assert diagnose_bridge_target(access_apps) == "RESOLVED"
+    assert diagnose_bridge_target(access_apps, PROBE_PATH) == "RESOLVED"
 
     access_apps = _target_inputs(tmp_path)
     _write(access_apps, {"success": True, "result_info": {"total_pages": 2}, "result": []})
-    assert diagnose_bridge_target(access_apps) == "ACCESS_APP_LIST_INCOMPLETE"
+    assert diagnose_bridge_target(access_apps, PROBE_PATH) == "ACCESS_APP_LIST_INCOMPLETE"
 
     _write(access_apps, {"success": True, "result": [{
         "id": APP_ID,
         "aud": "c" * 64,
         "type": "self_hosted",
-        "domain": "private-target.example.com/ops/*",
+        "domain": f"private-target.example.com{PROBE_PATH}",
     }]})
-    assert diagnose_bridge_target(access_apps) == "KMFA_OPS_TARGET_UNAVAILABLE"
+    assert diagnose_bridge_target(access_apps, PROBE_PATH) == "CONTROL_APP_MISSING"
 
     _write(access_apps, {"success": True, "result": [{
         "id": APP_ID,
@@ -187,22 +198,24 @@ def test_bridge_target_diagnostic_is_finite_and_values_free(tmp_path: Path) -> N
         "type": "self_hosted",
         "domain": "kmfa.linzezhang.com/",
     }]})
-    assert diagnose_bridge_target(access_apps) == "KMFA_OPS_TARGET_UNAVAILABLE"
+    assert diagnose_bridge_target(access_apps, PROBE_PATH) == "CONTROL_APP_MISSING"
 
     _write(access_apps, {"success": True, "result": [{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.linzezhang.com/ops/*",
+        "domain": f"kmfa.linzezhang.com{PROBE_PATH}",
     }, {
         "id": "b3b4c5d6-1e2f-4a5b-8c9d-0e1f2a3b4c5d",
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.linzezhang.com/ops/api/*",
+        "domain": f"kmfa.linzezhang.com{PROBE_PATH}",
     }]})
-    assert diagnose_bridge_target(access_apps) == "KMFA_OPS_TARGET_AMBIGUOUS"
+    assert diagnose_bridge_target(access_apps, PROBE_PATH) == "CONTROL_APP_AMBIGUOUS"
+    assert diagnose_bridge_target(access_apps, "/ops/api/daily-funds/untrusted") == "CONTROL_PATH_INVALID"
 
-def test_bridge_rejects_an_effective_destination_broader_than_the_fixed_ops_probe(tmp_path: Path) -> None:
+
+def test_bridge_rejects_an_effective_destination_broader_than_the_fixed_control(tmp_path: Path) -> None:
     access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
@@ -215,7 +228,7 @@ def test_bridge_rejects_an_effective_destination_broader_than_the_fixed_ops_prob
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(access_apps)
+        resolve_bridge_target(access_apps, PROBE_PATH)
 
 
 def test_bridge_uses_new_destinations_when_legacy_domain_is_stale(tmp_path: Path) -> None:
@@ -227,12 +240,11 @@ def test_bridge_uses_new_destinations_when_legacy_domain_is_stale(tmp_path: Path
         "type": "self_hosted",
         "domain": "kmfa.linzezhang.com/",
         "destinations": [
-            {"type": "public", "uri": "kmfa.linzezhang.com/ops"},
-            {"type": "public", "uri": "kmfa.linzezhang.com/ops/*"},
+            {"type": "public", "uri": f"kmfa.linzezhang.com{PROBE_PATH}"},
         ],
     }])
 
-    assert resolve_bridge_target(access_apps) == {
+    assert resolve_bridge_target(access_apps, PROBE_PATH) == {
         "app_id": APP_ID,
         "origin": "https://kmfa.linzezhang.com",
     }
@@ -244,26 +256,51 @@ def test_bridge_rejects_new_destinations_with_mixed_origins(tmp_path: Path) -> N
         "aud": AUDIENCE,
         "type": "self_hosted",
         "destinations": [
-            {"type": "public", "uri": "kmfa.linzezhang.com/ops/*"},
-            {"type": "public", "uri": "other.example.com/ops/*"},
+            {"type": "public", "uri": f"kmfa.linzezhang.com{PROBE_PATH}"},
+            {"type": "public", "uri": f"other.example.com{PROBE_PATH}"},
         ],
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(access_apps)
+        resolve_bridge_target(access_apps, PROBE_PATH)
 
 
-def test_bridge_requires_a_probe_covering_path_beside_exact_ops_landing_path(tmp_path: Path) -> None:
+def test_bridge_rejects_a_different_fixed_control_path(tmp_path: Path) -> None:
     access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.linzezhang.com/ops",
-        "destinations": [{"type": "public", "uri": "kmfa.linzezhang.com/ops"}],
+        "domain": f"kmfa.linzezhang.com{RECOVERY_PATH}",
+        "destinations": [{"type": "public", "uri": f"kmfa.linzezhang.com{RECOVERY_PATH}"}],
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(access_apps)
+        resolve_bridge_target(access_apps, PROBE_PATH)
+
+
+def test_control_application_payload_and_policy_state_are_fixed_and_values_free(tmp_path: Path) -> None:
+    assert control_application_payload(PROBE_PATH) == {
+        "name": "kmfa-daily-funds-history-probe-control",
+        "domain": f"kmfa.linzezhang.com{PROBE_PATH}",
+        "type": "self_hosted",
+        "app_launcher_visible": False,
+    }
+    assert control_application_payload(RECOVERY_PATH) == {
+        "name": "kmfa-daily-funds-recovery-control",
+        "domain": f"kmfa.linzezhang.com{RECOVERY_PATH}",
+        "type": "self_hosted",
+        "app_launcher_visible": False,
+    }
+    with pytest.raises(AccessBridgeInputError):
+        control_application_payload("/ops/api/daily-funds/untrusted")
+
+    policies = tmp_path / "policies.json"
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    assert control_application_policy_state(policies) == "EMPTY"
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": [{"untrusted": "must-not-escape"}]})
+    assert control_application_policy_state(policies) == "NOT_EMPTY"
+    _write(policies, {"success": True, "result_info": {"total_pages": 2}, "result": []})
+    assert control_application_policy_state(policies) == "INVALID"
 
 
 def test_service_token_and_policy_payload_are_short_lived_and_app_specific() -> None:
@@ -644,18 +681,27 @@ def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(t
     access_apps = _target_inputs(tmp_path)
     target = tmp_path / "target.env"
     assert manager.main([
-        "resolve-target", "--access-apps", str(access_apps), "--output", str(target),
+        "resolve-target", "--access-apps", str(access_apps), "--control-path", PROBE_PATH,
+        "--output", str(target),
     ]) == 0
     assert stat.S_IMODE(target.stat().st_mode) == 0o600
     assert "kmfa.linzezhang.com" in target.read_text(encoding="utf-8")
     assert capsys.readouterr().out == ""
 
     assert manager.main([
-        "diagnose-target", "--access-apps", str(access_apps),
+        "diagnose-target", "--access-apps", str(access_apps), "--control-path", PROBE_PATH,
     ]) == 0
     output = capsys.readouterr().out
     assert output == "RESOLVED\n"
     assert "kmfa.linzezhang.com" not in output
+
+    control_payload = tmp_path / "control-app.json"
+    assert manager.main([
+        "write-control-app-payload", "--control-path", RECOVERY_PATH,
+        "--output", str(control_payload),
+    ]) == 0
+    assert stat.S_IMODE(control_payload.stat().st_mode) == 0o600
+    assert capsys.readouterr().out == ""
 
     response = tmp_path / "probe.json"
     headers = _probe_headers(tmp_path / "probe.headers")
@@ -683,12 +729,15 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "CF-Access-Client-Secret" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/history-probe" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/recovery" in step
-    assert '"$PROBE_ORIGIN$CONTROL_PATH"' in step
+    assert '"$CONTROL_ORIGIN$CONTROL_PATH"' in step
     assert "diagnose-target" in step
     assert "--coolify-env" not in step
     assert '$BASE/api/v1/applications/$APP/envs' not in step
-    assert "KMFA_OPS_TARGET_UNAVAILABLE" in step
-    assert "KMFA_OPS_TARGET_AMBIGUOUS" in step
+    assert "CONTROL_APP_MISSING" in step
+    assert "CONTROL_APP_AMBIGUOUS" in step
+    assert "write-control-app-payload" in step
+    assert "control-app-policy-state" in step
+    assert "CONTROL_ACCESS_POLICY_NOT_EMPTY" in step
     assert "capture-service-token-id" in step
     assert "capture-policy" in step
     assert "summarize-probe-start" in step
@@ -709,5 +758,6 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "rm -rf" not in step
 
     assert "daily-funds-history-probe-cleanup" in workflow
+    assert "daily-funds-recovery-cleanup" in workflow
     assert "inputs.bridge_run_tag" in workflow
     assert "RUN_TAG_INVALID" in workflow
