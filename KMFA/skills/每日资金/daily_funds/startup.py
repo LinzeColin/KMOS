@@ -6,6 +6,7 @@ import sqlite3
 
 from .config import ConfigError, DailyFundsConfig
 from .parsing import PARSER_VERSION
+from .recovery import has_live_recovery_request
 from .state import RuntimeState
 
 
@@ -26,6 +27,8 @@ def raw_archive_audit_required(config: DailyFundsConfig | None = None) -> bool:
     try:
         resolved = config or DailyFundsConfig.from_env()
         resolved.validate(include_storage=False)
+        if has_live_recovery_request(resolved):
+            return False
         return not RuntimeState(resolved.state_dir).has_complete_capability_scope(
             parser_version=PARSER_VERSION,
         )
