@@ -835,18 +835,20 @@ def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(t
 
 def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() -> None:
     workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
-    start = workflow.index("受控触发每日资金固定历史探针")
+    start = workflow.index("受控读取或触发每日资金固定任务")
     end = workflow.find("\n      - name:", start + 1)
     step = workflow[start:] if end == -1 else workflow[start:end]
 
     assert "inputs.mode == 'daily-funds-history-probe-bridge'" in step
     assert "inputs.mode == 'daily-funds-recovery-bridge'" in step
+    assert "inputs.mode == 'daily-funds-recovery-status-bridge'" in step
     assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
     assert "access/service_tokens" in step
     assert "/access/apps/${CF_ACCESS_APP_ID}/policies" in step
     assert "CF-Access-Client-Secret" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/history-probe" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/recovery" in step
+    assert "CONTROL_KIND=RECOVERY_STATUS" in step
     assert '"$CONTROL_ORIGIN$CONTROL_PATH"' in step
     assert "diagnose-target" in step
     assert "--coolify-env" not in step
@@ -868,6 +870,8 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "CONTROL_POLL_ATTEMPTS=3" in step
     assert "ASYNC_RUNNING)" in step
     assert "RECOVERY_ASYNC_RUNNING" in step
+    assert 'if [ "$CONTROL_KIND" != "RECOVERY_STATUS" ]; then' in step
+    assert "RECOVERY|RECOVERY_STATUS)" in step
     assert "RETRY)" in step
     assert "sleep 10" in step
     assert "reconcile_owned_resources()" in step
