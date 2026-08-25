@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE103",
-  "phase": "IDS-STAGE103-REVIEW",
-  "task": "IDS-V0_1-STAGE103-REVIEW",
-  "next_gate": "IDS-STAGE104-P1-GATE",
+  "stage": "IDS-STAGE104",
+  "phase": "IDS-STAGE104-P1",
+  "task": "IDS-V0_1-STAGE104-P1",
+  "next_gate": "IDS-STAGE104-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-104",
+      "criteria": "Stage104 RAG 负向测试已形成可执行、可测试、可回滚的 P1 静态工程合同：回答结构、Prompt 版本、内部依据、外部增强、evidence gap、文档 evidence、IDS 规则、输出权限、五个未来负向测试标签与业务线白箱人工确认保持为独立控制引用。",
+      "status": "P1 静态合同已完成"
+    },
+    {
+      "id": "ACC-STAGE104-P1-01",
+      "criteria": "冻结 Stage104 任务包与 Stage103 Review 已复审模型输出权限门禁控制工件保持为唯一合同上下文；P1 不建立第二权威事实源，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE104-P1-02",
+      "criteria": "合同固定 13 个未来控制引用、5 个回答结构区段、4 类底层来源类型和 5 个未来负向测试标签；实际回答、检索、提示词执行、模型调用与负向测试执行保持未进行。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE104-P1-03",
+      "criteria": "检索文档保持 evidence 身份且 IDS 规则、输出权限与人工确认保持优先；internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持底层来源类型；五类输出权限只定义未来控制语义，三类高风险输出保持业务线白箱人工确认与最终结论未发布。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE104-P1-04",
+      "criteria": "P1 期间真实资料、Prompt 正文、查询、检索、回答、证据账本、审计、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产和正式全局上传保持未执行；本轮本地验收完成后才可在新 run 进入 Stage104 P2。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-103",
       "criteria": "Stage103 模型输出权限门禁已形成可执行、可测试、可回滚的 P1 静态工程合同、P2 纯内存受控最小切片、P3 专项异常场景、P4 交付证据与整阶段机械复审：回答样例、负向测试结果、prompt/version、可复现日志、模型输出权限边界、P4→P3 回退和业务线白箱人工确认均保持为独立控制引用。",

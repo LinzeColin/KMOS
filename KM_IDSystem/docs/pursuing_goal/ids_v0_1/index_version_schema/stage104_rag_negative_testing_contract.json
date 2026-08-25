@@ -142,6 +142,7 @@
     "actual_output_finalization_attempted": false
   },
   "output_permission_contract": {
+    "taskpack_high_risk_advice_controlled_label": "high_risk_engineering_advice",
     "classified_output_types": {
       "safe_summary": "未来安全摘要分类；当前不生成、发布或写回。",
       "draft_recommendation": "未来草案建议分类；当前不生成、发布或写回。",
@@ -162,6 +163,14 @@
     "actual_human_confirmation_recorded": false,
     "actual_final_conclusion_published": false,
     "actual_production_writeback_performed": false
+  },
+  "human_confirmation_contract": {
+    "business_line_whitebox_confirmation_is_future_authorized_work_only": true,
+    "human_confirmation_may_not_be_inferred_from_control_contract": true,
+    "human_confirmation_may_not_be_automated": true,
+    "final_conclusion_may_not_be_automated": true,
+    "actual_human_confirmation_performed": false,
+    "actual_business_line_final_conclusion_recorded": false
   },
   "future_runtime_prerequisite_contract": {
     "rag_negative_test_execution_is_future_authorized_work_only": true,
