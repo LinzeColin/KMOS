@@ -322,11 +322,10 @@ def _narrow_app_origin(app: Mapping[str, Any]) -> str | None:
     return origin if probe_covered else None
 
 
-def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | Path) -> dict[str, str]:
-    """Resolve exactly one configured, narrow self-hosted Access application."""
+def _access_application_list(path: str | Path) -> list[object]:
+    """Read one complete Access-application list from the private runner file."""
 
-    audiences = _configured_audiences(coolify_env_path)
-    payload = _read_object(access_apps_path)
+    payload = _read_object(path)
     result = payload.get("result")
     if payload.get("success") is not True or not isinstance(result, list):
         raise AccessBridgeInputError("Access application list invalid")
@@ -337,9 +336,18 @@ def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | 
         total_pages = result_info.get("total_pages")
         if not isinstance(total_pages, int) or total_pages != 1:
             raise AccessBridgeInputError("Access application list incomplete")
+    return result
 
+
+def _configured_target_candidates(
+    audiences: frozenset[str],
+    applications: list[object],
+) -> tuple[list[Mapping[str, Any]], list[dict[str, str]]]:
+    """Return configured app candidates and the subset safe for the fixed probe."""
+
+    configured_apps: list[Mapping[str, Any]] = []
     matches: list[dict[str, str]] = []
-    for app in result:
+    for app in applications:
         if not isinstance(app, Mapping) or app.get("type") != "self_hosted":
             continue
         app_id = app.get("id")
@@ -351,10 +359,49 @@ def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | 
             or audience not in audiences
         ):
             continue
+        configured_apps.append(app)
         origin = _narrow_app_origin(app)
         if origin is None:
             continue
         matches.append({"app_id": app_id.lower(), "origin": origin})
+    return configured_apps, matches
+
+
+def diagnose_bridge_target(coolify_env_path: str | Path, access_apps_path: str | Path) -> str:
+    """Classify target resolution without revealing provider values.
+
+    The bridge's temporary inputs contain Access application IDs, audiences and
+    domains.  Deployment diagnostics must identify the failed invariant while
+    keeping each of those values confined to the runner's mode-0600 files.
+    """
+
+    try:
+        audiences = _configured_audiences(coolify_env_path)
+    except AccessBridgeInputError:
+        return "COOLIFY_AUDIENCE_INVALID"
+    try:
+        applications = _access_application_list(access_apps_path)
+    except AccessBridgeInputError as exc:
+        if str(exc) == "Access application list incomplete":
+            return "ACCESS_APP_LIST_INCOMPLETE"
+        return "ACCESS_APP_RESPONSE_INVALID"
+
+    configured_apps, matches = _configured_target_candidates(audiences, applications)
+    if len(matches) == 1:
+        return "RESOLVED"
+    if len(matches) > 1:
+        return "ACCESS_TARGET_AMBIGUOUS"
+    if configured_apps:
+        return "ACCESS_TARGET_SCOPE_INVALID"
+    return "CONFIGURED_AUDIENCE_NOT_FOUND"
+
+
+def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | Path) -> dict[str, str]:
+    """Resolve exactly one configured, narrow self-hosted Access application."""
+
+    audiences = _configured_audiences(coolify_env_path)
+    applications = _access_application_list(access_apps_path)
+    _, matches = _configured_target_candidates(audiences, applications)
     if len(matches) != 1:
         raise AccessBridgeInputError("Access history-probe application ambiguous")
     return matches[0]

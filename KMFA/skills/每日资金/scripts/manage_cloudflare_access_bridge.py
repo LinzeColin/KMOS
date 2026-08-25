@@ -26,6 +26,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_policy,
     capture_service_token,
     capture_service_token_id,
+    diagnose_bridge_target,
     owned_bridge_resource_ids,
     policy_payload,
     probe_poll_state,
@@ -139,6 +140,10 @@ def main(argv: list[str] | None = None) -> int:
     resolve.add_argument("--access-apps", required=True)
     resolve.add_argument("--output", required=True)
 
+    diagnose = subparsers.add_parser("diagnose-target")
+    diagnose.add_argument("--coolify-env", required=True)
+    diagnose.add_argument("--access-apps", required=True)
+
     service_payload = subparsers.add_parser("write-service-token-payload")
     service_payload.add_argument("--run-tag", required=True)
     service_payload.add_argument("--output", required=True)
@@ -222,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
                 "CF_ACCESS_APP_ID": target["app_id"],
                 "PROBE_ORIGIN": target["origin"],
             })
+        elif args.command == "diagnose-target":
+            print(diagnose_bridge_target(args.coolify_env, args.access_apps))
         elif args.command == "write-service-token-payload":
             write_private_json(_private_output(parser, args), service_token_payload(args.run_tag))
         elif args.command == "capture-service-token":

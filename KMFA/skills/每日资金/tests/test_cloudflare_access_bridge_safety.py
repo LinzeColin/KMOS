@@ -20,6 +20,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     AccessBridgeInputError,
     capture_policy,
     capture_service_token,
+    diagnose_bridge_target,
     owned_bridge_resource_ids,
     policy_payload,
     probe_poll_state,
@@ -168,6 +169,46 @@ def test_bridge_rejects_ambiguous_or_paginated_access_application_list(tmp_path:
     with pytest.raises(AccessBridgeInputError):
         resolve_bridge_target(envs, access_apps)
 
+
+def test_bridge_target_diagnostic_is_finite_and_values_free(tmp_path: Path) -> None:
+    envs, access_apps = _target_inputs(tmp_path)
+    assert diagnose_bridge_target(envs, access_apps) == "RESOLVED"
+
+    _write(envs, [])
+    assert diagnose_bridge_target(envs, access_apps) == "COOLIFY_AUDIENCE_INVALID"
+
+    envs, access_apps = _target_inputs(tmp_path)
+    _write(access_apps, {"success": True, "result_info": {"total_pages": 2}, "result": []})
+    assert diagnose_bridge_target(envs, access_apps) == "ACCESS_APP_LIST_INCOMPLETE"
+
+    _write(access_apps, {"success": True, "result": [{
+        "id": APP_ID,
+        "aud": "c" * 64,
+        "type": "self_hosted",
+        "domain": "private-target.example.com/ops/*",
+    }]})
+    assert diagnose_bridge_target(envs, access_apps) == "CONFIGURED_AUDIENCE_NOT_FOUND"
+
+    _write(access_apps, {"success": True, "result": [{
+        "id": APP_ID,
+        "aud": AUDIENCE,
+        "type": "self_hosted",
+        "domain": "private-target.example.com/",
+    }]})
+    assert diagnose_bridge_target(envs, access_apps) == "ACCESS_TARGET_SCOPE_INVALID"
+
+    _write(access_apps, {"success": True, "result": [{
+        "id": APP_ID,
+        "aud": AUDIENCE,
+        "type": "self_hosted",
+        "domain": "private-target.example.com/ops/*",
+    }, {
+        "id": "b3b4c5d6-1e2f-4a5b-8c9d-0e1f2a3b4c5d",
+        "aud": AUDIENCE,
+        "type": "self_hosted",
+        "domain": "private-target.example.com/ops/api/*",
+    }]})
+    assert diagnose_bridge_target(envs, access_apps) == "ACCESS_TARGET_AMBIGUOUS"
 
 def test_bridge_rejects_an_effective_destination_broader_than_the_fixed_ops_probe(tmp_path: Path) -> None:
     envs, access_apps = _target_inputs(tmp_path, apps=[{
@@ -616,6 +657,13 @@ def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(t
     assert stat.S_IMODE(target.stat().st_mode) == 0o600
     assert "kmfa.example.com" in target.read_text(encoding="utf-8")
     assert capsys.readouterr().out == ""
+
+    assert manager.main([
+        "diagnose-target", "--coolify-env", str(envs), "--access-apps", str(access_apps),
+    ]) == 0
+    output = capsys.readouterr().out
+    assert output == "RESOLVED\n"
+    assert "kmfa.example.com" not in output
 
     response = tmp_path / "probe.json"
     headers = _probe_headers(tmp_path / "probe.headers")
