@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE104",
-  "phase": "IDS-STAGE104-P1",
-  "task": "IDS-V0_1-STAGE104-P1",
-  "next_gate": "IDS-STAGE104-P2-GATE",
+  "phase": "IDS-STAGE104-P2",
+  "task": "IDS-V0_1-STAGE104-P2",
+  "next_gate": "IDS-STAGE104-P3-GATE",
   "items": [
     {
       "id": "ACC-STAGE-104",
-      "criteria": "Stage104 RAG 负向测试已形成可执行、可测试、可回滚的 P1 静态工程合同：回答结构、Prompt 版本、内部依据、外部增强、evidence gap、文档 evidence、IDS 规则、输出权限、五个未来负向测试标签与业务线白箱人工确认保持为独立控制引用。",
-      "status": "P1 静态合同已完成"
+      "criteria": "Stage104 RAG 负向测试已形成可执行、可测试、可回滚的 P1 静态工程合同与 P2 纯内存受控最小切片：回答合同、版本记录、来源类型分离、文档 evidence 防护、输出权限、五个未来负向测试标签与业务线白箱人工确认保持为独立控制引用。",
+      "status": "P2 受控最小切片已完成"
     },
     {
       "id": "ACC-STAGE104-P1-01",
@@ -6212,6 +6212,26 @@
     {
       "id": "ACC-STAGE095-REVIEW-04",
       "criteria": "Review 期间保持真实资料、检索、证据账本、数据库、实际回归、风险计算、可信等级变更、撤回、降级、恢复、投毒处置、报告状态、模型 Token、Agent、OVH、生产与正式上传的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage096 P1。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE104-P2-01",
+      "criteria": "冻结 Stage104 任务包、Stage104 P1 静态合同和 Stage103 Review 已复审模型输出权限门禁控制工件保持为唯一控制上下文；P2 固定五条非业务 reference-only 控制请求，来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE104-P2-02",
+      "criteria": "P2 固定 query、index_version、prompt_version、model_version 与 selected evidence 的 reference-only 可复现记录引用，并投影回答合同与可复现记录、文档 evidence 与 IDS 规则防护、来源语义与外部增强、输出权限与业务线白箱门禁四组控制记录。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE104-P2-03",
+      "criteria": "internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持底层来源类型分离；external_augmentation_opinion 保留底层来源类型且不替代内部依据；文档内潜在指令无法覆盖 IDS 规则，三类高风险输出保持业务线白箱人工确认与最终结论未发布。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE104-P2-04",
+      "criteria": "P2 保持真实资料、查询、检索、提示词、回答、证据账本、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、上传与推送的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage104 P3。",
       "status": "已遵守"
     }
   ]

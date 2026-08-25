@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE104"
-current_phase_id: "IDS-STAGE104-P1"
-current_task_id: "IDS-V0_1-STAGE104-P1"
-next_gate_id: "IDS-STAGE104-P2-GATE"
+current_phase_id: "IDS-STAGE104-P2"
+current_task_id: "IDS-V0_1-STAGE104-P2"
+next_gate_id: "IDS-STAGE104-P3-GATE"
 current_transition_history:
+  stage104_phase2_state:
+    current_stage_id: "IDS-STAGE104"
+    current_phase_id: "IDS-STAGE104-P2"
+    current_task_id: "IDS-V0_1-STAGE104-P2"
+    next_gate_id: "IDS-STAGE104-P3-GATE"
   stage104_phase1_state:
     current_stage_id: "IDS-STAGE104"
     current_phase_id: "IDS-STAGE104-P1"
@@ -1800,22 +1805,23 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-104"
     objective: "依据冻结 Stage104 任务包完成 RAG 负向测试的 P1 静态边界、后续 P2 受控切片、P3 专项验证、P4 交付证据与整阶段机械复审；检索文档保持 evidence 身份，IDS 规则、输出权限与业务线白箱人工确认保持优先，本 Stage 不创建运行时、业务事实或第二权威事实源。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE104-P2-GATE"
+    next_gate_id: "IDS-STAGE104-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE104-P1-GATE"
+      gate_id: "IDS-STAGE104-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE104-P2-GATE"
+      next_gate_id: "IDS-STAGE104-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage104 任务包与 Stage103 Review 已复审模型输出权限门禁控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 静态合同固定 13 个未来控制引用、五类未来输出分类、四类底层来源类型、无内部依据 evidence_gap 策略、文档 evidence 边界、五个未来负向测试标签、业务线白箱人工确认门禁、19 类失败关闭和四条中文反馈。"
+      - "P2 固定五条非业务 reference-only 控制请求，记录 query、index_version、prompt_version、model_version 与 selected evidence 的可复现引用，投影回答合同、文档 evidence 与 IDS 规则防护、来源语义与外部增强、输出权限与业务线白箱门禁四组控制记录。"
       - "检索文档保持 evidence 身份，文档内潜在指令无法覆盖 IDS 规则、输出权限或业务线白箱人工确认；内部依据不足保持 evidence_gap，外部增强保留底层来源类型。"
       - "真实资料、文档正文、查询、检索、Prompt、模型、模型 Token、数据库、审计、持久化、Agent、OVH、生产、正式全局上传与整阶段下游动作保持后续授权范围。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、提取、分类、处理、执行、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、文档正文、Prompt 正文、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行实际文档指令识别或处理、查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage104 P2。"
+      - "执行实际文档指令识别或处理、查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage104 P3。"
     phases:
       - phase_id: "IDS-STAGE104-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1864,18 +1870,18 @@ stages:
       - phase_id: "IDS-STAGE104-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
         objective: "以 Stage104 P1 静态合同为前序，以固定、非业务、reference-only 控制输入实现任务包指定的回答合同、版本记录、来源类型分离、提示注入防护与输出权限受控最小切片。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE104-P3-GATE"
         gate:
           gate_id: "IDS-STAGE104-P2-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE104-P3-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE104-P2"
             name: "实现 RAG 负向测试受控最小切片"
-            status: "not_started"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE104-P1"
               - "IDS-V0_1-STAGE103-REVIEW"
@@ -1885,6 +1891,21 @@ stages:
               - "ACC-STAGE104-P2-02"
               - "ACC-STAGE104-P2-03"
               - "ACC-STAGE104-P2-04"
+            test_results: "Stage104 P2 聚焦受控最小切片白箱用例、Stage104 P1 前序兼容、治理投影和零运行时边界的最终本地结果记录于 Stage104 P2 receipt；结果只证明冻结控制工件和纯内存失败关闭。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-104_RAG负向测试.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE104_PHASE1_RAG_NEGATIVE_TEST_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage104_rag_negative_testing_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE104_PHASE2_RAG_NEGATIVE_TEST_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage104_rag_negative_testing_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage104_rag_negative_testing_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage104_rag_negative_testing_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage104-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE103_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage103_model_output_permission_gate_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage103-review-local.json"
+            risk: "若将五条控制请求、四组投影、负向标签、可复现引用或白箱门禁误作真实文档处理、查询、检索、Prompt、模型、业务结论或生产动作，会绕开单一权威与人工确认。"
+            rollback: "只回滚本 P2 的执行器、合同、范围说明、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage104 P1 的本地零运行时状态；不改变 P1、Stage103 Review、冻结任务包、真实资料、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE104-P3"
         name: "Phase 3 · RAG 负向测试专项验证与异常场景"
         objective: "只在后续独立 run 中重放 P2 固定、非业务、reference-only 控制投影，验证文档内提示词、evidence gap 与三类高风险输出的失败关闭。"
@@ -2258,12 +2279,13 @@ stages:
       taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-104_RAG负向测试.md"
       acceptance_id: "ACC-STAGE-104"
       entry_gate: "IDS-STAGE104-P1-GATE"
-      status: "phase1_completed_local"
+      status: "phase2_completed_local"
       stage104_started: true
       phase1_started: true
       phase1_completed: true
-      phase2_started: false
-      next_gate_id: "IDS-STAGE104-P2-GATE"
+      phase2_started: true
+      phase2_completed: true
+      next_gate_id: "IDS-STAGE104-P3-GATE"
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false

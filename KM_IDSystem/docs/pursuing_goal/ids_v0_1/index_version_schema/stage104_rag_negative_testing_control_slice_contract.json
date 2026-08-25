@@ -1,0 +1,125 @@
+{
+  "schema_version": "ids.stage104.rag_negative_testing.phase2.v1",
+  "stage": "STAGE-104",
+  "phase": "IDS-STAGE104-P2",
+  "task_id": "IDS-V0_1-STAGE104-P2",
+  "acceptance_id": "ACC-STAGE-104",
+  "contract_state": "RAG_NEGATIVE_TEST_CONTROL_SLICE_RUNTIME_DISABLED",
+  "entry_gate": "IDS-STAGE104-P2-GATE",
+  "next_gate": "IDS-STAGE104-P3-GATE",
+  "source_authority": {
+    "authority": "FROZEN_STAGE104_TASKPACK_STAGE104_PHASE1_AND_STAGE103_REVIEWED_MODEL_OUTPUT_PERMISSION_GATE_CONTROL_ARTIFACTS_ONLY",
+    "source_document_remains_authoritative": true,
+    "business_line_whitebox_human_review_remains_authoritative": true,
+    "second_authoritative_source_created": false,
+    "actual_source_document_read_performed": false,
+    "actual_business_line_decision_performed": false
+  },
+  "predecessor_contract": {
+    "stage103_review_required": true,
+    "stage104_phase1_required": true,
+    "stage103_review_result": "PASS_REVIEWED_MODEL_OUTPUT_PERMISSION_GATE_RUNTIME_DISABLED",
+    "stage104_phase1_result": "PASS_RAG_NEGATIVE_TEST_CONTRACT_RUNTIME_DISABLED",
+    "actual_predecessor_runtime_artifact_read_performed": false
+  },
+  "control_slice_contract": {
+    "record_kind": "CONTROL_ONLY_IN_MEMORY_RAG_NEGATIVE_TEST",
+    "control_request_count": 5,
+    "control_input_field_count": 29,
+    "projection_group_count": 4,
+    "projection_field_total_per_request": 57,
+    "projection_field_total": 285,
+    "control_requests_are_non_business_reference_only": true,
+    "control_references_are_opaque": true,
+    "negative_test_cases_are_labels_only_in_phase2": true,
+    "fixed_negative_test_case_ids": [
+      "DOCUMENT_INSTRUCTION_CANNOT_OVERRIDE_IDS_RULE",
+      "EVIDENCE_GAP_CANNOT_PRESENT_AS_INTERNAL_EXPERIENCE",
+      "HIGH_RISK_ENGINEERING_ADVICE_CANNOT_AUTO_FINALIZE",
+      "CONTRACTUAL_COMMITMENT_CANNOT_AUTO_FINALIZE",
+      "PRODUCTION_WRITEBACK_CANNOT_AUTO_FINALIZE"
+    ],
+    "reproducibility_reference_fields": [
+      "query_ref",
+      "index_version_ref",
+      "prompt_version_ref",
+      "model_version_ref",
+      "selected_evidence_ref"
+    ],
+    "external_augmentation_display_label": "external_augmentation_opinion",
+    "external_augmentation_underlying_source_types": [
+      "external_public_reference",
+      "model_reasoning"
+    ],
+    "document_instruction_state": "CONTROL_UNTRUSTED_NON_EXECUTABLE_REFERENCE",
+    "ids_rule_precedence_state": "CONTROL_IDS_RULES_PREVAIL",
+    "evidence_gap_state": "CONTROL_EVIDENCE_GAP_NOT_INTERNAL_EXPERIENCE",
+    "automatic_final_conclusion_allowed": false,
+    "automatic_answer_publication_allowed": false,
+    "automatic_production_writeback_allowed": false,
+    "actual_negative_test_case_executed": false,
+    "actual_output_classified": false,
+    "actual_human_confirmation_recorded": false,
+    "actual_final_conclusion_published": false
+  },
+  "failure_and_stop_contract": {
+    "declared_failure_states": [
+      "CONTROL_INPUT_MISMATCH",
+      "CONTROL_REQUEST_COUNT_INVALID",
+      "CONTROL_REQUEST_FIELD_SHAPE_INVALID",
+      "NEGATIVE_TEST_CASE_LABEL_INVALID",
+      "REPRODUCIBILITY_REFERENCE_MISSING",
+      "DOCUMENT_EVIDENCE_REFERENCE_MISSING",
+      "DOCUMENT_INSTRUCTION_REFERENCE_MISSING",
+      "IDS_RULE_REFERENCE_MISSING",
+      "DOCUMENT_INSTRUCTION_OVERRIDES_IDS_RULE",
+      "EVIDENCE_GAP_PRESENTED_AS_INTERNAL_EXPERIENCE",
+      "EXTERNAL_AUGMENTATION_REPLACES_INTERNAL_EVIDENCE",
+      "HIGH_RISK_ENGINEERING_ADVICE_AUTO_FINALIZED",
+      "CONTRACTUAL_COMMITMENT_AUTO_FINALIZED",
+      "PRODUCTION_WRITEBACK_AUTO_FINALIZED",
+      "SECOND_AUTHORITY_CREATED",
+      "RUNTIME_NEGATIVE_TEST_EXECUTED",
+      "STAGE104_PHASE3_NOT_AUTHORIZED"
+    ],
+    "failure_state_count": 17,
+    "automatic_business_write_allowed": false,
+    "actual_failure_record_created": false
+  },
+  "runtime_boundary": {
+    "ids_business_source_read_performed": false,
+    "document_content_read_performed": false,
+    "query_execution_performed": false,
+    "retrieval_execution_performed": false,
+    "prompt_execution_performed": false,
+    "model_call_performed": false,
+    "actual_negative_test_case_execution_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "stage_and_phase_boundary": {
+    "stage103_review_preserved": true,
+    "stage104_phase1_completed": true,
+    "phase2_started": true,
+    "phase2_completed": true,
+    "phase3_started": false,
+    "phase4_started": false,
+    "whole_stage_review_performed": false,
+    "stage105_started": false,
+    "github_upload_allowed": false,
+    "push_allowed": false
+  },
+  "rollback_contract": {
+    "return_to": "PASS_RAG_NEGATIVE_TEST_CONTRACT_RUNTIME_DISABLED",
+    "preserve_stage104_phase1_evidence": true,
+    "preserve_stage103_review_evidence": true,
+    "preserve_frozen_taskpack": true,
+    "business_source_or_runtime_change_allowed": false,
+    "github_or_ovh_change_allowed": false,
+    "stage104_phase3_execution_allowed": false
+  }
+}
