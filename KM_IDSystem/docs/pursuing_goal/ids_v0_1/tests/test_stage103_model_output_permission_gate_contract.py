@@ -325,6 +325,12 @@ class Stage103ModelOutputPermissionGatePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P4",
             "IDS-STAGE103-REVIEW-GATE",
         )
+        stage103_review_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-REVIEW",
+            "IDS-V0_1-STAGE103-REVIEW",
+            "IDS-STAGE104-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -340,6 +346,9 @@ class Stage103ModelOutputPermissionGatePhase1Tests(unittest.TestCase):
             self.assertTrue(is_current_projection)
         elif current == stage103_phase3_current:
             self.assertEqual(stage103_phase3_current, current)
+            self.assertTrue(is_current_projection)
+        elif current == stage103_review_current:
+            self.assertEqual(stage103_review_current, current)
             self.assertTrue(is_current_projection)
         else:
             self.assertEqual(stage103_phase4_current, current)
@@ -358,6 +367,8 @@ class Stage103ModelOutputPermissionGatePhase1Tests(unittest.TestCase):
             self.assertEqual(
                 "P3 专项异常场景已完成", acceptance_by_id["ACC-STAGE-103"]
             )
+        elif current == stage103_review_current:
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-103"])
         else:
             self.assertEqual(
                 "P1/P2/P3/P4 控制工件已完成", acceptance_by_id["ACC-STAGE-103"]

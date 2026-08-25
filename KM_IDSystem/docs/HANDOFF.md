@@ -1,14 +1,19 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage103 P4 accepted locally - 2026-08-25
+## Current Gate - Stage103 Review accepted locally - 2026-08-26
 
-- `IDS-V0_1-STAGE103-P4` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-P4 / IDS-V0_1-STAGE103-P4 / IDS-STAGE103-REVIEW-GATE`。Review 只可由新的独立 run 进入。
-- P4 从 P3 的 `5` 条、每条 `34` 字段、共 `170` 个非业务、`reference-only` 场景检查点派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 `5` 条，以及 prompt 回滚和模型配置回退说明 `2` 条；字段形状为 `17/12/14/17/12/12`，共 `384` 个交付字段检查点、`16` 类失败关闭与 `4` 条中文反馈。
-- 已验证：P4 与显式前序聚焦 `65/65`，Stage088--Stage103 精确白箱链 `763/763`，Stage005 治理回归 `178/178` 与直接校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
+- `IDS-V0_1-STAGE103-REVIEW` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-REVIEW / IDS-V0_1-STAGE103-REVIEW / IDS-STAGE104-P1-GATE`。Stage104 P1 只可由新的独立 run 进入。
+- Review 固定复核 P1 的 `13/5/4/5/24/4`、P2 的 `5×26/4/46/230`、P3 的 `5×34=170/5/5/28` 与 P4 的 `5/5/5/5/5/2`、`17/12/14/17/12/12`、`384/4/16`；八元控制引用、文档 evidence 边界、IDS 规则优先、来源类型、输出权限、三类高风险输出业务线白箱人工处理和 P4→P3 回退保持一致。
+- 已验证：Review 聚焦 `10/10`，P1--Review 显式兼容 `75/75`，Stage088--Stage103 精确白箱链 `773/773`，Stage005 治理回归 `178/178` 与直接校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
 - 文档 evidence 与文档内潜在指令保持不可信、不可执行参考，无法覆盖 IDS 规则；无内部依据保持 `evidence_gap`，不能伪装为内部经验；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。prompt 回滚与模型配置回退保持版本化依据、可验证目标和白箱批准前置。
-- 回执记录所有运行计数为 `0`、所有运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户授权的既有分支恢复检查点已同步到 `codex/kmids-stage071-p1`；本次 P4 完成态仍为本地提交边界，正式全局上传、`main`、release、OVH 与生产保持后续门禁。
-- 回滚只撤回本 P4 的说明、纯内存交付模块、合同、聚焦用例、machine run、机器事实、治理路线、生成中文视图、事件和本交接，返回 `PASS_MODEL_OUTPUT_PERMISSION_GATE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage103 P1/P2/P3、Stage102 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
-- 下一步：只在新的独立 run 进入 `IDS-STAGE103-REVIEW-GATE`，继续复用唯一开发 worktree 与分支。
+- 本地回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。既有远端恢复检查点保持在 `codex/kmids-stage071-p1`；本次 Review 完成态保留为本地提交边界，正式全局上传、`main`、release、OVH 与生产继续保持后续门禁。
+- 回滚只撤回本 Review 的说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实、治理路线、生成中文视图、事件和本交接，返回 `PASS_MODEL_OUTPUT_PERMISSION_GATE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage103 P1--P4、Stage102 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 `IDS-STAGE104-P1-GATE`，继续复用唯一既有开发 worktree 与分支。
+
+## Superseded Gate - Stage103 P4 accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE103-P4` 的本地交付证据与恢复边界已由上方 Review 复审承接；其历史状态为 `IDS-STAGE103 / IDS-STAGE103-P4 / IDS-V0_1-STAGE103-P4 / IDS-STAGE103-REVIEW-GATE`。
+- P4 从 P3 的 `5×34=170` 固定非业务、`reference-only` 场景派生 `5/5/5/5/5/2` 组交付记录、`17/12/14/17/12/12` 字段形状、`384` 个交付检查点、`16` 类失败关闭与 `4` 条中文反馈；P4→P3 回退保持版本化依据、可验证目标与业务线白箱批准前置。
 
 ## Canonical Repository Override - 2026-07-18
 

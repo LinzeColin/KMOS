@@ -418,6 +418,12 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P4",
             "IDS-STAGE103-REVIEW-GATE",
         )
+        stage103_review_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-REVIEW",
+            "IDS-V0_1-STAGE103-REVIEW",
+            "IDS-STAGE104-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -457,6 +463,7 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             stage103_phase2_current,
             stage103_phase3_current,
             stage103_phase4_current,
+            stage103_review_current,
         }:
             self.assertTrue(is_current_projection)
             self.assertTrue(RECEIPT.is_file())
