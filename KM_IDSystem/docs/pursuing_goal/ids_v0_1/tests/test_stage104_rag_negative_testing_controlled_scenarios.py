@@ -451,6 +451,12 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE104-P4",
             "IDS-STAGE104-REVIEW-GATE",
         )
+        review_current = (
+            "IDS-STAGE104",
+            "IDS-STAGE104-REVIEW",
+            "IDS-V0_1-STAGE104-REVIEW",
+            "IDS-STAGE105-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self, current, legacy, status, plan, ROADMAP
         )
@@ -468,6 +474,8 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
                 status["evidence_status"],
             )
             self.assertIn("IDS-STAGE104-REVIEW-GATE", plan["stop_condition"])
+        elif current == review_current:
+            self.assertTrue(is_current_projection)
         else:
             self.assertFalse(is_current_projection)
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
