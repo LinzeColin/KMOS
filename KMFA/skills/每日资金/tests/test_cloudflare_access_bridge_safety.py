@@ -891,3 +891,23 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "daily-funds-recovery-cleanup" in workflow
     assert "inputs.bridge_run_tag" in workflow
     assert "RUN_TAG_INVALID" in workflow
+
+
+def test_workflow_recovery_restart_is_main_only_and_target_verified() -> None:
+    workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
+    start = workflow.index("受控重启每日资金恢复目标")
+    end = workflow.find("\n      - name:", start + 1)
+    step = workflow[start:] if end == -1 else workflow[start:end]
+
+    assert "inputs.mode == 'daily-funds-recovery-restart'" in step
+    assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
+    assert "daily_funds_recovery_restart=MAIN_REF_REQUIRED" in step
+    assert "daily_funds_recovery_restart=APP_REQUIRED" in step
+    assert 'payload.get("name") != "kmfa-kmos-p1"' in step
+    assert 'payload.get("build_pack") != "dockercompose"' in step
+    assert '"$BASE/api/v1/applications/$APP/restart"' in step
+    assert "daily_funds_recovery_restart=REQUESTED" in step
+    assert "daily-funds-recovery-restart.json" in step
+    assert "trap 'rm -f" in step
+    assert "json.dumps" not in step
+    assert "inputs.command" not in step

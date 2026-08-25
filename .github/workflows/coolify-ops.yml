@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启，释放遗留审计锁 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-recovery-restart, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
-        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge 必填；先用 list 查）"
+        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-recovery-restart 必填；先用 list 查）"
         required: false
         type: string
       command:
@@ -1999,3 +1999,35 @@ jobs:
           curl -fsSL -X POST -H "Authorization: Bearer $TOKEN" \
             "$BASE/api/v1/deploy?uuid=$APP" -o "$RUNNER_TEMP/dep.json"
           python3 -c "import json,os;d=json.load(open(os.path.join(os.environ['RUNNER_TEMP'],'dep.json')));print('部署已触发:',json.dumps(d,ensure_ascii=False)[:300])"
+
+      # This bounded recovery action only restarts the verified Docker Compose
+      # application. It accepts no payload and never reads a money source.
+      - name: 受控重启每日资金恢复目标
+        if: inputs.mode == 'daily-funds-recovery-restart'
+        run: |
+          set -euo pipefail
+          trap 'rm -f "$RUNNER_TEMP/daily-funds-recovery-restart-target.json" "$RUNNER_TEMP/daily-funds-recovery-restart.json"' EXIT
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_recovery_restart=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "daily_funds_recovery_restart=APP_REQUIRED"; exit 1; }
+          test -n "${BASE:-}" || { echo "daily_funds_recovery_restart=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "daily_funds_recovery_restart=CONFIG_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+          curl -fsSL -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP" \
+            -o "$RUNNER_TEMP/daily-funds-recovery-restart-target.json"
+          python3 - "$RUNNER_TEMP/daily-funds-recovery-restart-target.json" <<'PY'
+          import json
+          import sys
+
+          payload = json.load(open(sys.argv[1], encoding="utf-8"))
+          if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          if not isinstance(payload, dict):
+              raise SystemExit("daily_funds_recovery_restart=TARGET_INVALID")
+          if payload.get("name") != "kmfa-kmos-p1" or payload.get("build_pack") != "dockercompose":
+              raise SystemExit("daily_funds_recovery_restart=TARGET_UNEXPECTED")
+          print("daily_funds_recovery_restart_target=VERIFIED")
+          PY
+          status="$(curl -sS -o "$RUNNER_TEMP/daily-funds-recovery-restart.json" -w '%{http_code}' \
+            -X POST -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/restart" || true)"
+          test "$status" = "200" || test "$status" = "202" || { echo "daily_funds_recovery_restart=NOT_ACCEPTED"; exit 1; }
+          echo "daily_funds_recovery_restart=REQUESTED"
