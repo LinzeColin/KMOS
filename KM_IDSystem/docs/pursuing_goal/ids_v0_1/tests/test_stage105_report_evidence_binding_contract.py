@@ -305,18 +305,35 @@ class Stage105ReportEvidenceBindingPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE105-P1",
             "IDS-STAGE105-P2-GATE",
         )
+        stage105_phase2_current = (
+            "IDS-STAGE105",
+            "IDS-STAGE105-P2",
+            "IDS-V0_1-STAGE105-P2",
+            "IDS-STAGE105-P3-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
-        assert_legacy_or_current_projection(
+        is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
-            set(),
+            {stage105_phase1_current},
             status,
             plan,
             ROADMAP,
         )
-        self.assertEqual(stage105_phase1_current, current)
+        self.assertIn(current, {stage105_phase1_current, stage105_phase2_current})
+        if current == stage105_phase1_current:
+            self.assertFalse(is_current_projection)
+        else:
+            self.assertTrue(is_current_projection)
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P1 静态合同已完成", acceptance_by_id["ACC-STAGE-105"])
+        self.assertEqual(
+            (
+                "P1 静态合同已完成"
+                if current == stage105_phase1_current
+                else "P2 受控最小切片已完成"
+            ),
+            acceptance_by_id["ACC-STAGE-105"],
+        )
         for acceptance_id in (
             "ACC-STAGE105-P1-01",
             "ACC-STAGE105-P1-02",

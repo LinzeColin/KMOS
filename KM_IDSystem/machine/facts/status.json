@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE105",
-  "phase": "IDS-STAGE105-P1",
-  "task": "IDS-V0_1-STAGE105-P1",
-  "real_progress": "Stage105 报告证据绑定 P1 已固定 24 个未来报告控制引用、5 项生成快照、外部增强章节、业务线白箱人工确认项、报告快照/影响分析/质量评分/导出审计/模板限制/重新生成与撤回控制引用；关键结论未来必须关联 evidence_id 或 evidence_gap，PDF 未来必须显示引用来源。",
+  "phase": "IDS-STAGE105-P2",
+  "task": "IDS-V0_1-STAGE105-P2",
+  "real_progress": "Stage105 报告证据绑定 P2 已将 P1 的 24 个未来控制引用投影为五条固定、非业务、reference-only 纯内存控制请求；关键结论严格关联 evidence_id 或 evidence_gap，报告章节、五项生成快照、影响分析、质量评分、导出审计、外部增强和业务线白箱确认保持控制结构。",
   "report_grade": "冻结 Stage105 任务包与 Stage104 Review 已复审 RAG 负向测试控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P1 只定义报告证据绑定的控制形状。外部增强保留 external_public_reference 与 model_reasoning 的底层来源类型，不能写成内部项目依据或替代 evidence_gap；人工确认未记录，最终结论未发布；报告、PDF、快照、质量评分、影响分析、审计、模型 Token、Agent、OVH 与生产保持未执行。",
-  "evidence_status": "REPORT_EVIDENCE_BINDING_CONTRACT_RUNTIME_DISABLED",
+  "business_verdict": "本 P2 只返回纯内存控制投影。外部增强保留 external_public_reference 与 model_reasoning 的底层来源类型，不能写成内部项目依据或替代 evidence_gap；人工确认未记录，最终结论未发布；报告、PDF、快照、质量评分、影响分析、审计、模型 Token、Agent、OVH 与生产保持未执行。",
+  "evidence_status": "REPORT_EVIDENCE_BINDING_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-26",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE105-P2-GATE",
+  "next_gate": "IDS-STAGE105-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
