@@ -493,6 +493,7 @@ def test_probe_receipt_keeps_provider_millisecond_continuation_distinct_from_opa
     [
         ("401", 0, "HTTP_DENIED", "HISTORY_PROBE_START_ACCESS_OR_ORIGIN_DENIED", "TERMINAL_NOT_MET"),
         ("403", 0, "HTTP_DENIED", "HISTORY_PROBE_START_ACCESS_OR_ORIGIN_DENIED", "TERMINAL_NOT_MET"),
+        ("302", 0, "HTTP_REDIRECT", "HISTORY_PROBE_START_HTTP_UNAVAILABLE", "TERMINAL_NOT_MET"),
         ("409", 0, "HTTP_CONFLICT", "HISTORY_PROBE_ALREADY_PENDING", "POLL"),
         ("422", 0, "HTTP_BODY_REJECTED", "HISTORY_PROBE_START_BODY_REJECTED", "TERMINAL_NOT_MET"),
         ("503", 0, "HTTP_CONTROL_UNAVAILABLE", "HISTORY_PROBE_START_CONTROL_UNAVAILABLE", "TERMINAL_NOT_MET"),
@@ -635,6 +636,35 @@ def test_recovery_receipt_accepts_only_fixed_progress_and_publication_states(tmp
     assert "must-not-escape" not in json.dumps(malformed)
 
 
+@pytest.mark.parametrize(
+    ("http_status", "expected_transport"),
+    [
+        ("204", "HTTP_UNEXPECTED_SUCCESS_STATUS"),
+        ("302", "HTTP_REDIRECT"),
+        ("404", "HTTP_CLIENT_ERROR"),
+        ("502", "HTTP_SERVER_ERROR"),
+    ],
+)
+def test_recovery_receipt_classifies_unexpected_statuses_without_exposing_response(
+    tmp_path: Path,
+    http_status: str,
+    expected_transport: str,
+) -> None:
+    response = tmp_path / "recovery.json"
+    _write(response, {"untrusted": "must-not-escape"})
+
+    summary = summarize_recovery_response(
+        response,
+        response_headers_path=_recovery_headers(tmp_path / "recovery.headers", origin_marker=False),
+        http_status=http_status,
+        curl_exit=0,
+    )
+
+    assert summary["transport"] == expected_transport
+    assert summary["result"] == "NOT_MET"
+    assert "must-not-escape" not in json.dumps(summary)
+
+
 def test_recovery_start_receipt_is_fixed_and_only_pending_is_pollable(tmp_path: Path) -> None:
     response = tmp_path / "recovery-start.json"
     headers = _recovery_headers(tmp_path / "recovery-start.headers")
@@ -674,6 +704,18 @@ def test_recovery_start_receipt_is_fixed_and_only_pending_is_pollable(tmp_path: 
         "result": "RECOVERY_START_ACCESS_OR_ORIGIN_DENIED",
     }
     assert "must-not-escape" not in json.dumps(denied)
+
+    redirected = summarize_recovery_start_response(
+        response,
+        response_headers_path=headers,
+        http_status="302",
+        curl_exit=0,
+    )
+    assert redirected == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "HTTP_REDIRECT",
+        "result": "RECOVERY_START_HTTP_UNAVAILABLE",
+    }
 
 
 def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

@@ -1024,7 +1024,7 @@ jobs:
           resolve_control_target() {
             python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
               --access-apps "$bridge_dir/access-apps.json" --control-path "$CONTROL_PATH" \
-              --output "$bridge_dir/target.env"
+              --output "$bridge_dir/target.env" 2>/dev/null
           }
 
           diagnose_control_target() {

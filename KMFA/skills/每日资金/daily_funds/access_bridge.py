@@ -512,6 +512,20 @@ def _recovery_origin_confirmed(response_headers_path: str | Path) -> bool:
     )
 
 
+def _unexpected_http_transport(status: str) -> str:
+    """Classify an unexpected fixed HTTP status without exposing the number."""
+
+    if status.startswith("2"):
+        return "HTTP_UNEXPECTED_SUCCESS_STATUS"
+    if status.startswith("3"):
+        return "HTTP_REDIRECT"
+    if status.startswith("4"):
+        return "HTTP_CLIENT_ERROR"
+    if status.startswith("5"):
+        return "HTTP_SERVER_ERROR"
+    return "HTTP_UNAVAILABLE"
+
+
 def summarize_probe_response(
     response_path: str | Path,
     *,
@@ -531,7 +545,7 @@ def summarize_probe_response(
     if status in {"401", "403"}:
         return _probe_summary("HTTP_DENIED")
     if status != "200":
-        return _probe_summary("HTTP_UNAVAILABLE")
+        return _probe_summary(_unexpected_http_transport(status))
     if not _probe_origin_confirmed(response_headers_path):
         return _probe_summary("HTTP_ORIGIN_UNVERIFIED")
     try:
@@ -638,7 +652,7 @@ def summarize_probe_start_response(
             "HISTORY_PROBE_START_CONTROL_UNAVAILABLE" if origin_confirmed else "HISTORY_PROBE_START_UPSTREAM_UNAVAILABLE",
         )
     if status != "202":
-        return _probe_start_summary("HTTP_UNAVAILABLE", "HISTORY_PROBE_START_HTTP_UNAVAILABLE")
+        return _probe_start_summary(_unexpected_http_transport(status), "HISTORY_PROBE_START_HTTP_UNAVAILABLE")
     if not origin_confirmed:
         return _probe_start_summary("HTTP_ORIGIN_UNVERIFIED", "HISTORY_PROBE_START_ORIGIN_UNVERIFIED")
     try:
@@ -760,7 +774,7 @@ def summarize_recovery_response(
     if status in {"401", "403"}:
         return _recovery_summary("HTTP_DENIED")
     if status != "200":
-        return _recovery_summary("HTTP_UNAVAILABLE")
+        return _recovery_summary(_unexpected_http_transport(status))
     if not _recovery_origin_confirmed(response_headers_path):
         return _recovery_summary("HTTP_ORIGIN_UNVERIFIED")
     try:
@@ -848,7 +862,7 @@ def summarize_recovery_start_response(
             "RECOVERY_START_CONTROL_UNAVAILABLE" if origin_confirmed else "RECOVERY_START_UPSTREAM_UNAVAILABLE",
         )
     if status != "202":
-        return _recovery_start_summary("HTTP_UNAVAILABLE", "RECOVERY_START_HTTP_UNAVAILABLE")
+        return _recovery_start_summary(_unexpected_http_transport(status), "RECOVERY_START_HTTP_UNAVAILABLE")
     if not origin_confirmed:
         return _recovery_start_summary("HTTP_ORIGIN_UNVERIFIED", "RECOVERY_START_ORIGIN_UNVERIFIED")
     try:
