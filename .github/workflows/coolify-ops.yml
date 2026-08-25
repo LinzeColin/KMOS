@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启，释放遗留审计锁 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-recovery-restart, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
-        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-recovery-restart 必填；先用 list 查）"
+        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart 必填；先用 list 查）"
         required: false
         type: string
       command:
@@ -2031,3 +2031,160 @@ jobs:
             -X POST -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/restart" || true)"
           test "$status" = "200" || test "$status" = "202" || { echo "daily_funds_recovery_restart=NOT_ACCEPTED"; exit 1; }
           echo "daily_funds_recovery_restart=REQUESTED"
+
+      # A Docker Compose Application restart can leave a separately modelled
+      # Compose component untouched. This action uses Coolify's service-
+      # application lifecycle API only after proving that the service has the
+      # same compose payload and environment as the fixed KMFA application.
+      - name: 精确重启每日资金组件
+        if: inputs.mode == 'daily-funds-recovery-component-restart'
+        run: |
+          set -euo pipefail
+          app_file="$RUNNER_TEMP/daily-funds-component-app.json"
+          services_file="$RUNNER_TEMP/daily-funds-component-services.json"
+          service_target_file="$RUNNER_TEMP/daily-funds-component-service-target.json"
+          components_file="$RUNNER_TEMP/daily-funds-component-list.json"
+          component_target_file="$RUNNER_TEMP/daily-funds-component-target.json"
+          restart_file="$RUNNER_TEMP/daily-funds-component-restart.json"
+          trap 'rm -f "$app_file" "$services_file" "$service_target_file" "$components_file" "$component_target_file" "$restart_file"' EXIT
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_component_restart=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "daily_funds_component_restart=APP_REQUIRED"; exit 1; }
+          case "$APP" in *[!A-Za-z0-9_-]*) echo "daily_funds_component_restart=APP_INVALID"; exit 1 ;; esac
+          test -n "${BASE:-}" || { echo "daily_funds_component_restart=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "daily_funds_component_restart=CONFIG_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+
+          fetch_json() {
+            local target="$1"
+            local endpoint="$2"
+            if ! curl -fsS -H "Authorization: Bearer $TOKEN" "$endpoint" -o "$target" 2>/dev/null; then
+              echo "daily_funds_component_restart=CONTROL_UNAVAILABLE"
+              exit 1
+            fi
+          }
+
+          fetch_json "$app_file" "$BASE/api/v1/applications/$APP"
+          fetch_json "$services_file" "$BASE/api/v1/services"
+          python3 - "$app_file" "$services_file" "$service_target_file" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_component_restart={code}")
+              raise SystemExit(1)
+
+          def load(path: str):
+              try:
+                  return json.loads(Path(path).read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  fail("CONTROL_RESPONSE_INVALID")
+
+          def unwrap(payload):
+              if isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+                  return payload["data"]
+              return payload
+
+          def compose_variants(record: dict) -> set[str]:
+              values: set[str] = set()
+              for key in ("docker_compose_raw", "docker_compose"):
+                  value = record.get(key)
+                  if isinstance(value, str) and value.strip():
+                      values.add(value.replace("\r\n", "\n").strip())
+              return values
+
+          def contains_daily_funds_component(compose: str) -> bool:
+              return bool(
+                  re.search(r"(?m)^[ \t]{2}daily-funds:[ \t]*(?:#.*)?$", compose)
+                  and re.search(
+                      r"(?m)^[ \t]+container_name:[ \t]*[\"']?kmfa-daily-funds[\"']?[ \t]*(?:#.*)?$",
+                      compose,
+                  )
+              )
+
+          app = unwrap(load(sys.argv[1]))
+          services = unwrap(load(sys.argv[2]))
+          if not isinstance(app, dict) or not isinstance(services, list):
+              fail("CONTROL_RESPONSE_INVALID")
+          if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
+              fail("TARGET_UNEXPECTED")
+          environment_id = app.get("environment_id")
+          app_compose = compose_variants(app)
+          if environment_id is None or not app_compose:
+              fail("TARGET_COMPOSE_UNAVAILABLE")
+
+          matching_services: list[str] = []
+          for service in services:
+              if not isinstance(service, dict) or service.get("environment_id") != environment_id:
+                  continue
+              service_uuid = service.get("uuid")
+              service_compose = compose_variants(service)
+              if not isinstance(service_uuid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{6,128}", service_uuid):
+                  continue
+              if app_compose.isdisjoint(service_compose):
+                  continue
+              if not any(contains_daily_funds_component(compose) for compose in service_compose):
+                  continue
+              matching_services.append(service_uuid)
+
+          if len(matching_services) != 1:
+              fail("SERVICE_COMPONENT_MAP_UNAVAILABLE")
+          target = Path(sys.argv[3])
+          with target.open("w", encoding="utf-8") as handle:
+              json.dump({"service_uuid": matching_services[0]}, handle)
+          target.chmod(0o600)
+          print("daily_funds_component_service=VERIFIED")
+          PY
+          service_uuid="$(jq -er '.service_uuid' "$service_target_file" 2>/dev/null)" || { echo "daily_funds_component_restart=CONTROL_RESPONSE_INVALID"; exit 1; }
+          fetch_json "$components_file" "$BASE/api/v1/services/$service_uuid/applications"
+          python3 - "$service_target_file" "$components_file" "$component_target_file" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_component_restart={code}")
+              raise SystemExit(1)
+
+          def load(path: str):
+              try:
+                  return json.loads(Path(path).read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  fail("CONTROL_RESPONSE_INVALID")
+
+          def unwrap(payload):
+              if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+                  return payload["data"]
+              return payload
+
+          service = load(sys.argv[1])
+          components = unwrap(load(sys.argv[2]))
+          if not isinstance(service, dict) or not isinstance(components, list):
+              fail("CONTROL_RESPONSE_INVALID")
+          service_uuid = service.get("service_uuid")
+          if not isinstance(service_uuid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{6,128}", service_uuid):
+              fail("CONTROL_RESPONSE_INVALID")
+          matching_components = [
+              component.get("uuid")
+              for component in components
+              if isinstance(component, dict)
+              and component.get("name") == "daily-funds"
+              and isinstance(component.get("uuid"), str)
+              and re.fullmatch(r"[A-Za-z0-9_-]{6,128}", component["uuid"])
+          ]
+          if len(matching_components) != 1:
+              fail("SERVICE_COMPONENT_NOT_UNIQUE")
+          target = Path(sys.argv[3])
+          with target.open("w", encoding="utf-8") as handle:
+              json.dump({"service_uuid": service_uuid, "component_uuid": matching_components[0]}, handle)
+          target.chmod(0o600)
+          print("daily_funds_component=VERIFIED")
+          PY
+          component_uuid="$(jq -er '.component_uuid' "$component_target_file" 2>/dev/null)" || { echo "daily_funds_component_restart=CONTROL_RESPONSE_INVALID"; exit 1; }
+          status="$(curl -sS -o "$restart_file" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/services/$service_uuid/applications/$component_uuid/restart" 2>/dev/null || true)"
+          test "$status" = "200" || test "$status" = "202" || { echo "daily_funds_component_restart=NOT_ACCEPTED"; exit 1; }
+          echo "daily_funds_component_restart=REQUESTED"

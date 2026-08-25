@@ -911,3 +911,32 @@ def test_workflow_recovery_restart_is_main_only_and_target_verified() -> None:
     assert "trap 'rm -f" in step
     assert "json.dumps" not in step
     assert "inputs.command" not in step
+
+
+def test_workflow_component_restart_requires_an_exact_compose_component_mapping() -> None:
+    workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
+    start = workflow.index("精确重启每日资金组件")
+    end = workflow.find("\n      - name:", start + 1)
+    step = workflow[start:] if end == -1 else workflow[start:end]
+
+    assert "daily-funds-recovery-component-restart" in workflow
+    assert "inputs.mode == 'daily-funds-recovery-component-restart'" in step
+    assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
+    assert "daily_funds_component_restart=MAIN_REF_REQUIRED" in step
+    assert "daily_funds_component_restart=APP_REQUIRED" in step
+    assert "daily_funds_component_restart=APP_INVALID" in step
+    assert 'app.get("name") != "kmfa-kmos-p1"' in step
+    assert 'app.get("build_pack") != "dockercompose"' in step
+    assert '"docker_compose_raw"' in step
+    assert "app_compose.isdisjoint(service_compose)" in step
+    assert 'component.get("name") == "daily-funds"' in step
+    assert '"$BASE/api/v1/services"' in step
+    assert '"$BASE/api/v1/services/$service_uuid/applications"' in step
+    assert '"$BASE/api/v1/services/$service_uuid/applications/$component_uuid/restart"' in step
+    assert "SERVICE_COMPONENT_MAP_UNAVAILABLE" in step
+    assert "SERVICE_COMPONENT_NOT_UNIQUE" in step
+    assert "daily_funds_component_restart=REQUESTED" in step
+    assert "daily-funds-component-restart.json" in step
+    assert "trap 'rm -f" in step
+    assert "json.dumps" not in step
+    assert "inputs.command" not in step
