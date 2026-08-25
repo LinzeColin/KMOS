@@ -9,6 +9,14 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
+## Working Checkpoint - Stage103 P3 scenario controls - 2026-08-25
+
+- Stage103 P3 已在既有隔离 worktree `codex/kmids-stage071-p1` 形成可恢复的开发检查点：范围说明、纯内存场景模块、静态合同、局部回执骨架和专项白箱用例均已写入；当前正式治理门禁继续保持下方已验收的 Stage103 P2。
+- 已完成的局部证据为 P3 专项白箱用例 `8/8`：五条固定场景、`5×34=170` 个字段检查点、五个控制视图，以及文档内潜在指令优先级、`evidence_gap` 语义和三类高风险输出的人工白箱门禁均通过纯内存验证。运行计数保持 `0`，运行标志保持 `false`。
+- 待恢复时只完成 P3 的当前态治理投影、历史兼容断言、精确白箱链、Stage005、两组 Batch、中文视图和文档检查；这些完成后才可将 P3 标记为本地验收并进入 `IDS-STAGE103-P4-GATE`。
+- 本检查点经用户本轮明确授权推送到既有隔离分支，用于恢复；它不改变 `main`、release、正式全局上传、OVH 或生产状态。
+- 回滚只撤回本检查点的 P3 工件和本节，恢复到下方 Stage103 P2 已验收状态。
+
 ## Current Gate - Stage103 P2 accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE103-P2` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-P2 / IDS-V0_1-STAGE103-P2 / IDS-STAGE103-P3-GATE`。P3 只可由新的独立 run 进入。
