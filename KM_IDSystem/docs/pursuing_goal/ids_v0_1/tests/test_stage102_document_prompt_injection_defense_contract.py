@@ -268,21 +268,32 @@ class Stage102DocumentPromptInjectionDefensePhase1Tests(unittest.TestCase):
     def test_current_governance_projection_receipt_and_event_are_exact(self):
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
-        self.assertTrue(
-            assert_legacy_or_current_projection(
-                self,
-                (
-                    "IDS-STAGE102",
-                    "IDS-STAGE102-P1",
-                    "IDS-V0_1-STAGE102-P1",
-                    "IDS-STAGE102-P2-GATE",
-                ),
-                (),
-                status,
-                plan,
-                ROADMAP,
-            )
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        phase1_current = (
+            "IDS-STAGE102",
+            "IDS-STAGE102-P1",
+            "IDS-V0_1-STAGE102-P1",
+            "IDS-STAGE102-P2-GATE",
         )
+        phase2_current = (
+            "IDS-STAGE102",
+            "IDS-STAGE102-P2",
+            "IDS-V0_1-STAGE102-P2",
+            "IDS-STAGE102-P3-GATE",
+        )
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            {phase1_current},
+            status,
+            plan,
+            ROADMAP,
+        )
+        if current == phase2_current:
+            self.assertTrue(is_current_projection)
+        else:
+            self.assertEqual(phase1_current, current)
+            self.assertFalse(is_current_projection)
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_ids = {
             item["id"] for item in acceptance["items"] if isinstance(item, dict)

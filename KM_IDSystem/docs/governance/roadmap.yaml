@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE102"
-current_phase_id: "IDS-STAGE102-P1"
-current_task_id: "IDS-V0_1-STAGE102-P1"
-next_gate_id: "IDS-STAGE102-P2-GATE"
+current_phase_id: "IDS-STAGE102-P2"
+current_task_id: "IDS-V0_1-STAGE102-P2"
+next_gate_id: "IDS-STAGE102-P3-GATE"
 current_transition_history:
+  stage102_phase2_state:
+    current_stage_id: "IDS-STAGE102"
+    current_phase_id: "IDS-STAGE102-P2"
+    current_task_id: "IDS-V0_1-STAGE102-P2"
+    next_gate_id: "IDS-STAGE102-P3-GATE"
   stage102_phase1_state:
     current_stage_id: "IDS-STAGE102"
     current_phase_id: "IDS-STAGE102-P1"
@@ -1750,22 +1755,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-102"
     objective: "依据冻结 Stage102 任务包完成文档内提示注入防护的 P1 静态边界、P2 纯内存受控最小切片、P3 专项异常场景、P4 交付证据与整阶段机械复审；文档内容保持不可信 evidence，IDS 规则、来源语义、输出权限和业务线白箱人工确认保持控制面优先级，本 Stage 不创建运行时、业务事实或第二权威事实源。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE102-P2-GATE"
+    next_gate_id: "IDS-STAGE102-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE102-P1-GATE"
+      gate_id: "IDS-STAGE102-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE102-P2-GATE"
+      next_gate_id: "IDS-STAGE102-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage102 任务包与 Stage101 Review 已复审 RAG 可复现控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。"
-      - "P1 固定 17 个未来控制引用、7 类文档内潜在指令越权类别、四类底层来源类型与五类输出权限；文档 evidence 和潜在指令保持不可信、不可执行的控制引用。"
-      - "文档内容不能覆盖 IDS 规则、成为系统指令、授权工具或外部动作、覆盖 Prompt 或模型配置、绕过输出权限或人工确认、触发发布或生产写回，或请求来源或秘密访问。"
-      - "真实文档、查询、检索、Prompt、模型、模型 Token、数据库、审计、持久化、Agent、OVH、生产、正式上传和推送保持未执行。"
+      - "P2 固定 7 条、每条 28 字段的 reference-only 控制请求，形成回答合同与可复现记录、文档内提示注入防护、来源语义与外部增强显示、输出权限与业务线白箱门禁四组投影，每条 50 字段、共 350 个检查点。"
+      - "query、index_version、prompt_version、model_version 与 selected evidence 只保留未来记录形状；文档 evidence 与潜在指令保持不可信、不可执行控制引用，IDS 规则保持优先，四类来源类型、evidence_gap、五类输出权限与业务线白箱人工确认保持一致。"
+      - "真实文档、查询、检索、Prompt、模型、模型 Token、数据库、审计、持久化、Agent、OVH、生产、正式全局上传保持后续授权范围。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、提取、分类、处理、执行、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、文档正文、Prompt 正文、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行实际文档指令识别或处理、查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传、推送或 Stage102 P2。"
+      - "执行实际文档指令识别或处理、查询、检索、Prompt、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage102 P3。"
     phases:
       - phase_id: "IDS-STAGE102-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1814,21 +1819,52 @@ stages:
       - phase_id: "IDS-STAGE102-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
         objective: "以 Stage102 P1 静态合同为前序，只投影固定、非业务、reference-only 的纯内存文档提示注入防护控制输入与输出，记录 query、index_version、prompt_version、model_version 和 selected evidence 的未来字段形状。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE102-P3-GATE"
         gate:
           gate_id: "IDS-STAGE102-P2-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE102-P3-GATE"
           github_upload_allowed: false
+        pass_conditions:
+          - "固定 7 条、每条 28 字段、reference-only 控制请求，形成四组、每条 50 字段、共 350 个纯内存控制检查点；query、index_version、prompt_version、model_version 与 selected evidence 只保留未来记录形状。"
+          - "文档 evidence 与潜在指令保持不可信、不可执行控制引用，IDS 规则保持优先；七类潜在越权类别均保持拒绝，控制切片不授权系统指令、工具或外部动作、Prompt 或模型覆盖、发布、生产写回、来源或秘密访问。"
+          - "internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持底层来源类型分离；external_augmentation_opinion 只作为展示组合，五类输出分类与三类高风险业务线白箱人工确认保持固定。"
+          - "真实资料、文档正文、Prompt 正文、模型配置、查询、检索、模型 Token、Agent、OVH、生产、持久化与正式全局上传保持后续授权范围。"
+        stop_conditions:
+          - "任何真实文档、潜在指令、Prompt、provider、模型、查询、检索、回答、资料、证据、审计记录或业务结论被创建、读取、绑定、执行或持久化。"
+          - "任何 Stage102 P3、P4、整阶段复审、OVH、生产或正式全局上传被启动。"
         tasks:
           - task_id: "IDS-V0_1-STAGE102-P2"
             name: "实现文档内提示注入防护纯内存受控最小切片"
-            status: "not_started"
+            objective: "将 P1 的文档内提示注入防护静态合同与 Stage101 Review 控制工件投影为固定控制请求和投影，覆盖五项可复现记录形状、文档内潜在指令拒绝、底层来源类型、外部增强显示、五类输出权限和业务线白箱人工确认门禁。"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE102-P1"
               - "IDS-V0_1-STAGE101-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-102"
+              - "ACC-STAGE102-P2-01"
+              - "ACC-STAGE102-P2-02"
+              - "ACC-STAGE102-P2-03"
+              - "ACC-STAGE102-P2-04"
+            test_results: "Stage102 P2 聚焦纯内存控制切片白箱用例、Stage088--Stage102 精确历史白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage102 P2 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-102_文档内提示注入防护.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE102_PHASE2_DOCUMENT_PROMPT_INJECTION_DEFENSE_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage102_document_prompt_injection_defense_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage102_document_prompt_injection_defense_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage102_document_prompt_injection_defense_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage102-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE102_PHASE1_DOCUMENT_PROMPT_INJECTION_DEFENSE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage102_document_prompt_injection_defense_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage102-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE101_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage101_rag_reproducibility_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage101-review-local.json"
+            risk: "若将固定 reference-only 控制请求、可复现记录形状、来源语义、输出分类或聚焦用例通过误作真实文档处理、查询、检索、Prompt、模型、回答、证据、审计或业务结论，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P2 的范围说明、纯内存控制切片、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage102 P1 的本地零运行时状态；不改变 Stage102 P1、Stage101 P1--P4/Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE102-P3"
         name: "Phase 3 · 文档内提示注入防护专项验证与异常场景"
         objective: "只重放 Stage102 P2 的固定、非业务、reference-only 控制投影，验证文档内提示词无法覆盖 IDS 规则、无内部证据不会伪装为内部经验，以及高风险输出保持业务线白箱人工确认与最终结论未发布。"
@@ -2194,12 +2230,14 @@ stages:
       taskpack_ref: "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-102_文档内提示注入防护.md"
       acceptance_id: "ACC-STAGE-102"
       entry_gate: "IDS-STAGE102-P1-GATE"
-      status: "phase1_completed_local"
+      status: "phase2_completed_local"
       stage102_started: true
       phase1_started: true
       phase1_completed: true
-      phase2_started: false
-      next_gate_id: "IDS-STAGE102-P2-GATE"
+      phase2_started: true
+      phase2_completed: true
+      phase3_started: false
+      next_gate_id: "IDS-STAGE102-P3-GATE"
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false
