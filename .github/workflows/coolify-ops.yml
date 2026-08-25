@@ -2207,12 +2207,14 @@ jobs:
         run: |
           set -euo pipefail
           app_file="$RUNNER_TEMP/daily-funds-force-rebuild-app.json"
+          apps_file="$RUNNER_TEMP/daily-funds-force-rebuild-apps.json"
           active_file="$RUNNER_TEMP/daily-funds-force-rebuild-active.json"
+          preflight_file="$RUNNER_TEMP/daily-funds-force-rebuild-preflight.json"
           deploy_file="$RUNNER_TEMP/daily-funds-force-rebuild-deploy.json"
           deployment_target_file="$RUNNER_TEMP/daily-funds-force-rebuild-deployment-target.json"
           deployment_status_file="$RUNNER_TEMP/daily-funds-force-rebuild-status.json"
           health_file="$RUNNER_TEMP/daily-funds-force-rebuild-health.json"
-          trap 'rm -f "$app_file" "$active_file" "$deploy_file" "$deployment_target_file" "$deployment_status_file" "$health_file"' EXIT
+          trap 'rm -f "$app_file" "$apps_file" "$active_file" "$preflight_file" "$deploy_file" "$deployment_target_file" "$deployment_status_file" "$health_file"' EXIT
           test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_force_rebuild=MAIN_REF_REQUIRED"; exit 1; }
           test -n "${APP:-}" || { echo "daily_funds_force_rebuild=APP_REQUIRED"; exit 1; }
           case "$APP" in *[!A-Za-z0-9_-]*) echo "daily_funds_force_rebuild=APP_INVALID"; exit 1 ;; esac
@@ -2229,8 +2231,7 @@ jobs:
           }
 
           fetch_json "$app_file" "$BASE/api/v1/applications/$APP"
-          fetch_json "$active_file" "$BASE/api/v1/deployments/applications/$APP"
-          python3 - "$app_file" "$active_file" <<'PY'
+          python3 - "$app_file" "$preflight_file" <<'PY'
           import json
           import sys
           from pathlib import Path
@@ -2251,7 +2252,6 @@ jobs:
               return payload
 
           app = unwrap(load(sys.argv[1]))
-          active = unwrap(load(sys.argv[2]))
           if not isinstance(app, dict):
               fail("TARGET_INVALID")
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
@@ -2262,17 +2262,87 @@ jobs:
               "docker_compose_custom_start_command",
               "docker_compose_custom_build_command",
           )
+          if any(app.get(field) not in (None, "") for field in command_fields):
+              fail("COMPOSE_COMMAND_CONFIGURED")
+          target = Path(sys.argv[2])
+          with target.open("w", encoding="utf-8") as handle:
+              json.dump({"requires_collection": any(field not in app for field in command_fields)}, handle)
+          target.chmod(0o600)
+          print("daily_funds_force_rebuild_target=VERIFIED")
+          PY
+
+          requires_collection="$(jq -er '.requires_collection' "$preflight_file" 2>/dev/null)" \
+            || { echo "daily_funds_force_rebuild=CONTROL_RESPONSE_INVALID"; exit 1; }
+          case "$requires_collection" in
+            true)
+              fetch_json "$apps_file" "$BASE/api/v1/applications"
+              python3 - "$apps_file" "$APP" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_force_rebuild={code}")
+              raise SystemExit(1)
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              fail("CONTROL_RESPONSE_INVALID")
+          while isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+              payload = payload["data"]
+          if isinstance(payload, dict):
+              payload = payload.get("applications", payload.get("items"))
+          if not isinstance(payload, list):
+              fail("APPLICATION_COLLECTION_INVALID")
+          matches = [record for record in payload if isinstance(record, dict) and record.get("uuid") == sys.argv[2]]
+          if len(matches) != 1:
+              fail("APPLICATION_COLLECTION_TARGET_UNAVAILABLE")
+          app = matches[0]
+          if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
+              fail("APPLICATION_COLLECTION_TARGET_UNEXPECTED")
+          command_fields = (
+              "docker_compose_custom_start_command",
+              "docker_compose_custom_build_command",
+          )
           if any(field not in app for field in command_fields):
               fail("COMPOSE_COMMAND_STATE_UNAVAILABLE")
           if any(app.get(field) not in (None, "") for field in command_fields):
               fail("COMPOSE_COMMAND_CONFIGURED")
-          if isinstance(active, dict):
-              active = active.get("deployments", active.get("items"))
-          if not isinstance(active, list):
+          print("daily_funds_force_rebuild_command_source=COLLECTION")
+          PY
+              ;;
+            false)
+              echo "daily_funds_force_rebuild_command_source=APPLICATION_DETAIL"
+              ;;
+            *)
+              echo "daily_funds_force_rebuild=CONTROL_RESPONSE_INVALID"
+              exit 1
+              ;;
+          esac
+
+          fetch_json "$active_file" "$BASE/api/v1/deployments/applications/$APP"
+          python3 - "$active_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_force_rebuild={code}")
+              raise SystemExit(1)
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
               fail("ACTIVE_DEPLOYMENTS_RESPONSE_INVALID")
-          if active:
+          while isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+              payload = payload["data"]
+          if isinstance(payload, dict):
+              payload = payload.get("deployments", payload.get("items"))
+          if not isinstance(payload, list):
+              fail("ACTIVE_DEPLOYMENTS_RESPONSE_INVALID")
+          if payload:
               fail("DEPLOYMENT_ALREADY_ACTIVE")
-          print("daily_funds_force_rebuild_target=VERIFIED")
           print("daily_funds_force_rebuild_active_deployments=NONE")
           PY
 

@@ -965,6 +965,9 @@ def test_workflow_force_rebuild_uses_the_documented_deploy_route_only() -> None:
     assert '"docker_compose_custom_build_command"' in step
     assert "COMPOSE_COMMAND_STATE_UNAVAILABLE" in step
     assert "COMPOSE_COMMAND_CONFIGURED" in step
+    assert '"$BASE/api/v1/applications"' in step
+    assert "APPLICATION_COLLECTION_TARGET_UNAVAILABLE" in step
+    assert "daily_funds_force_rebuild_command_source=COLLECTION" in step
     assert '"$BASE/api/v1/deployments/applications/$APP"' in step
     assert "DEPLOYMENT_ALREADY_ACTIVE" in step
     assert '"$BASE/api/v1/deploy?uuid=$APP&force=true"' in step
