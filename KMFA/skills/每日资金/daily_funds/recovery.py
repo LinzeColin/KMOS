@@ -400,3 +400,25 @@ class DailyFundsRecoveryBroker:
         while True:
             self.run_once()
             time.sleep(self.poll_seconds)
+
+
+def has_live_recovery_request(
+    config: DailyFundsConfig,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """Return whether a valid unexpired recovery request owns the startup audit.
+
+    Recovery begins with the same full raw-archive audit that a container start
+    may otherwise enqueue. One valid live request therefore reserves that
+    audit for the recovery broker and keeps a rolling deployment from starting
+    a competing reader on the same worker volume.
+    """
+
+    moment = now or datetime.now(UTC)
+    broker = DailyFundsRecoveryBroker(config)
+    payload = broker._read_object(REQUEST_FILE)
+    if payload is None:
+        return False
+    request = broker._request_from_payload(payload, now=moment)
+    return request is not None and request.expires_at > moment

@@ -71,8 +71,9 @@ from daily_funds.parsing import (
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle, S3CompatibleStore
 from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
 from daily_funds.reconcile import AccountReconciliation, ReconciliationError, ReconciliationReport, account_key_hash, reconcile
+from daily_funds.recovery import ACTOR, RECOVERY_MAX_SECONDS, REQUEST_FILE, REQUEST_SCHEMA
 from daily_funds.runtime import AttachmentCapabilityInspection, DailyFundsRuntime, TimedFacts
-from daily_funds.state import RuntimeState, StatusWriter
+from daily_funds.state import RuntimeState, StatusWriter, atomic_json_write
 from daily_funds.startup import raw_archive_audit_required
 
 UTC = timezone.utc
@@ -4352,6 +4353,32 @@ def test_startup_raw_archive_audit_gate_requires_a_complete_current_parser_scope
 
     assert state.has_complete_capability_scope(parser_version=PARSER_VERSION) is True
     assert raw_archive_audit_required(config) is False
+
+
+def test_startup_raw_archive_audit_gate_defers_to_a_live_recovery_request(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    now = datetime.now(UTC).replace(microsecond=0)
+
+    atomic_json_write(config.control_dir / REQUEST_FILE, {
+        "schema_version": REQUEST_SCHEMA,
+        "request_id": "b" * 64,
+        "action": "RECOVER",
+        "actor": ACTOR,
+        "requested_at": now.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now + timedelta(seconds=RECOVERY_MAX_SECONDS)).isoformat().replace("+00:00", "Z"),
+    })
+    assert raw_archive_audit_required(config) is False
+
+    requested_at = now - timedelta(hours=1)
+    atomic_json_write(config.control_dir / REQUEST_FILE, {
+        "schema_version": REQUEST_SCHEMA,
+        "request_id": "c" * 64,
+        "action": "RECOVER",
+        "actor": ACTOR,
+        "requested_at": requested_at.isoformat().replace("+00:00", "Z"),
+        "expires_at": (now - timedelta(seconds=1)).isoformat().replace("+00:00", "Z"),
+    })
+    assert raw_archive_audit_required(config) is True
 
 
 @pytest.mark.parametrize(("internal_code", "expected_code"), (
