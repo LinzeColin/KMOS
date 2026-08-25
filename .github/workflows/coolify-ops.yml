@@ -1146,11 +1146,12 @@ jobs:
           echo "::add-mask::$CF_ACCESS_POLICY_ID"
           policy_created=1
 
+          # A newly-created Service Auth policy is evaluated at the Access
+          # edge. Give that fixed, short window to settle before the first
+          # control request. This is not a retry and accepts no input.
+          sleep 10
+
           if [ "$CONTROL_KIND" != "RECOVERY_STATUS" ]; then
-            # A newly-created Service Auth policy is evaluated at the Access
-            # edge.  Give that fixed, short window to settle before the only
-            # allowed POST; this is not an unbounded retry and accepts no input.
-            sleep 10
             request_control POST "$bridge_dir/probe-post.json"
             summarize_control_start \
               --response "$bridge_dir/probe-post.json" --headers "$bridge_dir/probe-post.json.headers" --http-status "$REQUEST_STATUS" \
