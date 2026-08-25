@@ -637,17 +637,19 @@ def test_recovery_receipt_accepts_only_fixed_progress_and_publication_states(tmp
 
 
 @pytest.mark.parametrize(
-    ("http_status", "expected_transport"),
+    ("http_status", "origin_marker", "expected_transport"),
     [
-        ("204", "HTTP_UNEXPECTED_SUCCESS_STATUS"),
-        ("302", "HTTP_REDIRECT"),
-        ("404", "HTTP_CLIENT_ERROR"),
-        ("502", "HTTP_SERVER_ERROR"),
+        ("204", False, "HTTP_UNEXPECTED_SUCCESS_STATUS"),
+        ("302", False, "HTTP_REDIRECT"),
+        ("404", False, "HTTP_CLIENT_ERROR"),
+        ("502", False, "HTTP_UPSTREAM_SERVER_ERROR"),
+        ("502", True, "HTTP_CONTROL_SERVER_ERROR"),
     ],
 )
 def test_recovery_receipt_classifies_unexpected_statuses_without_exposing_response(
     tmp_path: Path,
     http_status: str,
+    origin_marker: bool,
     expected_transport: str,
 ) -> None:
     response = tmp_path / "recovery.json"
@@ -655,7 +657,7 @@ def test_recovery_receipt_classifies_unexpected_statuses_without_exposing_respon
 
     summary = summarize_recovery_response(
         response,
-        response_headers_path=_recovery_headers(tmp_path / "recovery.headers", origin_marker=False),
+        response_headers_path=_recovery_headers(tmp_path / "recovery.headers", origin_marker=origin_marker),
         http_status=http_status,
         curl_exit=0,
     )
@@ -663,6 +665,37 @@ def test_recovery_receipt_classifies_unexpected_statuses_without_exposing_respon
     assert summary["transport"] == expected_transport
     assert summary["result"] == "NOT_MET"
     assert "must-not-escape" not in json.dumps(summary)
+
+
+@pytest.mark.parametrize("transport", ["TRANSPORT_FAILED", "HTTP_UPSTREAM_SERVER_ERROR"])
+def test_recovery_poll_retries_only_fixed_upstream_transients(tmp_path: Path, transport: str) -> None:
+    receipt = tmp_path / "receipt.json"
+    _write(receipt, {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": transport,
+        "recovery_state": "UNCLASSIFIED",
+        "completed_step_count": "UNCLASSIFIED",
+        "active_step": "UNCLASSIFIED",
+        "machine_code": "UNCLASSIFIED",
+        "result": "NOT_MET",
+    })
+
+    assert recovery_poll_state(receipt) == "RETRY"
+
+
+def test_recovery_poll_keeps_control_server_errors_terminal(tmp_path: Path) -> None:
+    receipt = tmp_path / "receipt.json"
+    _write(receipt, {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "HTTP_CONTROL_SERVER_ERROR",
+        "recovery_state": "UNCLASSIFIED",
+        "completed_step_count": "UNCLASSIFIED",
+        "active_step": "UNCLASSIFIED",
+        "machine_code": "UNCLASSIFIED",
+        "result": "NOT_MET",
+    })
+
+    assert recovery_poll_state(receipt) == "TERMINAL_NOT_MET"
 
 
 def test_recovery_start_receipt_is_fixed_and_only_pending_is_pollable(tmp_path: Path) -> None:
@@ -789,6 +822,10 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "probe-get.json.headers" in step
     assert "probe-start-poll-state" in step
     assert "recovery-start-poll-state" in step
+    assert "CONTROL_MAX_TRANSIENT_POLL_FAILURES=6" in step
+    assert "transient_poll_failures" in step
+    assert "RETRY)" in step
+    assert "RECOVERY_POLL_UPSTREAM_UNAVAILABLE" in step
     assert "sleep 10" in step
     assert "reconcile_owned_resources()" in step
     assert "write-owned-resource-env" in step

@@ -526,6 +526,24 @@ def _unexpected_http_transport(status: str) -> str:
     return "HTTP_UNAVAILABLE"
 
 
+def _recovery_unexpected_http_transport(
+    status: str,
+    *,
+    origin_confirmed: bool,
+) -> str:
+    """Classify a recovery poll failure by the trusted origin marker.
+
+    An accepted recovery keeps running in the isolated worker while a proxy
+    temporarily cannot serve one status read.  The runner may retry only that
+    upstream condition.  A marked app-origin server response remains a
+    terminal control-plane result.
+    """
+
+    if status.startswith("5"):
+        return "HTTP_CONTROL_SERVER_ERROR" if origin_confirmed else "HTTP_UPSTREAM_SERVER_ERROR"
+    return _unexpected_http_transport(status)
+
+
 def summarize_probe_response(
     response_path: str | Path,
     *,
@@ -774,7 +792,12 @@ def summarize_recovery_response(
     if status in {"401", "403"}:
         return _recovery_summary("HTTP_DENIED")
     if status != "200":
-        return _recovery_summary(_unexpected_http_transport(status))
+        return _recovery_summary(
+            _recovery_unexpected_http_transport(
+                status,
+                origin_confirmed=_recovery_origin_confirmed(response_headers_path),
+            )
+        )
     if not _recovery_origin_confirmed(response_headers_path):
         return _recovery_summary("HTTP_ORIGIN_UNVERIFIED")
     try:
@@ -913,6 +936,8 @@ def recovery_poll_state(receipt_path: str | Path) -> str:
         return "PUBLISHED"
     if payload.get("result") == "RECOVERY_PUBLISHED_NEEDS_REVIEW":
         return "PUBLISHED_NEEDS_REVIEW"
+    if payload.get("transport") in {"TRANSPORT_FAILED", "HTTP_UPSTREAM_SERVER_ERROR"}:
+        return "RETRY"
     if payload.get("transport") != "OK":
         return "TERMINAL_NOT_MET"
     if payload.get("recovery_state") in {"REQUESTED", "RUNNING", "WAITING"}:
