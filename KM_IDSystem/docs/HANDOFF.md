@@ -9,9 +9,18 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage101 Review accepted locally - 2026-08-25
+## Current Gate - Stage102 P1 accepted locally - 2026-08-25
 
-- `IDS-V0_1-STAGE101-REVIEW` 已完成本地验收；当前治理状态为 `IDS-STAGE101 / IDS-STAGE101-REVIEW / IDS-V0_1-STAGE101-REVIEW / IDS-STAGE102-P1-GATE`。Stage102 P1 保持未启动，且只可由新的独立 run 进入。
+- `IDS-V0_1-STAGE102-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE102 / IDS-STAGE102-P1 / IDS-V0_1-STAGE102-P1 / IDS-STAGE102-P2-GATE`。P2 保持未启动，且只可由新的独立 run 进入。
+- P1 固定 `17` 个未来控制引用：文档 evidence、文档内潜在指令、IDS 规则、Prompt 版本、提示注入防护策略、查询、索引、所选 evidence、内部依据、外部增强、evidence_gap、来源类型、模型输出权限、业务线白箱人工确认与审计边界；同时固定 `7` 类潜在指令越权类别、`4` 类底层来源类型、`5` 类输出权限、`25` 类失败关闭和 `4` 条中文反馈。
+- 已验证：P1 聚焦 `8/8`，Stage088--Stage102 精确白箱链 `695/695`；Stage005 当前态治理投影全项为真；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
+- 文档 evidence 与文档内潜在指令保持不可信、不可执行控制引用；IDS 规则保持优先级。文档文本不能授权系统指令、工具或外部动作、Prompt 或模型配置、输出权限或人工确认、发布或生产写回，也不能触发来源或秘密访问。
+- 本轮继续只使用 `codex/kmids-stage071-p1` 与唯一开发 worktree；真实资料、文档正文、查询、检索、Prompt、模型、模型 Token、Agent、OVH、生产、正式全局上传、main 与 release 保持后续门禁范围。运行计数均为 `0`，运行标志均为 `false`。
+- 回滚范围仅包括本次 P1 的范围说明、纯内存静态合同、聚焦用例、历史治理兼容、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PASS_REVIEWED_RAG_REPRODUCIBILITY_RUNTIME_DISABLED`。Stage101 Review、Stage101 P1--P4、Stage100 P1--P4/Review、冻结任务包、受保护资料、GitHub main/release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage101 Review accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE101-REVIEW` 已完成本地验收；完成时治理状态为 `IDS-STAGE101 / IDS-STAGE101-REVIEW / IDS-V0_1-STAGE101-REVIEW / IDS-STAGE102-P1-GATE`。Stage102 P1 已在上方作为唯一当前门禁完成。
 - Review 机械复审 P1 的 `15` 个控制引用与八元可复现记录键、P2 的 `6×23/4/45/270`、P3 的 `6×32/192/5/6`，以及 P4 的 `6/6/6/6/6/2`、`17/12/14/17/12/12`、`456` 固定交付形状；P4 的回答样例、负向结果、prompt/version、完整可复现日志、模型输出权限、prompt 回滚和模型配置回退继续作为复审输入与 P4→P3 回退点。
 - 已验证：Review 聚焦 `8/8`，P1--Review 聚焦 `41/41`，Stage088--Stage101 精确白箱链 `687/687`；Stage005 当前态治理投影全项为真；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和双平面检查均通过。验证范围覆盖冻结控制工件、治理兼容和零运行时边界。
 - 检索文档保持 evidence 身份且文档内指令无法覆盖 IDS 规则；内部依据不足保持 `evidence_gap`，外部公开参考与模型推理作为外部增强展示时保留各自底层来源类型。高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布；prompt 回滚和模型配置回退保持未来白箱批准、版本化依据与可验证目标。

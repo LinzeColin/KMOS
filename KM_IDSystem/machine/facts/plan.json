@@ -1,20 +1,20 @@
 {
-  "stage": "IDS-STAGE101",
-  "phase": "IDS-STAGE101-REVIEW",
-  "task": "IDS-V0_1-STAGE101-REVIEW",
-  "now": "IDS-V0_1-STAGE101-REVIEW 已机械复审 P1--P4 的固定控制形状、八元可复现记录键、来源类型、提示注入、输出权限、业务线白箱人工处理、失败关闭和 P4→P3 回退；下一独立 run 才可进入 Stage102 P1。",
+  "stage": "IDS-STAGE102",
+  "phase": "IDS-STAGE102-P1",
+  "task": "IDS-V0_1-STAGE102-P1",
+  "now": "IDS-V0_1-STAGE102-P1 已固定文档 evidence、文档内潜在指令、IDS 规则、Prompt 版本、来源类型、输出权限、业务线白箱人工确认、失败关闭和回退路径的静态控制边界；下一独立 run 才可进入 Stage102 P2。",
   "owner": "KMOS 开发负责人；本阶段使用唯一既有开发工作树、单一分支与本地验证节奏。",
-  "objective": "以冻结 Stage101 任务包、Stage101 P1/P2/P3/P4 控制工件与 Stage100 Review 已复审无内部依据策略控制工件为唯一控制上下文，机械复审八元可复现记录键、来源类型、提示注入、evidence_gap、三类高风险输出白箱人工确认、未来候选与实际调用分离及 P4→P3 回退。",
+  "objective": "以冻结 Stage102 任务包与 Stage101 Review 已复审 RAG 可复现控制工件为唯一控制上下文，固定文档内潜在指令的非执行 evidence 边界、IDS 规则优先级、四类来源语义、五类输出权限、业务线白箱人工确认、失败关闭和回退路径。",
   "scope": [
-    "机械重放 P1 的 15/4/5/5/3/22/4、P2 的 6×23/4/45/270、P3 的 6×32=192/5/6/16 与 P4 的 6/6/6/6/6/2、17/12/14/17/12/12、456 个交付字段检查点",
-    "复核 query、index_version、prompt_version、model_provider、model_version、temperature、retrieval_context 与 selected_evidence 的 8 个未来可复现记录键引用",
-    "保持 internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 的底层来源类型，external_augmentation_opinion 只作展示组合，检索文档保持 evidence 身份且 IDS 规则保持优先级",
-    "保持五类输出分类与业务线白箱人工确认门禁；高风险工程建议、合同承诺和生产写回保持最终结论未发布；prompt 回滚和模型配置回退保持未来白箱批准、版本化依据与可验证目标；将 Stage102 P1 投影为未启动的下一门禁"
+    "固定 17 个未来控制引用，覆盖文档 evidence、文档内潜在指令、IDS 规则、Prompt 版本、提示注入防护策略、查询、索引、selected evidence、来源类型、输出权限、人工确认和审计边界",
+    "固定 IDS 规则优先级与 7 类文档内潜在指令越权类别；文档文本保持不可信、不可执行 evidence，不能成为系统指令、工具或外部动作授权、Prompt 或模型配置覆盖、权限绕过、发布或生产写回触发器，或来源或秘密访问请求",
+    "保持 internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 的底层来源类型，external_augmentation_opinion 只作展示组合；保持五类输出分类与业务线白箱人工确认门禁",
+    "将 Stage102 P2 投影为未启动的下一门禁"
   ],
   "non_goals": [
-    "真实业务源、原始元数据、授权 fixture、检索结果、证据账本、Prompt 正文、回答、报告、数据库、参数和业务结论继续由受保护边界管理",
-    "真实查询、索引读取或切换、来源类型绑定、外部增强展示、Prompt 执行、模型选择或调用、引用生成、模型输出分类、回答发布、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、模型 Token、Agent、OVH 与生产继续由后续授权阶段管理",
-    "Stage102 P1、合并、正式全局上传、OVH 部署、生产激活与应用重装继续由后续阶段管理"
+    "真实业务源、原始元数据、授权 fixture、检索结果、文档正文、证据账本、Prompt 正文、回答、报告、数据库、参数和业务结论继续由受保护边界管理",
+    "真实文档指令识别或处理、查询、索引读取或切换、来源类型绑定、外部增强展示、Prompt 执行、模型选择或调用、引用生成、模型输出分类、回答发布、人工确认、合同承诺、生产写回、模型 Token、Agent、OVH 与生产继续由后续授权阶段管理",
+    "Stage102 P2、合并、正式全局上传、OVH 部署、生产激活与应用重装继续由后续阶段管理"
   ],
-  "stop_condition": "本 run 在 Stage101 Review 的本地验证与可恢复提交完成后结束；下一独立 run 才可进入 IDS-STAGE102-P1-GATE，继续使用同一既有开发 worktree。真实资料、Prompt 正文、模型配置、provider、模型、查询、检索、回答、日志、报告、证据账本、数据库、来源绑定、外部增强展示、模型 Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
+  "stop_condition": "本 run 在 Stage102 P1 的本地验证与可恢复提交完成后结束；下一独立 run 才可进入 IDS-STAGE102-P2-GATE，继续使用同一既有开发 worktree。真实资料、文档正文、Prompt 正文、模型配置、provider、模型、查询、检索、回答、日志、报告、证据账本、数据库、来源绑定、外部增强展示、模型 Token、审计、持久化、Agent、OVH、生产与正式上传保持后续授权范围。"
 }
