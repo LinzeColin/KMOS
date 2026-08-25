@@ -136,12 +136,10 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     resolve = subparsers.add_parser("resolve-target")
-    resolve.add_argument("--coolify-env", required=True)
     resolve.add_argument("--access-apps", required=True)
     resolve.add_argument("--output", required=True)
 
     diagnose = subparsers.add_parser("diagnose-target")
-    diagnose.add_argument("--coolify-env", required=True)
     diagnose.add_argument("--access-apps", required=True)
 
     service_payload = subparsers.add_parser("write-service-token-payload")
@@ -222,13 +220,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
-            target = resolve_bridge_target(args.coolify_env, args.access_apps)
+            target = resolve_bridge_target(args.access_apps)
             _write_shell_material(_private_output(parser, args), {
                 "CF_ACCESS_APP_ID": target["app_id"],
                 "PROBE_ORIGIN": target["origin"],
             })
         elif args.command == "diagnose-target":
-            print(diagnose_bridge_target(args.coolify_env, args.access_apps))
+            print(diagnose_bridge_target(args.access_apps))
         elif args.command == "write-service-token-payload":
             write_private_json(_private_output(parser, args), service_token_payload(args.run_tag))
         elif args.command == "capture-service-token":

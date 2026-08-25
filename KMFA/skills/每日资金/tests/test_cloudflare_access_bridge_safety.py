@@ -58,13 +58,8 @@ def _recovery_headers(path: Path, *, origin_marker: bool = True) -> Path:
     return path
 
 
-def _target_inputs(tmp_path: Path, *, apps: list[object] | None = None) -> tuple[Path, Path]:
-    envs = tmp_path / "envs.json"
+def _target_inputs(tmp_path: Path, *, apps: list[object] | None = None) -> Path:
     access_apps = tmp_path / "apps.json"
-    _write(envs, [
-        {"key": "KMFA_CLOUDFLARE_ACCESS_AUD", "value": f"{AUDIENCE},{'b' * 64}"},
-        {"key": "KMFA_CLOUDFLARE_ACCESS_AUD", "value": f"{AUDIENCE},{'b' * 64}"},
-    ])
     _write(access_apps, {
         "success": True,
         "result_info": {"total_pages": 1},
@@ -72,10 +67,10 @@ def _target_inputs(tmp_path: Path, *, apps: list[object] | None = None) -> tuple
             "id": APP_ID,
             "aud": AUDIENCE,
             "type": "self_hosted",
-            "domain": "kmfa.example.com/ops/*",
+            "domain": "kmfa.linzezhang.com/ops/*",
         }],
     })
-    return envs, access_apps
+    return access_apps
 
 
 def _valid_probe(
@@ -124,18 +119,18 @@ def _load_script():
     return module
 
 
-def test_bridge_resolves_only_one_narrow_configured_ops_application(tmp_path: Path) -> None:
-    envs, access_apps = _target_inputs(tmp_path)
+def test_bridge_resolves_only_one_exact_host_narrow_ops_application(tmp_path: Path) -> None:
+    access_apps = _target_inputs(tmp_path)
 
-    assert resolve_bridge_target(envs, access_apps) == {
+    assert resolve_bridge_target(access_apps) == {
         "app_id": APP_ID,
-        "origin": "https://kmfa.example.com",
+        "origin": "https://kmfa.linzezhang.com",
     }
 
 
-@pytest.mark.parametrize("domain", ["kmfa.example.com/*", "kmfa.example.com/", "http://kmfa.example.com/ops/*", "localhost/ops/*"])
+@pytest.mark.parametrize("domain", ["kmfa.linzezhang.com/*", "kmfa.linzezhang.com/", "http://kmfa.linzezhang.com/ops/*", "localhost/ops/*"])
 def test_bridge_rejects_broad_or_non_https_access_targets(tmp_path: Path, domain: str) -> None:
-    envs, access_apps = _target_inputs(tmp_path, apps=[{
+    access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
@@ -143,7 +138,7 @@ def test_bridge_rejects_broad_or_non_https_access_targets(tmp_path: Path, domain
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(envs, access_apps)
+        resolve_bridge_target(access_apps)
 
 
 def test_bridge_rejects_ambiguous_or_paginated_access_application_list(tmp_path: Path) -> None:
@@ -151,35 +146,32 @@ def test_bridge_rejects_ambiguous_or_paginated_access_application_list(tmp_path:
         "id": "b3b4c5d6-1e2f-4a5b-8c9d-0e1f2a3b4c5d",
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.example.com/ops/api/*",
+        "domain": "kmfa.linzezhang.com/ops/api/*",
     }
-    envs, access_apps = _target_inputs(tmp_path, apps=[{
+    access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.example.com/ops/*",
+        "domain": "kmfa.linzezhang.com/ops/*",
     }, duplicate])
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(envs, access_apps)
+        resolve_bridge_target(access_apps)
 
     payload = json.loads(access_apps.read_text(encoding="utf-8"))
     payload["result"] = [payload["result"][0]]
     payload["result_info"] = {"total_pages": 2}
     _write(access_apps, payload)
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(envs, access_apps)
+        resolve_bridge_target(access_apps)
 
 
 def test_bridge_target_diagnostic_is_finite_and_values_free(tmp_path: Path) -> None:
-    envs, access_apps = _target_inputs(tmp_path)
-    assert diagnose_bridge_target(envs, access_apps) == "RESOLVED"
+    access_apps = _target_inputs(tmp_path)
+    assert diagnose_bridge_target(access_apps) == "RESOLVED"
 
-    _write(envs, [])
-    assert diagnose_bridge_target(envs, access_apps) == "COOLIFY_AUDIENCE_INVALID"
-
-    envs, access_apps = _target_inputs(tmp_path)
+    access_apps = _target_inputs(tmp_path)
     _write(access_apps, {"success": True, "result_info": {"total_pages": 2}, "result": []})
-    assert diagnose_bridge_target(envs, access_apps) == "ACCESS_APP_LIST_INCOMPLETE"
+    assert diagnose_bridge_target(access_apps) == "ACCESS_APP_LIST_INCOMPLETE"
 
     _write(access_apps, {"success": True, "result": [{
         "id": APP_ID,
@@ -187,91 +179,91 @@ def test_bridge_target_diagnostic_is_finite_and_values_free(tmp_path: Path) -> N
         "type": "self_hosted",
         "domain": "private-target.example.com/ops/*",
     }]})
-    assert diagnose_bridge_target(envs, access_apps) == "CONFIGURED_AUDIENCE_NOT_FOUND"
+    assert diagnose_bridge_target(access_apps) == "KMFA_OPS_TARGET_UNAVAILABLE"
 
     _write(access_apps, {"success": True, "result": [{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "private-target.example.com/",
+        "domain": "kmfa.linzezhang.com/",
     }]})
-    assert diagnose_bridge_target(envs, access_apps) == "ACCESS_TARGET_SCOPE_INVALID"
+    assert diagnose_bridge_target(access_apps) == "KMFA_OPS_TARGET_UNAVAILABLE"
 
     _write(access_apps, {"success": True, "result": [{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "private-target.example.com/ops/*",
+        "domain": "kmfa.linzezhang.com/ops/*",
     }, {
         "id": "b3b4c5d6-1e2f-4a5b-8c9d-0e1f2a3b4c5d",
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "private-target.example.com/ops/api/*",
+        "domain": "kmfa.linzezhang.com/ops/api/*",
     }]})
-    assert diagnose_bridge_target(envs, access_apps) == "ACCESS_TARGET_AMBIGUOUS"
+    assert diagnose_bridge_target(access_apps) == "KMFA_OPS_TARGET_AMBIGUOUS"
 
 def test_bridge_rejects_an_effective_destination_broader_than_the_fixed_ops_probe(tmp_path: Path) -> None:
-    envs, access_apps = _target_inputs(tmp_path, apps=[{
+    access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.example.com/ops/*",
+        "domain": "kmfa.linzezhang.com/ops/*",
         "destinations": [
-            {"type": "public", "uri": "kmfa.example.com/ops/*"},
-            {"type": "public", "uri": "kmfa.example.com/*"},
+            {"type": "public", "uri": "kmfa.linzezhang.com/ops/*"},
+            {"type": "public", "uri": "kmfa.linzezhang.com/*"},
         ],
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(envs, access_apps)
+        resolve_bridge_target(access_apps)
 
 
 def test_bridge_uses_new_destinations_when_legacy_domain_is_stale(tmp_path: Path) -> None:
     """Cloudflare can retain a legacy root domain after a path migration."""
 
-    envs, access_apps = _target_inputs(tmp_path, apps=[{
+    access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.example.com/",
+        "domain": "kmfa.linzezhang.com/",
         "destinations": [
-            {"type": "public", "uri": "kmfa.example.com/ops"},
-            {"type": "public", "uri": "kmfa.example.com/ops/*"},
+            {"type": "public", "uri": "kmfa.linzezhang.com/ops"},
+            {"type": "public", "uri": "kmfa.linzezhang.com/ops/*"},
         ],
     }])
 
-    assert resolve_bridge_target(envs, access_apps) == {
+    assert resolve_bridge_target(access_apps) == {
         "app_id": APP_ID,
-        "origin": "https://kmfa.example.com",
+        "origin": "https://kmfa.linzezhang.com",
     }
 
 
 def test_bridge_rejects_new_destinations_with_mixed_origins(tmp_path: Path) -> None:
-    envs, access_apps = _target_inputs(tmp_path, apps=[{
+    access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
         "destinations": [
-            {"type": "public", "uri": "kmfa.example.com/ops/*"},
+            {"type": "public", "uri": "kmfa.linzezhang.com/ops/*"},
             {"type": "public", "uri": "other.example.com/ops/*"},
         ],
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(envs, access_apps)
+        resolve_bridge_target(access_apps)
 
 
 def test_bridge_requires_a_probe_covering_path_beside_exact_ops_landing_path(tmp_path: Path) -> None:
-    envs, access_apps = _target_inputs(tmp_path, apps=[{
+    access_apps = _target_inputs(tmp_path, apps=[{
         "id": APP_ID,
         "aud": AUDIENCE,
         "type": "self_hosted",
-        "domain": "kmfa.example.com/ops",
-        "destinations": [{"type": "public", "uri": "kmfa.example.com/ops"}],
+        "domain": "kmfa.linzezhang.com/ops",
+        "destinations": [{"type": "public", "uri": "kmfa.linzezhang.com/ops"}],
     }])
 
     with pytest.raises(AccessBridgeInputError):
-        resolve_bridge_target(envs, access_apps)
+        resolve_bridge_target(access_apps)
 
 
 def test_service_token_and_policy_payload_are_short_lived_and_app_specific() -> None:
@@ -649,21 +641,21 @@ def test_recovery_start_receipt_is_fixed_and_only_pending_is_pollable(tmp_path: 
 
 def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     manager = _load_script()
-    envs, access_apps = _target_inputs(tmp_path)
+    access_apps = _target_inputs(tmp_path)
     target = tmp_path / "target.env"
     assert manager.main([
-        "resolve-target", "--coolify-env", str(envs), "--access-apps", str(access_apps), "--output", str(target),
+        "resolve-target", "--access-apps", str(access_apps), "--output", str(target),
     ]) == 0
     assert stat.S_IMODE(target.stat().st_mode) == 0o600
-    assert "kmfa.example.com" in target.read_text(encoding="utf-8")
+    assert "kmfa.linzezhang.com" in target.read_text(encoding="utf-8")
     assert capsys.readouterr().out == ""
 
     assert manager.main([
-        "diagnose-target", "--coolify-env", str(envs), "--access-apps", str(access_apps),
+        "diagnose-target", "--access-apps", str(access_apps),
     ]) == 0
     output = capsys.readouterr().out
     assert output == "RESOLVED\n"
-    assert "kmfa.example.com" not in output
+    assert "kmfa.linzezhang.com" not in output
 
     response = tmp_path / "probe.json"
     headers = _probe_headers(tmp_path / "probe.headers")
@@ -673,7 +665,7 @@ def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(t
     ]) == 0
     output = capsys.readouterr().out
     assert json.loads(output)["result"] == "HISTORY_PROBE_COMPLETED"
-    assert "kmfa.example.com" not in output
+    assert "kmfa.linzezhang.com" not in output
     assert "service-secret" not in output
 
 
@@ -692,6 +684,11 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "CONTROL_PATH=/ops/api/daily-funds/history-probe" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/recovery" in step
     assert '"$PROBE_ORIGIN$CONTROL_PATH"' in step
+    assert "diagnose-target" in step
+    assert "--coolify-env" not in step
+    assert '$BASE/api/v1/applications/$APP/envs' not in step
+    assert "KMFA_OPS_TARGET_UNAVAILABLE" in step
+    assert "KMFA_OPS_TARGET_AMBIGUOUS" in step
     assert "capture-service-token-id" in step
     assert "capture-policy" in step
     assert "summarize-probe-start" in step

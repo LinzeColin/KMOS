@@ -863,11 +863,8 @@ jobs:
           esac
           test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "$CONTROL_LABEL=MAIN_REF_REQUIRED"; exit 1; }
           test -n "${APP:-}" || { echo "$CONTROL_LABEL=APP_REQUIRED"; exit 1; }
-          test -n "${BASE:-}" || { echo "$CONTROL_LABEL=CONFIG_UNAVAILABLE"; exit 1; }
-          test -n "${TOKEN:-}" || { echo "$CONTROL_LABEL=CONFIG_UNAVAILABLE"; exit 1; }
           test -n "${CF_ACCOUNT_ID:-}" || { echo "$CONTROL_LABEL=CONFIG_UNAVAILABLE"; exit 1; }
           test -n "${CF_API_TOKEN:-}" || { echo "$CONTROL_LABEL=CONFIG_UNAVAILABLE"; exit 1; }
-          echo "::add-mask::$TOKEN"
           echo "::add-mask::$CF_ACCOUNT_ID"
           echo "::add-mask::$CF_API_TOKEN"
           bridge_dir="$(mktemp -d "$RUNNER_TEMP/daily-funds-access-bridge.XXXXXX")"
@@ -893,17 +890,6 @@ jobs:
               fi
             elif REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 3 --max-time 12 \
               -o "$output" -w '%{http_code}' -H "Authorization: Bearer $CF_API_TOKEN" "$url" 2>/dev/null)"; then
-              REQUEST_EXIT=0
-            else
-              REQUEST_EXIT=$?
-            fi
-          }
-
-          request_coolify() {
-            local url="$1"
-            local output="$2"
-            if REQUEST_STATUS="$(curl -sS --request GET --connect-timeout 3 --max-time 12 \
-              -o "$output" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$url" 2>/dev/null)"; then
               REQUEST_EXIT=0
             else
               REQUEST_EXIT=$?
@@ -1011,7 +997,7 @@ jobs:
             fi
             unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET CF_ACCESS_SERVICE_TOKEN_ID
             unset CF_ACCESS_POLICY_ID CF_ACCESS_APP_ID PROBE_ORIGIN
-            rm -f -- "$bridge_dir/coolify-envs.json" "$bridge_dir/access-apps.json" \
+            rm -f -- "$bridge_dir/access-apps.json" \
               "$bridge_dir/target.env" "$bridge_dir/service-token-payload.json" \
               "$bridge_dir/service-token-response.json" "$bridge_dir/service-token-id.env" \
               "$bridge_dir/service-token.env" "$bridge_dir/policy-payload.json" \
@@ -1034,23 +1020,18 @@ jobs:
           }
           trap cleanup EXIT
 
-          request_coolify "$BASE/api/v1/applications/$APP/envs" "$bridge_dir/coolify-envs.json"
-          if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "$CONTROL_LABEL=COOLIFY_ENV_NOT_READABLE"
-            exit 1
-          fi
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$bridge_dir/access-apps.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
             echo "$CONTROL_LABEL=ACCESS_APP_NOT_READABLE"
             exit 1
           fi
           if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
-            --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" \
+            --access-apps "$bridge_dir/access-apps.json" \
             --output "$bridge_dir/target.env"; then
             target_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
-              --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
+              --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
             case "$target_diagnostic" in
-              COOLIFY_AUDIENCE_INVALID|ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|CONFIGURED_AUDIENCE_NOT_FOUND|ACCESS_TARGET_SCOPE_INVALID|ACCESS_TARGET_AMBIGUOUS)
+              ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|KMFA_OPS_TARGET_UNAVAILABLE|KMFA_OPS_TARGET_AMBIGUOUS)
                 ;;
               *) target_diagnostic=UNCLASSIFIED_INPUT_INVALID ;;
             esac
@@ -1182,7 +1163,7 @@ jobs:
           bridge_dir="$(mktemp -d "$RUNNER_TEMP/daily-funds-access-cleanup.XXXXXX")"
           chmod 700 "$bridge_dir"
           cleanup() {
-            rm -f -- "$bridge_dir/coolify-envs.json" "$bridge_dir/access-apps.json" \
+            rm -f -- "$bridge_dir/access-apps.json" \
               "$bridge_dir/target.env" "$bridge_dir/service-token-list-before.json" \
               "$bridge_dir/policy-list-before.json" "$bridge_dir/owned-resources.env" \
               "$bridge_dir/policy-delete.json" "$bridge_dir/service-token-delete.json" \
@@ -1202,32 +1183,17 @@ jobs:
               REQUEST_EXIT=$?
             fi
           }
-          request_coolify() {
-            local url="$1"
-            local output="$2"
-            if REQUEST_STATUS="$(curl -sS --request GET --connect-timeout 3 --max-time 12 \
-              -o "$output" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$url" 2>/dev/null)"; then
-              REQUEST_EXIT=0
-            else
-              REQUEST_EXIT=$?
-            fi
-          }
-
-          request_coolify "$BASE/api/v1/applications/$APP/envs" "$bridge_dir/coolify-envs.json"
-          if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "daily_funds_history_probe_cleanup=COOLIFY_ENV_NOT_READABLE"; exit 1
-          fi
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$bridge_dir/access-apps.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
             echo "daily_funds_history_probe_cleanup=ACCESS_APP_NOT_READABLE"; exit 1
           fi
           if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
-            --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" \
+            --access-apps "$bridge_dir/access-apps.json" \
             --output "$bridge_dir/target.env"; then
             target_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
-              --coolify-env "$bridge_dir/coolify-envs.json" --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
+              --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
             case "$target_diagnostic" in
-              COOLIFY_AUDIENCE_INVALID|ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|CONFIGURED_AUDIENCE_NOT_FOUND|ACCESS_TARGET_SCOPE_INVALID|ACCESS_TARGET_AMBIGUOUS)
+              ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|KMFA_OPS_TARGET_UNAVAILABLE|KMFA_OPS_TARGET_AMBIGUOUS)
                 ;;
               *) target_diagnostic=UNCLASSIFIED_INPUT_INVALID ;;
             esac

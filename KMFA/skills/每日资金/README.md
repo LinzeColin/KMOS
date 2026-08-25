@@ -30,7 +30,7 @@
 
 若该私有入口的 Cloudflare Access 身份尚未证明可用，`coolify-ops` 的手动 `daily-funds-access-audit` 只执行四个 Cloudflare `GET`（token 验证、Access application、service-token、policy 列表）。各 API 响应只在 Actions 临时文件内解析，日志只得到有限分类；它不会创建 service token 或 policy，不会调用 DWS/历史探针，也不会输出账户、应用、策略、令牌、消息或金额。该预检即使全部为 `OK`，也只说明读能力已验证；创建受控服务身份所需的写权限仍必须保持 `UNKNOWN_NOT_TESTED`，不能据此宣称任何真实历史或资金结果。
 
-在代码完成统一主线发布后，才可由 `coolify-ops` 的 `daily-funds-history-probe-bridge` 手动执行一次受控验证。它只从 Coolify 当前 `KMFA_CLOUDFLARE_ACCESS_AUD` 与 Cloudflare Access 的返回中解析**唯一**覆盖 `/ops/*` 的 self-hosted 应用；任何多匹配、根路径通配、分页不完整、非 HTTPS 或配置不一致都会拒绝运行。随后 runner 创建一个 `60m` service token 与只绑定该应用的 `non_identity` Service Auth policy，以固定同源、无 body 的 `POST /ops/api/daily-funds/history-probe` 启动探针，最多轮询两分钟的 values-free `GET` 回执。退出时只删除本次创建的 policy 和 token；任一资源无法精确追踪或删除即 `NEEDS_ATTENTION`，绝不写 PASS。回执会分别枚举 `OPAQUE_CURSOR_REUSED_SECOND_PAGE_*` 或 `GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_*`，只证明相应的页间控制流，**不保存或展示 cursor 本体**。它仍只是 DWS 读取路径验证，不能替代附件、双事实、勾稽、金额或 publication 验收。
+在代码完成统一主线发布后，才可由 `coolify-ops` 的 `daily-funds-history-probe-bridge` 手动执行一次受控验证。它只从 Cloudflare Access 的返回中解析**唯一**同时覆盖精确 KMFA 主机与窄 `/ops/*` 的 self-hosted 应用；任何多匹配、根路径通配、分页不完整、非 HTTPS 或不同主机都会拒绝运行。Coolify 配置 API 可能对环境值做脱敏，不能作为路由 authority；实际受保护端点仍会校验运行时配置的 Access audience。随后 runner 创建一个 `60m` service token 与只绑定该应用的 `non_identity` Service Auth policy，以固定同源、无 body的 `POST /ops/api/daily-funds/history-probe` 启动探针，最多轮询两分钟的 values-free `GET` 回执。退出时只删除本次创建的 policy 和 token；任一资源无法精确追踪或删除即 `NEEDS_ATTENTION`，绝不写 PASS。回执会分别枚举 `OPAQUE_CURSOR_REUSED_SECOND_PAGE_*` 或 `GROUP_HISTORY_V2_PROVIDER_MILLISECOND_CURSOR_REUSED_SECOND_PAGE_*`，只证明相应的页间控制流，**不保存或展示 cursor 本体**。它仍只是 DWS 读取路径验证，不能替代附件、双事实、勾稽、金额或 publication 验收。
 
 ## 原始证据写入边界
 

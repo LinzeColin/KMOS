@@ -22,6 +22,7 @@ from urllib.parse import urlsplit
 ACCESS_BRIDGE_SCHEMA = "kmfa.daily_funds.cloudflare_access_bridge.v1"
 PROBE_PATH = "/ops/api/daily-funds/history-probe"
 RECOVERY_PATH = "/ops/api/daily-funds/recovery"
+KMFA_DAILY_FUNDS_ACCESS_ORIGIN = "https://kmfa.linzezhang.com"
 SERVICE_TOKEN_DURATION = "60m"
 _MAX_RESPONSE_BYTES = 512 * 1024
 _AUD_RE = re.compile(r"^[a-f0-9]{64}$")
@@ -170,36 +171,6 @@ def _cloudflare_single_page_result(path: str | Path) -> list[Mapping[str, Any]]:
     return [dict(item) for item in result]
 
 
-def _coolify_rows(path: str | Path) -> list[Mapping[str, Any]]:
-    payload = _read_json(path)
-    data = payload.get("data") if isinstance(payload, Mapping) and isinstance(payload.get("data"), list) else payload
-    if not isinstance(data, list):
-        raise AccessBridgeInputError("Coolify environment list required")
-    rows = [item for item in data if isinstance(item, Mapping)]
-    if len(rows) != len(data):
-        raise AccessBridgeInputError("Coolify environment row invalid")
-    return rows
-
-
-def _configured_audiences(path: str | Path) -> frozenset[str]:
-    values: set[str] = set()
-    found = False
-    for row in _coolify_rows(path):
-        if row.get("key") != "KMFA_CLOUDFLARE_ACCESS_AUD":
-            continue
-        found = True
-        value = row.get("value")
-        if not isinstance(value, str) or not value.strip():
-            raise AccessBridgeInputError("Cloudflare Access audience unavailable")
-        candidates = tuple(part.strip() for part in value.split(","))
-        if not candidates or any(_AUD_RE.fullmatch(candidate) is None for candidate in candidates):
-            raise AccessBridgeInputError("Cloudflare Access audience malformed")
-        values.update(candidates)
-    if not found or not values:
-        raise AccessBridgeInputError("Cloudflare Access audience unavailable")
-    return frozenset(values)
-
-
 def _parse_public_domain(value: object) -> tuple[str, str]:
     """Return an HTTPS origin plus exact configured Access path.
 
@@ -339,13 +310,16 @@ def _access_application_list(path: str | Path) -> list[object]:
     return result
 
 
-def _configured_target_candidates(
-    audiences: frozenset[str],
-    applications: list[object],
-) -> tuple[list[Mapping[str, Any]], list[dict[str, str]]]:
-    """Return configured app candidates and the subset safe for the fixed probe."""
+def _kmfa_ops_target_candidates(applications: list[object]) -> list[dict[str, str]]:
+    """Return exact-host, narrow-ops candidates for the fixed KMFA controls.
 
-    configured_apps: list[Mapping[str, Any]] = []
+    Coolify can redact environment values in its configuration API.  The
+    Cloudflare application itself is the routing authority for the bridge, so
+    target selection binds to the one public KMFA origin and the narrow /ops
+    route.  The protected endpoint then remains the authoritative runtime
+    acceptance check for its configured Access audience.
+    """
+
     matches: list[dict[str, str]] = []
     for app in applications:
         if not isinstance(app, Mapping) or app.get("type") != "self_hosted":
@@ -356,29 +330,24 @@ def _configured_target_candidates(
             not isinstance(app_id, str)
             or _UUID_RE.fullmatch(app_id.lower()) is None
             or not isinstance(audience, str)
-            or audience not in audiences
+            or _AUD_RE.fullmatch(audience) is None
         ):
             continue
-        configured_apps.append(app)
         origin = _narrow_app_origin(app)
-        if origin is None:
+        if origin != KMFA_DAILY_FUNDS_ACCESS_ORIGIN:
             continue
         matches.append({"app_id": app_id.lower(), "origin": origin})
-    return configured_apps, matches
+    return matches
 
 
-def diagnose_bridge_target(coolify_env_path: str | Path, access_apps_path: str | Path) -> str:
+def diagnose_bridge_target(access_apps_path: str | Path) -> str:
     """Classify target resolution without revealing provider values.
 
-    The bridge's temporary inputs contain Access application IDs, audiences and
-    domains.  Deployment diagnostics must identify the failed invariant while
-    keeping each of those values confined to the runner's mode-0600 files.
+    The bridge's temporary input contains Access application IDs, audiences and
+    domains.  Deployment diagnostics identify the failed invariant while each
+    provider value stays confined to the runner's mode-0600 file.
     """
 
-    try:
-        audiences = _configured_audiences(coolify_env_path)
-    except AccessBridgeInputError:
-        return "COOLIFY_AUDIENCE_INVALID"
     try:
         applications = _access_application_list(access_apps_path)
     except AccessBridgeInputError as exc:
@@ -386,22 +355,19 @@ def diagnose_bridge_target(coolify_env_path: str | Path, access_apps_path: str |
             return "ACCESS_APP_LIST_INCOMPLETE"
         return "ACCESS_APP_RESPONSE_INVALID"
 
-    configured_apps, matches = _configured_target_candidates(audiences, applications)
+    matches = _kmfa_ops_target_candidates(applications)
     if len(matches) == 1:
         return "RESOLVED"
     if len(matches) > 1:
-        return "ACCESS_TARGET_AMBIGUOUS"
-    if configured_apps:
-        return "ACCESS_TARGET_SCOPE_INVALID"
-    return "CONFIGURED_AUDIENCE_NOT_FOUND"
+        return "KMFA_OPS_TARGET_AMBIGUOUS"
+    return "KMFA_OPS_TARGET_UNAVAILABLE"
 
 
-def resolve_bridge_target(coolify_env_path: str | Path, access_apps_path: str | Path) -> dict[str, str]:
-    """Resolve exactly one configured, narrow self-hosted Access application."""
+def resolve_bridge_target(access_apps_path: str | Path) -> dict[str, str]:
+    """Resolve exactly one exact-host, narrow self-hosted Access application."""
 
-    audiences = _configured_audiences(coolify_env_path)
     applications = _access_application_list(access_apps_path)
-    _, matches = _configured_target_candidates(audiences, applications)
+    matches = _kmfa_ops_target_candidates(applications)
     if len(matches) != 1:
         raise AccessBridgeInputError("Access history-probe application ambiguous")
     return matches[0]
