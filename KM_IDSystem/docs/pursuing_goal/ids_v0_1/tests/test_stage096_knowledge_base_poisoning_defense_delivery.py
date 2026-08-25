@@ -402,6 +402,13 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P4",
             "IDS-STAGE099-REVIEW-GATE",
         )
+
+        stage099_review_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-REVIEW",
+            "IDS-V0_1-STAGE099-REVIEW",
+            "IDS-STAGE100-P1-GATE",
+        )
         legal_history = (
             (
                 "IDS-STAGE096",
@@ -432,6 +439,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             stage099_phase2_current,
             stage099_phase3_current,
             stage099_phase4_current,
+            stage099_review_current,
             stage097_phase1_current,
             stage097_phase2_current,
             stage097_phase3_current,
@@ -477,6 +485,7 @@ class Stage096KnowledgeBasePoisoningDefensePhase4Tests(unittest.TestCase):
             stage099_phase2_current,
             stage099_phase3_current,
             stage099_phase4_current,
+            stage099_review_current,
             stage097_phase1_current,
             stage097_review_current,
             stage098_phase1_current,

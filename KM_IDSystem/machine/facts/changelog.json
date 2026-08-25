@@ -1,5 +1,10 @@
 [
   {
+    "version": "v0.1-stage099-review-local",
+    "date": "2026-08-25",
+    "summary": "完成 Stage099 内部依据与外部增强分离的纯内存机械 Review：复审 P1 的 8/4/3/15/4、P2 的 6×19/4/35/210、P3 的 6×28=168/5/6/15 与 P4 的 6/6/6/6/6/2、14/12/11/11/12/12、384/4/16 固定控制形状，保持单一权威、来源类型分离、提示注入防护、高风险输出业务线白箱处理和 P4 回退。P1--Review 聚焦 47/47、Stage088--Stage099 Review 精确白箱链 602/602；当前态路线、前序保留和上传锁定投影全部通过，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。运行计数均为 0、运行标志均为 false；本次 Review 未进行 GitHub 上传或推送，下一步仅可在新的独立 run 进入 IDS-STAGE100-P1-GATE。"
+  },
+  {
     "version": "v0.1-stage099-p4-local",
     "date": "2026-08-25",
     "summary": "完成 Stage099 内部依据与外部增强分离 P4 纯内存交付证据、输出权限边界、prompt 回滚和模型配置回退说明：承接 P3 的 6 条、每条 28 字段、共 168 个场景检查点，派生回答样例、负向结果、prompt/version 记录、可复现日志和输出权限边界各 6 条，以及两条回退说明，字段形状为 14/12/11/11/12/12，共 384 个交付字段检查点、16 类失败关闭与 4 条中文反馈。检索文档保持 evidence 身份且 IDS 规则保持优先级；internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持底层来源类型，external_augmentation_opinion 保持展示标签；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理，最终结论保持未发布。P4 聚焦 10/10、P1--P4 聚焦 38/38、Stage088--Stage099 P4 精确白箱链 593/593，当前态路线、前序保留和上传锁定投影全部通过，Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED，机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查通过。运行计数均为 0、运行标志均为 false；远端保留既有 P3 恢复检查点，下一步仅可在新的独立 run 进入 IDS-STAGE099-REVIEW-GATE。"

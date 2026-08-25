@@ -390,6 +390,13 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
             "IDS-V0_1-STAGE099-P4",
             "IDS-STAGE099-REVIEW-GATE",
         )
+
+        stage099_review_current = (
+            "IDS-STAGE099",
+            "IDS-STAGE099-REVIEW",
+            "IDS-V0_1-STAGE099-REVIEW",
+            "IDS-STAGE100-P1-GATE",
+        )
         self.assertIn(
             current,
             (
@@ -399,6 +406,7 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
                 stage099_phase2_current,
                 stage099_phase3_current,
                 stage099_phase4_current,
+                stage099_review_current,
             ),
         )
         expected = {
@@ -432,6 +440,11 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
                 "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
                 "整阶段已复审",
             ),
+            stage099_review_current: (
+                "IDS-V0_1-STAGE099-REVIEW",
+                "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_REVIEW_RUNTIME_DISABLED",
+                "整阶段已复审",
+            ),
         }[current]
         self.assertEqual(expected[0], plan["task"])
         self.assertEqual(expected[1], status["evidence_status"])
@@ -462,6 +475,7 @@ class Stage098PromptVersioningPhase4DeliveryTests(unittest.TestCase):
             stage099_phase2_current,
             stage099_phase3_current,
             stage099_phase4_current,
+            stage099_review_current,
         ):
             self.assertTrue(REVIEW_RECEIPT.is_file())
             review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))

@@ -404,6 +404,7 @@ class Stage093EvidenceGradePhase3Tests(unittest.TestCase):
                 ("IDS-STAGE099", "IDS-STAGE099-P2", "IDS-V0_1-STAGE099-P2"),
                 ("IDS-STAGE099", "IDS-STAGE099-P3", "IDS-V0_1-STAGE099-P3"),
                 ("IDS-STAGE099", "IDS-STAGE099-P4", "IDS-V0_1-STAGE099-P4"),
+                ("IDS-STAGE099", "IDS-STAGE099-REVIEW", "IDS-V0_1-STAGE099-REVIEW"),
             ),
         )
         self.assertIn(
@@ -439,6 +440,7 @@ class Stage093EvidenceGradePhase3Tests(unittest.TestCase):
                 "IDS-STAGE099-P3-GATE",
                 "IDS-STAGE099-P4-GATE",
                 "IDS-STAGE099-REVIEW-GATE",
+                "IDS-STAGE100-P1-GATE",
             ),
         )
         self.assertEqual(status["task"], plan["task"])

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE099",
-  "phase": "IDS-STAGE099-P4",
-  "task": "IDS-V0_1-STAGE099-P4",
-  "real_progress": "Stage099 P4 已从六条 P3 reference-only 控制场景派生回答样例、负向测试结果、prompt/version 记录、可复现日志和输出权限边界各六条，以及两条回滚与模型配置回退说明，共三百八十四个交付字段检查点。",
-  "report_grade": "冻结 Stage099 任务包、Stage099 P1/P2/P3 控制工件与已复审 Stage098 Prompt 版本化控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "检索文档保持 evidence 身份，文档内提示词不能覆盖 IDS 规则；无内部依据保持 evidence_gap 与独立来源类型。高风险工程建议、合同承诺与生产写回进入业务线白箱人工处理，最终结论保持未发布；prompt 回滚和模型配置回退保持未来白箱前置。",
-  "evidence_status": "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE099-REVIEW",
+  "task": "IDS-V0_1-STAGE099-REVIEW",
+  "real_progress": "Stage099 已在纯内存中机械复审 P1--P4 的内部依据与外部增强分离控制工件：P1 8/4/3/15/4、P2 6×19/4/35/210、P3 6×28=168/5/6/15 与 P4 6/6/6/6/6/2、14/12/11/11/12/12、384/4/16。",
+  "report_grade": "冻结 Stage099 任务包、Stage099 P1--P4 控制工件与已复审 Stage098 Prompt 版本化控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "检索文档保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 evidence_gap，外部增强展示保持底层来源类型分离。高风险工程建议、合同承诺与生产写回保持业务线白箱人工处理，人工确认未记录，最终结论未发布；P4→P3 回退保持未来白箱前置。",
+  "evidence_status": "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_REVIEW_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE099-REVIEW-GATE",
+  "next_gate": "IDS-STAGE100-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

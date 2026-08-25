@@ -60,6 +60,7 @@ PREDECESSOR_CONTRACT = (
 )
 PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage098-review-local.json"
 RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage099-p4-local.json"
+REVIEW_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage099-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -439,7 +440,7 @@ class Stage099InternalEvidenceExternalAugmentationPhase4Tests(unittest.TestCase)
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         roadmap_text = ROADMAP.read_text(encoding="utf-8")
         self.assertIn("stage099_phase3_state:", roadmap_text)
-        if current in (phase4_current, review_current):
+        if current == phase4_current:
             self.assertEqual(
                 "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
                 status["evidence_status"],
@@ -474,6 +475,44 @@ class Stage099InternalEvidenceExternalAugmentationPhase4Tests(unittest.TestCase)
                 "stage099_phase4_state:",
                 'current_phase_id: "IDS-STAGE099-P4"',
                 'next_gate_id: "IDS-STAGE099-REVIEW-GATE"',
+            ):
+                with self.subTest(phrase=phrase):
+                    self.assertIn(phrase, roadmap_text)
+        elif current == review_current:
+            self.assertEqual(
+                "STAGE099_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_REVIEW_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-099"])
+            for acceptance_id in (
+                "ACC-STAGE099-P4-01",
+                "ACC-STAGE099-P4-02",
+                "ACC-STAGE099-P4-03",
+            ):
+                with self.subTest(acceptance_id=acceptance_id):
+                    self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE099-P4-04"])
+            self.assertIn("EVT-IDS-V0_1-STAGE099-P4-20260825-001", event_ids)
+            self.assertIn("EVT-IDS-V0_1-STAGE099-REVIEW-20260825-001", event_ids)
+            self.assertTrue(RECEIPT.is_file())
+            self.assertTrue(REVIEW_RECEIPT.is_file())
+            receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual("IDS-STAGE100-P1-GATE", receipt["next_gate"])
+            self.assertEqual(
+                "PASS_REVIEWED_INTERNAL_EVIDENCE_EXTERNAL_AUGMENTATION_RUNTIME_DISABLED",
+                receipt["result"],
+            )
+            self.assertTrue(
+                all(value == 0 for value in receipt["runtime_counts"].values())
+            )
+            self.assertTrue(
+                all(value is False for value in receipt["runtime_flags"].values())
+            )
+            for phrase in (
+                "stage099_phase4_state:",
+                "stage099_review_state:",
+                'current_phase_id: "IDS-STAGE099-REVIEW"',
+                'next_gate_id: "IDS-STAGE100-P1-GATE"',
             ):
                 with self.subTest(phrase=phrase):
                     self.assertIn(phrase, roadmap_text)
