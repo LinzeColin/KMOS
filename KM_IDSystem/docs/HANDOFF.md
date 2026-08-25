@@ -1,5 +1,13 @@
 # IDS / Industrial Data System Handoff
 
+## Recovery Checkpoint - Stage104 P4 in progress and unaccepted - 2026-08-26
+
+- 用户在暂停前明确要求推送一次 GitHub 恢复检查点。本检查点仅保全现有唯一开发分支 `codex/kmids-stage071-p1` 中的 P4 在制工件；它不改变 `main`、release、OVH、生产、模型、Agent 或任何业务资料状态。
+- P4 当前只包含范围说明、纯内存交付模块、静态合同、聚焦用例和全零运行回执草案。它尚未完成治理路线、机器事实、历史白箱链、批次复核、中文视图、事件或最终验收，因此不构成 P4 完成态。
+- 当前唯一治理事实保持下方 `Stage104 P3 accepted locally`：`IDS-STAGE104 / IDS-STAGE104-P3 / IDS-V0_1-STAGE104-P3 / IDS-STAGE104-P4-GATE`。恢复后必须从该门禁继续 P4，不得把本检查点解释为 P4 或 Stage104 Review 已启动。
+- 当前在制文件：`STAGE104_PHASE4_RAG_NEGATIVE_TEST_DELIVERY.md`、`stage104_rag_negative_testing_delivery.py`、对应合同与聚焦用例，以及 `2026-08-26-stage104-p4-local.json`。它们只表达冻结任务包的非业务、`reference-only` 控制结构，运行计数保持 `0`、运行标志保持 `false`。
+- 恢复动作：在同一 worktree 与分支上继续；先复核本检查点、P3 回执和冻结任务包，再完成 P4 治理与验收。若需回退，撤回本检查点的五个 P4 在制文件即可，P3 和此前检查点保持不变。
+
 ## Current Gate - Stage104 P3 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE104-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE104 / IDS-STAGE104-P3 / IDS-V0_1-STAGE104-P3 / IDS-STAGE104-P4-GATE`。P4 只可由新的独立 run 进入。
