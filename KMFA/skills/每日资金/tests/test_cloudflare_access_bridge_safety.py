@@ -961,6 +961,7 @@ def test_workflow_force_rebuild_uses_the_documented_deploy_route_only() -> None:
     assert 'app.get("name") != "kmfa-kmos-p1"' in step
     assert 'app.get("build_pack") != "dockercompose"' in step
     assert 'app.get("docker_compose_location") != "KMFA/deploy/coolify/docker-compose.yml"' in step
+    assert "COMPOSE_LOCATION_STATE_UNAVAILABLE" in step
     assert '"docker_compose_custom_start_command"' in step
     assert '"docker_compose_custom_build_command"' in step
     assert "COMPOSE_COMMAND_STATE_UNAVAILABLE" in step

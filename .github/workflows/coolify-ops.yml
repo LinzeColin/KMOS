@@ -2256,7 +2256,8 @@ jobs:
               fail("TARGET_INVALID")
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
               fail("TARGET_UNEXPECTED")
-          if app.get("docker_compose_location") != "KMFA/deploy/coolify/docker-compose.yml":
+          location_field = "docker_compose_location"
+          if location_field in app and app.get(location_field) != "KMFA/deploy/coolify/docker-compose.yml":
               fail("COMPOSE_LOCATION_UNEXPECTED")
           command_fields = (
               "docker_compose_custom_start_command",
@@ -2266,7 +2267,10 @@ jobs:
               fail("COMPOSE_COMMAND_CONFIGURED")
           target = Path(sys.argv[2])
           with target.open("w", encoding="utf-8") as handle:
-              json.dump({"requires_collection": any(field not in app for field in command_fields)}, handle)
+              json.dump(
+                  {"requires_collection": location_field not in app or any(field not in app for field in command_fields)},
+                  handle,
+              )
           target.chmod(0o600)
           print("daily_funds_force_rebuild_target=VERIFIED")
           PY
@@ -2301,6 +2305,10 @@ jobs:
           app = matches[0]
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
               fail("APPLICATION_COLLECTION_TARGET_UNEXPECTED")
+          if "docker_compose_location" not in app:
+              fail("COMPOSE_LOCATION_STATE_UNAVAILABLE")
+          if app.get("docker_compose_location") != "KMFA/deploy/coolify/docker-compose.yml":
+              fail("COMPOSE_LOCATION_UNEXPECTED")
           command_fields = (
               "docker_compose_custom_start_command",
               "docker_compose_custom_build_command",
