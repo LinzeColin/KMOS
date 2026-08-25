@@ -1,5 +1,13 @@
 # IDS / Industrial Data System Handoff
 
+## Current Implementation Checkpoint - Stage103 P4 delivery work in progress - 2026-08-25
+
+- 唯一开发位置保持为 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1` 的既有分支 `codex/kmids-stage071-p1`；未创建 worktree、分支或 PR。主树不写入。
+- Stage103 P3 仍是唯一已本地验收的当前治理门禁。P4 尚未标记完成：本检查点仅保存其纯内存受控交付模块、静态合同、范围说明、聚焦测试，以及让既有前序用例识别 P4 后继状态的兼容性调整。
+- 已确认 P4 当前开发工件与显式 Stage101--Stage103 前序链 `65/65` 通过，`git diff --check` 通过。验证没有访问受保护资料、真实文档、查询、检索、Prompt、模型、Agent、OVH、生产或业务系统；模型 Token 与 Agent 执行保持 `0`。
+- 该检查点恢复后必须继续完成 P4 的机器回执、事件、机器事实、路线、中文视图和 Stage005／Batch 白箱治理验收，才可切换当前门禁到 `IDS-STAGE103-P4-GATE`。Stage103 Review、Stage104、正式全局上传、`main`、release、OVH 与生产均不在本检查点范围。
+- 回退本检查点只撤回未完成的 P4 工件及兼容性调整，回到下方已验收的 P3 门禁；P3、Stage102 Review、冻结任务包和既有恢复检查点保持原状。
+
 ## Canonical Repository Override - 2026-07-18
 
 - Canonical GitHub repository is `LinzeColin/KMOS`; KMIDS is stored in `KM_IDSystem/`.

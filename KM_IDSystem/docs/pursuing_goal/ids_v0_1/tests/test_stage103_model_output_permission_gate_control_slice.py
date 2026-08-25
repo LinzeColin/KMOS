@@ -486,6 +486,12 @@ class Stage103ModelOutputPermissionGatePhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE103-P3",
             "IDS-STAGE103-P4-GATE",
         )
+        phase4_current = (
+            "IDS-STAGE103",
+            "IDS-STAGE103-P4",
+            "IDS-V0_1-STAGE103-P4",
+            "IDS-STAGE103-REVIEW-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -513,6 +519,7 @@ class Stage103ModelOutputPermissionGatePhase2Tests(unittest.TestCase):
         elif current == phase3_current:
             self.assertTrue(is_current_projection)
         else:
+            self.assertEqual(phase4_current, current)
             self.assertTrue(is_current_projection)
 
         event_ids = {

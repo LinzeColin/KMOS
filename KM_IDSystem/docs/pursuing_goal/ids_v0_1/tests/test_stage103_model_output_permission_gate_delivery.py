@@ -11,45 +11,45 @@ from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE102_PHASE4_DOCUMENT_PROMPT_INJECTION_DEFENSE_DELIVERY.md"
+SCOPE = BASE / "STAGE103_PHASE4_MODEL_OUTPUT_PERMISSION_GATE_DELIVERY.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage102_document_prompt_injection_defense_delivery_contract.json"
+    / "stage103_model_output_permission_gate_delivery_contract.json"
 )
 MODULE = (
     BASE
     / "index_version_schema"
-    / "stage102_document_prompt_injection_defense_delivery.py"
+    / "stage103_model_output_permission_gate_delivery.py"
 )
-P3_SCOPE = BASE / "STAGE102_PHASE3_DOCUMENT_PROMPT_INJECTION_DEFENSE_SCENARIOS.md"
+P3_SCOPE = BASE / "STAGE103_PHASE3_MODEL_OUTPUT_PERMISSION_GATE_SCENARIOS.md"
 P3_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage102_document_prompt_injection_defense_controlled_scenarios_contract.json"
+    / "stage103_model_output_permission_gate_controlled_scenarios_contract.json"
 )
 P3_MODULE = (
     BASE
     / "index_version_schema"
-    / "stage102_document_prompt_injection_defense_controlled_scenarios.py"
+    / "stage103_model_output_permission_gate_controlled_scenarios.py"
 )
-P3_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage102-p3-local.json"
+P3_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage103-p3-local.json"
 TASKPACK = (
     ROOT
     / "docs"
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-102_文档内提示注入防护.md"
+    / "STAGE-103_模型输出权限门禁.md"
 )
-PREDECESSOR_REVIEW = BASE / "STAGE101_STAGE_REVIEW.md"
+PREDECESSOR_REVIEW = BASE / "STAGE102_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage101_rag_reproducibility_stage_review_contract.json"
+    / "stage102_document_prompt_injection_defense_stage_review_contract.json"
 )
-PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage101-review-local.json"
-RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage102-p4-local.json"
+PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage102-review-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-25-stage103-p4-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -66,18 +66,18 @@ def _load_module(path: Path, name: str):
     return module
 
 
-class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
+class Stage103ModelOutputPermissionGatePhase4Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.module = _load_module(
-            MODULE, "stage102_document_prompt_injection_defense_delivery"
+            MODULE, "stage103_model_output_permission_gate_delivery"
         )
         cls.phase3 = _load_module(
-            P3_MODULE, "stage102_document_prompt_injection_defense_phase3_for_delivery"
+            P3_MODULE, "stage103_model_output_permission_gate_phase3_for_delivery"
         )
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        cls.phase3_report = cls.phase3.build_document_prompt_injection_defense_phase3_report()
-        cls.report = cls.module.build_document_prompt_injection_defense_phase4_delivery_report()
+        cls.phase3_report = cls.phase3.build_model_output_permission_gate_phase3_report()
+        cls.report = cls.module.build_model_output_permission_gate_phase4_delivery_report()
 
     def test_required_scope_contract_modules_and_predecessors_exist(self):
         for artifact in (
@@ -99,15 +99,15 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
     def test_identity_single_authority_predecessor_and_phase_boundary_are_exact(self):
         contract = self.contract
         self.assertEqual(
-            "ids.stage102.document_prompt_injection_defense.phase4.delivery.v1",
+            "ids.stage103.model_output_permission_gate.phase4.delivery.v1",
             contract["schema_version"],
         )
-        self.assertEqual("STAGE-102", contract["stage"])
-        self.assertEqual("IDS-STAGE102-P4", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE102-P4", contract["task_id"])
-        self.assertEqual("ACC-STAGE-102", contract["acceptance_id"])
-        self.assertEqual("IDS-STAGE102-P4-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE102-REVIEW-GATE", contract["next_gate"])
+        self.assertEqual("STAGE-103", contract["stage"])
+        self.assertEqual("IDS-STAGE103-P4", contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE103-P4", contract["task_id"])
+        self.assertEqual("ACC-STAGE-103", contract["acceptance_id"])
+        self.assertEqual("IDS-STAGE103-P4-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE103-REVIEW-GATE", contract["next_gate"])
         source = contract["source_authority"]
         self.assertTrue(source["source_document_remains_authoritative"])
         self.assertTrue(source["business_line_whitebox_human_review_remains_authoritative"])
@@ -118,19 +118,22 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             if field.endswith("_performed") or field.endswith("_allowed"):
                 with self.subTest(field=field):
                     self.assertFalse(value)
+
         predecessor = contract["phase3_controlled_scenario_replay_contract"]
         self.assertEqual(self.module.P3_SCHEMA_VERSION, predecessor["predecessor_schema_version_required"])
+        self.assertEqual(self.module.P3_RECORD_KIND, predecessor["predecessor_record_kind_required"])
         self.assertEqual(self.module.P3_PASS_RESULT, predecessor["predecessor_pass_result_required"])
-        self.assertEqual(7, predecessor["scenario_count"])
+        self.assertEqual(5, predecessor["scenario_count"])
         self.assertEqual(34, predecessor["scenario_field_count"])
-        self.assertEqual(238, predecessor["scenario_field_check_count"])
+        self.assertEqual(170, predecessor["scenario_field_check_count"])
         self.assertEqual(8, predecessor["reproducibility_tuple_field_count"])
         self.assertFalse(predecessor["actual_phase3_runtime_execution_allowed"])
+
         boundary = contract["stage_boundary"]
         for field in (
-            "stage101_review_evidence_declared",
-            "stage102_started",
-            "stage102_entry_authorized",
+            "stage102_review_evidence_declared",
+            "stage103_started",
+            "stage103_entry_authorized",
             "phase1_completed",
             "phase2_completed",
             "phase3_completed",
@@ -140,28 +143,28 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertTrue(boundary[field])
         for field in (
-            "stage102_review_started",
-            "stage103_started",
+            "stage103_review_started",
+            "stage104_started",
             "github_upload_allowed",
             "push_allowed",
         ):
             with self.subTest(field=field):
                 self.assertFalse(boundary[field])
 
-    def test_delivery_shapes_and_document_prompt_reproducibility_tuple_are_preserved(self):
+    def test_delivery_shapes_and_reproducibility_tuple_are_preserved(self):
         report = self.report
         self.assertTrue(report["valid"])
         self.assertEqual(self.module.PASS_RESULT, report["result"])
         self.assertIsNone(report["failure_state"])
-        self.assertEqual("IDS-STAGE102-P4-GATE", report["current_gate"])
-        self.assertEqual("IDS-STAGE102-REVIEW-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE103-P4-GATE", report["current_gate"])
+        self.assertEqual("IDS-STAGE103-REVIEW-GATE", report["next_gate"])
         self.assertTrue(report["phase3_controlled_scenarios_replayed_in_memory_only"])
         self.assertTrue(report["phase3_side_effect_free"])
         self.assertTrue(report["delivery_evidence_metadata_only"])
         self.assertTrue(report["control_references_opaque"])
-        self.assertEqual(528, report["delivery_field_check_count"])
+        self.assertEqual(384, report["delivery_field_check_count"])
         for group_name, fields in self.module.DELIVERY_GROUPS:
-            expected_count = 2 if group_name == "rollback_and_fallback_control_records" else 7
+            expected_count = 2 if group_name == "rollback_and_fallback_control_records" else 5
             records = report[group_name]
             with self.subTest(group=group_name):
                 self.assertEqual(expected_count, len(records))
@@ -176,17 +179,17 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
                             "instruction_id",
                         }:
                             self.assertTrue(
-                                value.startswith(":control:stage102-p2:")
-                                or value.startswith(":control:stage102-p4:")
+                                value.startswith(":control:stage103-p2:")
+                                or value.startswith(":control:stage103-p4:")
                             )
         for record in report["answer_sample_control_records"] + report[
             "reproducible_log_control_records"
         ]:
             with self.subTest(record=record):
                 for field in self.module.REPRODUCIBILITY_TUPLE_FIELDS:
-                    self.assertTrue(record[field].startswith(":control:stage102-p2:"))
+                    self.assertTrue(record[field].startswith(":control:stage103-p2:"))
 
-    def test_negative_semantics_output_permissions_and_candidate_separation(self):
+    def test_negative_semantics_output_permissions_and_evidence_gap_are_preserved(self):
         negative = {
             item["scenario_id"]: item
             for item in self.report["negative_test_result_control_records"]
@@ -210,7 +213,7 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
         gap = answers[
             "evidence_gap_cannot_masquerade_as_internal_experience_control"
         ]
-        self.assertTrue(gap["evidence_gap_ref"].startswith(":control:stage102-p2:"))
+        self.assertTrue(gap["evidence_gap_ref"].startswith(":control:stage103-p2:"))
         self.assertEqual(
             "CONTROL_FINAL_CONCLUSION_NOT_PUBLISHED", gap["final_conclusion_state"]
         )
@@ -258,18 +261,18 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
                 self.assertFalse(record["persistent_state_write_performed"])
 
     def test_invalid_or_tampered_phase3_output_fails_closed(self):
-        invalid = self.module.build_document_prompt_injection_defense_phase4_delivery_report(
+        invalid = self.module.build_model_output_permission_gate_phase4_delivery_report(
             lambda: {}
         )
         self.assertFalse(invalid["valid"])
         self.assertEqual("PHASE3_CONTROL_OUTPUT_INVALID", invalid["failure_state"])
-        self.assertEqual("IDS-STAGE102-P4-GATE", invalid["next_gate"])
+        self.assertEqual("IDS-STAGE103-P4-GATE", invalid["next_gate"])
         self.assertEqual([], invalid["answer_sample_control_records"])
 
         def replay_with(mutator):
             result = copy.deepcopy(self.phase3_report)
             mutator(result)
-            return self.module.build_document_prompt_injection_defense_phase4_delivery_report(
+            return self.module.build_model_output_permission_gate_phase4_delivery_report(
                 lambda: result
             )
 
@@ -279,16 +282,17 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             )
         )
         self.assertEqual(
-            "DOCUMENT_PROMPT_INJECTION_PROTECTION_MISSING", injection["failure_state"]
+            "DOCUMENT_INSTRUCTION_PRECEDENCE_PROTECTION_MISSING",
+            injection["failure_state"],
         )
         gap = replay_with(
             lambda result: result["scenario_results"][1].update(
-                {"internal_evidence_ref": ":control:stage102-p2:misclassified:reference-only"}
+                {"internal_evidence_ref": ":control:stage103-p2:misclassified:reference-only"}
             )
         )
-        self.assertEqual("EVIDENCE_GAP_SOURCE_TYPE_SEPARATION_MISSING", gap["failure_state"])
+        self.assertEqual("EVIDENCE_GAP_SEMANTICS_MISSING", gap["failure_state"])
         high_risk_index = self.module.P3_SCENARIO_IDS.index(
-            "tool_or_external_action_remains_unapproved_control"
+            "high_risk_engineering_advice_requires_whitebox_confirmation_control"
         )
         high_risk = replay_with(
             lambda result: result["scenario_results"][high_risk_index].update(
@@ -315,7 +319,11 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
                     all(value is False for value in report["runtime_boundary"].values())
                 )
                 self.assertTrue(
-                    all(value == 0 for key, value in report.items() if key.startswith("actual_"))
+                    all(
+                        value == 0
+                        for key, value in report.items()
+                        if key.startswith("actual_") and key.endswith("_count")
+                    )
                 )
 
     def test_runtime_authority_and_protected_surfaces_remain_closed(self):
@@ -328,7 +336,11 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
         for field, value in self.report["runtime_boundary"].items():
             with self.subTest(field=field):
                 self.assertFalse(value)
-        for section in ("runtime_boundary", "protected_surface_boundary"):
+        for section in (
+            "runtime_boundary",
+            "protected_surface_boundary",
+            "future_runtime_prerequisite_contract",
+        ):
             for field, value in self.contract[section].items():
                 with self.subTest(section=section, field=field):
                     self.assertFalse(value)
@@ -355,7 +367,7 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             "模型输出权限边界",
             "业务线白箱人工确认",
             "模型 Token",
-            "IDS-STAGE102-REVIEW-GATE",
+            "IDS-STAGE103-REVIEW-GATE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
@@ -364,55 +376,13 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        phase1_current = (
-            "IDS-STAGE102",
-            "IDS-STAGE102-P1",
-            "IDS-V0_1-STAGE102-P1",
-            "IDS-STAGE102-P2-GATE",
-        )
-        phase2_current = (
-            "IDS-STAGE102",
-            "IDS-STAGE102-P2",
-            "IDS-V0_1-STAGE102-P2",
-            "IDS-STAGE102-P3-GATE",
-        )
         phase3_current = (
-            "IDS-STAGE102",
-            "IDS-STAGE102-P3",
-            "IDS-V0_1-STAGE102-P3",
-            "IDS-STAGE102-P4-GATE",
-        )
-        phase4_current = (
-            "IDS-STAGE102",
-            "IDS-STAGE102-P4",
-            "IDS-V0_1-STAGE102-P4",
-            "IDS-STAGE102-REVIEW-GATE",
-        )
-        review_current = (
-            "IDS-STAGE102",
-            "IDS-STAGE102-REVIEW",
-            "IDS-V0_1-STAGE102-REVIEW",
-            "IDS-STAGE103-P1-GATE",
-        )
-        stage103_phase1_current = (
-            "IDS-STAGE103",
-            "IDS-STAGE103-P1",
-            "IDS-V0_1-STAGE103-P1",
-            "IDS-STAGE103-P2-GATE",
-        )
-        stage103_phase2_current = (
-            "IDS-STAGE103",
-            "IDS-STAGE103-P2",
-            "IDS-V0_1-STAGE103-P2",
-            "IDS-STAGE103-P3-GATE",
-        )
-        stage103_phase3_current = (
             "IDS-STAGE103",
             "IDS-STAGE103-P3",
             "IDS-V0_1-STAGE103-P3",
             "IDS-STAGE103-P4-GATE",
         )
-        stage103_phase4_current = (
+        phase4_current = (
             "IDS-STAGE103",
             "IDS-STAGE103-P4",
             "IDS-V0_1-STAGE103-P4",
@@ -421,7 +391,7 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
-            {phase1_current, phase2_current, phase3_current},
+            {phase3_current},
             status,
             plan,
             ROADMAP,
@@ -432,57 +402,27 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
             self.assertTrue(RECEIPT.is_file())
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
             self.assertEqual(self.module.PASS_RESULT, receipt["result"])
-            self.assertEqual("IDS-STAGE102-REVIEW-GATE", receipt["next_gate"])
+            self.assertEqual("IDS-STAGE103-REVIEW-GATE", receipt["next_gate"])
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("P1/P2/P3/P4 控制工件已完成", acceptance_by_id["ACC-STAGE-102"])
+            self.assertEqual("P1/P2/P3/P4 控制工件已完成", acceptance_by_id["ACC-STAGE-103"])
             for acceptance_id in (
-                "ACC-STAGE102-P4-01",
-                "ACC-STAGE102-P4-02",
-                "ACC-STAGE102-P4-03",
+                "ACC-STAGE103-P4-01",
+                "ACC-STAGE103-P4-02",
+                "ACC-STAGE103-P4-03",
             ):
                 with self.subTest(acceptance_id=acceptance_id):
                     self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE102-P4-04"])
+            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE103-P4-04"])
             event_ids = {
                 json.loads(line)["event_id"]
                 for line in EVENTS.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             }
-            self.assertIn("EVT-IDS-V0_1-STAGE102-P4-20260825-001", event_ids)
-        elif current in {
-            review_current,
-            stage103_phase1_current,
-            stage103_phase2_current,
-            stage103_phase3_current,
-            stage103_phase4_current,
-        }:
-            self.assertTrue(is_current_projection)
-            self.assertTrue(RECEIPT.is_file())
-            receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
-            self.assertEqual(self.module.PASS_RESULT, receipt["result"])
-            self.assertEqual("IDS-STAGE102-REVIEW-GATE", receipt["next_gate"])
-            self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
-            self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
-            acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-102"])
-            for acceptance_id in (
-                "ACC-STAGE102-P4-01",
-                "ACC-STAGE102-P4-02",
-                "ACC-STAGE102-P4-03",
-            ):
-                with self.subTest(acceptance_id=acceptance_id):
-                    self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-            self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE102-P4-04"])
-            event_ids = {
-                json.loads(line)["event_id"]
-                for line in EVENTS.read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            }
-            self.assertIn("EVT-IDS-V0_1-STAGE102-P4-20260825-001", event_ids)
+            self.assertIn("EVT-IDS-V0_1-STAGE103-P4-20260825-001", event_ids)
         else:
-            self.assertIn(current, {phase1_current, phase2_current, phase3_current})
+            self.assertEqual(phase3_current, current)
             self.assertFalse(is_current_projection)
 
 
