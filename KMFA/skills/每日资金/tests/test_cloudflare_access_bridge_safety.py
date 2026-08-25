@@ -822,10 +822,8 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "probe-get.json.headers" in step
     assert "probe-start-poll-state" in step
     assert "recovery-start-poll-state" in step
-    assert "CONTROL_MAX_TRANSIENT_POLL_FAILURES=6" in step
-    assert "transient_poll_failures" in step
+    assert "CONTROL_POLL_ATTEMPTS=300" in step
     assert "RETRY)" in step
-    assert "RECOVERY_POLL_UPSTREAM_UNAVAILABLE" in step
     assert "sleep 10" in step
     assert "reconcile_owned_resources()" in step
     assert "write-owned-resource-env" in step

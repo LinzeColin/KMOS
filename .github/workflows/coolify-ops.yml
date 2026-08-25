@@ -850,7 +850,6 @@ jobs:
               CONTROL_PATH=/ops/api/daily-funds/history-probe
               CONTROL_POLL_ATTEMPTS=15
               CONTROL_POLL_SECONDS=5
-              CONTROL_MAX_TRANSIENT_POLL_FAILURES=0
               ;;
             daily-funds-recovery-bridge)
               CONTROL_KIND=RECOVERY
@@ -858,11 +857,10 @@ jobs:
               CONTROL_PATH=/ops/api/daily-funds/recovery
               CONTROL_POLL_ATTEMPTS=300
               CONTROL_POLL_SECONDS=10
-              # The recovery worker lease lasts 55 minutes.  Once the fixed
-              # request has been accepted, six short upstream poll failures
-              # keep the status read resilient while preserving a one-minute
-              # bounded outage receipt.
-              CONTROL_MAX_TRANSIENT_POLL_FAILURES=6
+              # A recovery request and its status polling share this fixed
+              # 50-minute window.  Each transient upstream read consumes one
+              # regular poll attempt, preserving the worker's complete
+              # recovery interval and the 60-minute temporary service token.
               ;;
             *) echo "daily_funds_control_bridge=MODE_INVALID"; exit 1 ;;
           esac
@@ -1157,7 +1155,6 @@ jobs:
           fi
 
           probe_outcome=NOT_MET
-          transient_poll_failures=0
           for attempt in $(seq 1 "$CONTROL_POLL_ATTEMPTS"); do
             request_control GET "$bridge_dir/probe-get.json"
             summarize_control \
@@ -1178,16 +1175,9 @@ jobs:
                 break
                 ;;
               PENDING)
-                transient_poll_failures=0
                 if [ "$attempt" -lt "$CONTROL_POLL_ATTEMPTS" ]; then sleep "$CONTROL_POLL_SECONDS"; fi
                 ;;
               RETRY)
-                transient_poll_failures=$((transient_poll_failures + 1))
-                if [ "$CONTROL_MAX_TRANSIENT_POLL_FAILURES" -eq 0 ] \
-                  || [ "$transient_poll_failures" -ge "$CONTROL_MAX_TRANSIENT_POLL_FAILURES" ]; then
-                  probe_outcome=RECOVERY_POLL_UPSTREAM_UNAVAILABLE
-                  break
-                fi
                 if [ "$attempt" -lt "$CONTROL_POLL_ATTEMPTS" ]; then sleep "$CONTROL_POLL_SECONDS"; fi
                 ;;
               *)
