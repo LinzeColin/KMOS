@@ -2300,7 +2300,7 @@ jobs:
           print("daily_funds_force_rebuild_target=VERIFIED")
           PY
 
-          requires_collection="$(jq -er '.requires_collection' "$preflight_file" 2>/dev/null)" \
+          requires_collection="$(jq -r '.requires_collection' "$preflight_file" 2>/dev/null)" \
             || { echo "daily_funds_force_rebuild=CONTROL_RESPONSE_INVALID"; exit 1; }
           case "$requires_collection" in
             true)

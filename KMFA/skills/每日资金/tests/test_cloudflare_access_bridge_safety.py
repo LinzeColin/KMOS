@@ -965,6 +965,8 @@ def test_workflow_force_rebuild_uses_the_documented_deploy_route_only() -> None:
     assert 'location_fields = ("base_directory", "docker_compose_location")' in step
     assert '("KMFA", "deploy/coolify/docker-compose.yml")' in step
     assert "expected_compose_location" in step
+    assert "jq -r '.requires_collection'" in step
+    assert "jq -er '.requires_collection'" not in step
     assert '"docker_compose_custom_start_command"' in step
     assert '"docker_compose_custom_build_command"' in step
     assert "COMPOSE_COMMAND_STATE_UNAVAILABLE" in step
