@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-recovery-force-rebuild, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
-        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart 必填；先用 list 查）"
+        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-recovery-force-rebuild 必填；先用 list 查）"
         required: false
         type: string
       command:
@@ -2196,3 +2196,196 @@ jobs:
             "$BASE/api/v1/services/$service_uuid/applications/$component_uuid/restart" 2>/dev/null || true)"
           test "$status" = "200" || test "$status" = "202" || { echo "daily_funds_component_restart=NOT_ACCEPTED"; exit 1; }
           echo "daily_funds_component_restart=REQUESTED"
+
+      # Coolify documents force=true as a no-cache rebuild. Normal Compose
+      # deployment preserves named volumes, and this path rebuilds the services
+      # with build blocks while the skills image remains a static image source.
+      # It never writes custom Compose commands, so platform configuration stays
+      # free of command payloads.
+      - name: 受控强制重建每日资金恢复目标
+        if: inputs.mode == 'daily-funds-recovery-force-rebuild'
+        run: |
+          set -euo pipefail
+          app_file="$RUNNER_TEMP/daily-funds-force-rebuild-app.json"
+          active_file="$RUNNER_TEMP/daily-funds-force-rebuild-active.json"
+          deploy_file="$RUNNER_TEMP/daily-funds-force-rebuild-deploy.json"
+          deployment_target_file="$RUNNER_TEMP/daily-funds-force-rebuild-deployment-target.json"
+          deployment_status_file="$RUNNER_TEMP/daily-funds-force-rebuild-status.json"
+          health_file="$RUNNER_TEMP/daily-funds-force-rebuild-health.json"
+          trap 'rm -f "$app_file" "$active_file" "$deploy_file" "$deployment_target_file" "$deployment_status_file" "$health_file"' EXIT
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_force_rebuild=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "daily_funds_force_rebuild=APP_REQUIRED"; exit 1; }
+          case "$APP" in *[!A-Za-z0-9_-]*) echo "daily_funds_force_rebuild=APP_INVALID"; exit 1 ;; esac
+          test -n "${BASE:-}" || { echo "daily_funds_force_rebuild=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "daily_funds_force_rebuild=CONFIG_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+
+          fetch_json() {
+            local target="$1"
+            local endpoint="$2"
+            local code
+            code="$(curl -sS -o "$target" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$endpoint" 2>/dev/null || true)"
+            test "$code" = "200" || { echo "daily_funds_force_rebuild=CONTROL_UNAVAILABLE"; exit 1; }
+          }
+
+          fetch_json "$app_file" "$BASE/api/v1/applications/$APP"
+          fetch_json "$active_file" "$BASE/api/v1/deployments/applications/$APP"
+          python3 - "$app_file" "$active_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_force_rebuild={code}")
+              raise SystemExit(1)
+
+          def load(path: str):
+              try:
+                  return json.loads(Path(path).read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  fail("CONTROL_RESPONSE_INVALID")
+
+          def unwrap(payload):
+              while isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+                  payload = payload["data"]
+              return payload
+
+          app = unwrap(load(sys.argv[1]))
+          active = unwrap(load(sys.argv[2]))
+          if not isinstance(app, dict):
+              fail("TARGET_INVALID")
+          if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
+              fail("TARGET_UNEXPECTED")
+          if app.get("docker_compose_location") != "KMFA/deploy/coolify/docker-compose.yml":
+              fail("COMPOSE_LOCATION_UNEXPECTED")
+          command_fields = (
+              "docker_compose_custom_start_command",
+              "docker_compose_custom_build_command",
+          )
+          if any(field not in app for field in command_fields):
+              fail("COMPOSE_COMMAND_STATE_UNAVAILABLE")
+          if any(app.get(field) not in (None, "") for field in command_fields):
+              fail("COMPOSE_COMMAND_CONFIGURED")
+          if isinstance(active, dict):
+              active = active.get("deployments", active.get("items"))
+          if not isinstance(active, list):
+              fail("ACTIVE_DEPLOYMENTS_RESPONSE_INVALID")
+          if active:
+              fail("DEPLOYMENT_ALREADY_ACTIVE")
+          print("daily_funds_force_rebuild_target=VERIFIED")
+          print("daily_funds_force_rebuild_active_deployments=NONE")
+          PY
+
+          deploy_code="$(curl -sS -o "$deploy_file" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "$BASE/api/v1/deploy?uuid=$APP&force=true" 2>/dev/null || true)"
+          test "$deploy_code" = "200" || test "$deploy_code" = "201" || test "$deploy_code" = "202" \
+            || { echo "daily_funds_force_rebuild=NOT_ACCEPTED"; exit 1; }
+          python3 - "$deploy_file" "$deployment_target_file" "$APP" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_force_rebuild={code}")
+              raise SystemExit(1)
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              fail("DEPLOYMENT_RESPONSE_INVALID")
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          deployments = payload.get("deployments") if isinstance(payload, dict) else None
+          if not isinstance(deployments, list) or len(deployments) != 1:
+              fail("DEPLOYMENT_RESPONSE_INVALID")
+          deployment = deployments[0]
+          if not isinstance(deployment, dict) or deployment.get("resource_uuid") != sys.argv[3]:
+              fail("DEPLOYMENT_TARGET_UNEXPECTED")
+          deployment_uuid = deployment.get("deployment_uuid")
+          if not isinstance(deployment_uuid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{6,128}", deployment_uuid):
+              fail("DEPLOYMENT_RESPONSE_INVALID")
+          target = Path(sys.argv[2])
+          with target.open("w", encoding="utf-8") as handle:
+              json.dump({"deployment_uuid": deployment_uuid}, handle)
+          target.chmod(0o600)
+          print("daily_funds_force_rebuild_deployment=QUEUED")
+          PY
+          deployment_uuid="$(jq -er '.deployment_uuid' "$deployment_target_file" 2>/dev/null)" \
+            || { echo "daily_funds_force_rebuild=DEPLOYMENT_RESPONSE_INVALID"; exit 1; }
+
+          for attempt in $(seq 1 120); do
+            status_code="$(curl -sS -o "$deployment_status_file" -w '%{http_code}' \
+              -H "Authorization: Bearer $TOKEN" \
+              "$BASE/api/v1/deployments/$deployment_uuid" 2>/dev/null || true)"
+            if test "$status_code" = "200"; then
+              deployment_state="$(python3 - "$deployment_status_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              print("INVALID")
+              raise SystemExit(0)
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          if not isinstance(payload, dict):
+              print("INVALID")
+              raise SystemExit(0)
+          status = str(payload.get("status") or "").strip().lower()
+          if status in {"finished", "success", "successful", "completed"}:
+              print("FINISHED")
+          elif status in {"failed", "error", "cancelled", "canceled", "cancelled_by_user", "cancelled-by-user"}:
+              print("FAILED")
+          else:
+              print("PENDING")
+          PY
+              )"
+              case "$deployment_state" in
+                FINISHED) break ;;
+                FAILED) echo "daily_funds_force_rebuild=DEPLOYMENT_FAILED"; exit 1 ;;
+                PENDING) ;;
+                *) echo "daily_funds_force_rebuild=DEPLOYMENT_STATUS_INVALID"; exit 1 ;;
+              esac
+            elif test "$status_code" != "404"; then
+              echo "daily_funds_force_rebuild=DEPLOYMENT_STATUS_UNAVAILABLE"
+              exit 1
+            fi
+            sleep 5
+          done
+          test "${deployment_state:-PENDING}" = "FINISHED" \
+            || { echo "daily_funds_force_rebuild=DEPLOYMENT_STATUS_TIMEOUT"; exit 1; }
+
+          for attempt in $(seq 1 24); do
+            fetch_json "$health_file" "$BASE/api/v1/applications/$APP"
+            app_health="$(python3 - "$health_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              print("INVALID")
+              raise SystemExit(0)
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          if not isinstance(payload, dict):
+              print("INVALID")
+          elif payload.get("status") == "running:healthy":
+              print("HEALTHY")
+          else:
+              print("PENDING")
+          PY
+            )"
+            case "$app_health" in
+              HEALTHY) echo "daily_funds_force_rebuild=FINISHED"; exit 0 ;;
+              PENDING) sleep 5 ;;
+              *) echo "daily_funds_force_rebuild=TARGET_HEALTH_INVALID"; exit 1 ;;
+            esac
+          done
+          echo "daily_funds_force_rebuild=TARGET_HEALTH_TIMEOUT"
+          exit 1
