@@ -2256,19 +2256,44 @@ jobs:
               fail("TARGET_INVALID")
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
               fail("TARGET_UNEXPECTED")
-          location_field = "docker_compose_location"
-          if location_field in app and app.get(location_field) != "KMFA/deploy/coolify/docker-compose.yml":
-              fail("COMPOSE_LOCATION_UNEXPECTED")
           command_fields = (
               "docker_compose_custom_start_command",
               "docker_compose_custom_build_command",
           )
+          location_fields = ("base_directory", "docker_compose_location")
+
+          def normalize_path(value, allow_empty: bool):
+              if value is None:
+                  return "" if allow_empty else None
+              if not isinstance(value, str):
+                  return None
+              normalized = value.strip().replace("\\", "/")
+              while normalized.startswith("./"):
+                  normalized = normalized[2:]
+              normalized = normalized.lstrip("/")
+              if not normalized:
+                  return "" if allow_empty else None
+              parts = normalized.split("/")
+              if any(part in {"", ".", ".."} for part in parts):
+                  return None
+              return "/".join(parts)
+
+          def expected_compose_location(record: dict) -> bool:
+              base_directory = normalize_path(record.get("base_directory"), allow_empty=True)
+              compose_location = normalize_path(record.get("docker_compose_location"), allow_empty=False)
+              return (base_directory, compose_location) in {
+                  ("", "KMFA/deploy/coolify/docker-compose.yml"),
+                  ("KMFA", "deploy/coolify/docker-compose.yml"),
+              }
+
+          if all(field in app for field in location_fields) and not expected_compose_location(app):
+              fail("COMPOSE_LOCATION_UNEXPECTED")
           if any(app.get(field) not in (None, "") for field in command_fields):
               fail("COMPOSE_COMMAND_CONFIGURED")
           target = Path(sys.argv[2])
           with target.open("w", encoding="utf-8") as handle:
               json.dump(
-                  {"requires_collection": location_field not in app or any(field not in app for field in command_fields)},
+                  {"requires_collection": any(field not in app for field in location_fields + command_fields)},
                   handle,
               )
           target.chmod(0o600)
@@ -2305,16 +2330,38 @@ jobs:
           app = matches[0]
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
               fail("APPLICATION_COLLECTION_TARGET_UNEXPECTED")
-          if "docker_compose_location" not in app:
+          if any(field not in app for field in ("base_directory", "docker_compose_location")):
               fail("COMPOSE_LOCATION_STATE_UNAVAILABLE")
-          if app.get("docker_compose_location") != "KMFA/deploy/coolify/docker-compose.yml":
-              fail("COMPOSE_LOCATION_UNEXPECTED")
           command_fields = (
               "docker_compose_custom_start_command",
               "docker_compose_custom_build_command",
           )
           if any(field not in app for field in command_fields):
               fail("COMPOSE_COMMAND_STATE_UNAVAILABLE")
+          def normalize_path(value, allow_empty: bool):
+              if value is None:
+                  return "" if allow_empty else None
+              if not isinstance(value, str):
+                  return None
+              normalized = value.strip().replace("\\", "/")
+              while normalized.startswith("./"):
+                  normalized = normalized[2:]
+              normalized = normalized.lstrip("/")
+              if not normalized:
+                  return "" if allow_empty else None
+              parts = normalized.split("/")
+              if any(part in {"", ".", ".."} for part in parts):
+                  return None
+              return "/".join(parts)
+
+          if (
+              normalize_path(app.get("base_directory"), allow_empty=True),
+              normalize_path(app.get("docker_compose_location"), allow_empty=False),
+          ) not in {
+              ("", "KMFA/deploy/coolify/docker-compose.yml"),
+              ("KMFA", "deploy/coolify/docker-compose.yml"),
+          }:
+              fail("COMPOSE_LOCATION_UNEXPECTED")
           if any(app.get(field) not in (None, "") for field in command_fields):
               fail("COMPOSE_COMMAND_CONFIGURED")
           print("daily_funds_force_rebuild_command_source=COLLECTION")
