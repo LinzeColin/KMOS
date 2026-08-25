@@ -1,6 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage105 P3 accepted locally - 2026-08-26
+## Current Gate - Stage105 P4 accepted locally - 2026-08-26
+
+- IDS-V0_1-STAGE105-P4 已完成本地验收；当前治理状态为 IDS-STAGE105 / IDS-STAGE105-P4 / IDS-V0_1-STAGE105-P4 / IDS-STAGE105-REVIEW-GATE。Review 只可由新的独立 run 进入。
+- P4 只从 P3 的 5 条、每条 34 字段、共 170 个非业务 reference-only 场景检查点派生报告样例、报告快照、报告质量评分、报告影响分析、模板限制与业务线白箱人工确认各 5 条，以及报告重新生成与撤回说明 2 条；字段形状为 17/13/13/15/14/14，共 388 个 metadata-only 交付检查点。
+- 已验证：P1/P2/P3/P4 聚焦 31/31，Stage088--Stage105 精确白箱链 846/846，Stage005 直接治理校验 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面重渲染 7 个中文文件，文档预算、无登记阻塞与双平面检查全部通过。
+- 关键结论保持 evidence_id 或 evidence_gap 严格二选一；外部增强保留 external_public_reference 与 model_reasoning 的底层来源语义；资料撤回、证据降级和索引版本变化保持未来报告状态影响控制。模板限制、人工确认与最终结论保持业务线白箱门禁；重新生成与撤回固定指向版本化、可验证的 P3 回退目标。
+- 回执记录运行计数为 0、运行标志为 false，模型 Token 与 Agent 执行均为 0。真实报告、PDF、快照、评分、影响分析、审计、数据库、OVH、生产、main、release 与正式全局上传继续由后续门禁承接。
+- 回滚只撤回本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、历史治理投影、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 PASS_REPORT_EVIDENCE_BINDING_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；Stage105 P1/P2/P3、Stage104 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 IDS-STAGE105-REVIEW-GATE，继续复用唯一既有开发 worktree 与分支。
+
+## Superseded Gate - Stage105 P3 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE105-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE105 / IDS-STAGE105-P3 / IDS-V0_1-STAGE105-P3 / IDS-STAGE105-P4-GATE`。P4 只可由新的独立 run 进入。
 - P3 机械重放 P2 的 `5` 条、每条 `26` 字段、`4` 组、每条 `66` 字段、共 `330` 个非业务 `reference-only` 前序控制检查点，形成 `5` 条、每条 `34` 字段、共 `170` 个场景检查点、`5` 个控制视图和 `5` 条业务线白箱处理记录；其中 `2` 条保持未来人工确认门禁。
