@@ -377,7 +377,7 @@ class Stage100NoInternalEvidenceStrategyPhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE100-P4",
             "IDS-STAGE100-REVIEW-GATE",
         )
-        assert_legacy_or_current_projection(
+        is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
             {phase4_current},
@@ -389,11 +389,16 @@ class Stage100NoInternalEvidenceStrategyPhase4Tests(unittest.TestCase):
         self.assertTrue(RECEIPT.is_file())
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual(
-            "STAGE100_NO_INTERNAL_EVIDENCE_STRATEGY_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
-            status["evidence_status"],
-        )
-        self.assertEqual("P4 交付证据、回滚与中文反馈已完成", acceptance_by_id["ACC-STAGE-100"])
+        if current == phase4_current:
+            self.assertFalse(is_current_projection)
+            self.assertEqual(
+                "STAGE100_NO_INTERNAL_EVIDENCE_STRATEGY_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertEqual(
+                "P4 交付证据、回滚与中文反馈已完成",
+                acceptance_by_id["ACC-STAGE-100"],
+            )
         for acceptance_id in (
             "ACC-STAGE100-P4-01",
             "ACC-STAGE100-P4-02",

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE100",
-  "phase": "IDS-STAGE100-P4",
-  "task": "IDS-V0_1-STAGE100-P4",
-  "real_progress": "Stage100 已在纯内存中完成无内部依据策略 P4 交付证据：从 P3 的 6 条、每条 29 字段、共 174 个场景检查点派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 6 条，以及 prompt 回滚和模型配置回退说明各 1 条；字段形状为 14/12/11/11/12/12，共 384 个交付字段检查点。",
+  "phase": "IDS-STAGE100-REVIEW",
+  "task": "IDS-V0_1-STAGE100-REVIEW",
+  "real_progress": "Stage100 已在纯内存中完成无内部依据策略整阶段机械复审：P1 的 9/4/3/17/4、P2 的 6×21/4/38/228、P3 的 6×29＝174/5/6/15 与 P4 的 6/6/6/6/6/2、14/12/11/11/12/12、384/4/16 固定控制形状、来源分离、提示注入防护、白箱人工处理、回退和零运行时边界保持一致。",
   "report_grade": "冻结 Stage100 任务包、Stage100 P1/P2 控制工件与已复审 Stage099 内部依据与外部增强分离控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "检索文档保持 evidence 身份且文档内指令不能覆盖 IDS 规则；内部依据不足保持 evidence_gap，外部增强展示保留底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理，人工确认未记录，最终结论未发布。未来模型推理候选引用与实际模型调用、提示词或模型配置访问、实际回答发布和实际审计记录保持分离；prompt 回滚和模型配置回退保持未来控制目标。",
-  "evidence_status": "STAGE100_NO_INTERNAL_EVIDENCE_STRATEGY_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "business_verdict": "检索文档保持 evidence 身份且文档内指令不能覆盖 IDS 规则；内部依据不足保持 evidence_gap，外部增强展示保留底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理，人工确认未记录，最终结论未发布。prompt 回滚和模型配置回退保持未来控制目标；Stage101 只开放下一门禁，尚未启动。",
+  "evidence_status": "STAGE100_NO_INTERNAL_EVIDENCE_STRATEGY_REVIEW_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE100-REVIEW-GATE",
+  "next_gate": "IDS-STAGE101-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
