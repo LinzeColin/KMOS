@@ -372,6 +372,12 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE106-P1",
             "IDS-STAGE106-P2-GATE",
         )
+        stage106_phase2_current = (
+            "IDS-STAGE106",
+            "IDS-STAGE106-P2",
+            "IDS-V0_1-STAGE106-P2",
+            "IDS-STAGE106-P3-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -381,7 +387,15 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, {phase4_current, review_current, stage106_phase1_current})
+        self.assertIn(
+            current,
+            {
+                phase4_current,
+                review_current,
+                stage106_phase1_current,
+                stage106_phase2_current,
+            },
+        )
         if current == phase4_current:
             self.assertFalse(is_current_projection)
         else:

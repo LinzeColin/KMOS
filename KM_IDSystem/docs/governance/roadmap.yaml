@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE106"
-current_phase_id: "IDS-STAGE106-P1"
-current_task_id: "IDS-V0_1-STAGE106-P1"
-next_gate_id: "IDS-STAGE106-P2-GATE"
+current_phase_id: "IDS-STAGE106-P2"
+current_task_id: "IDS-V0_1-STAGE106-P2"
+next_gate_id: "IDS-STAGE106-P3-GATE"
 current_transition_history:
+  stage106_phase2_state:
+    current_stage_id: "IDS-STAGE106"
+    current_phase_id: "IDS-STAGE106-P2"
+    current_task_id: "IDS-V0_1-STAGE106-P2"
+    next_gate_id: "IDS-STAGE106-P3-GATE"
   stage106_phase1_state:
     current_stage_id: "IDS-STAGE106"
     current_phase_id: "IDS-STAGE106-P1"
@@ -1850,22 +1855,23 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-106"
     objective: "依据冻结 Stage106 任务包完成外部增强意见章节的 P1 静态边界、后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审；外部增强意见只作为独立、可审阅的报告章节，保留 external_public_reference 与 model_reasoning 的底层来源类型，不能成为内部项目依据、不能替代或关闭 evidence_id/evidence_gap，业务事实继续由来源文档、真实证据账本与业务线白箱人工复核承担权威。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE106-P2-GATE"
+    next_gate_id: "IDS-STAGE106-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE106-P1-GATE"
+      gate_id: "IDS-STAGE106-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE106-P2-GATE"
+      next_gate_id: "IDS-STAGE106-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage106 任务包与 Stage105 Review 已复审报告证据绑定控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 静态合同固定外部增强意见章节的 27 个未来控制引用、external_public_reference/model_reasoning 两类底层来源语义、关键结论独立 evidence_id/evidence_gap、PDF 引用来源与页码、data/index/evidence/model/generated_at 五项快照、人工确认和报告生命周期控制。"
       - "外部增强意见不能被表示为内部项目依据、不能替代或关闭 evidence_gap、不能形成最终结论；报告状态影响、质量评分、导出审计、模板限制、重新生成与撤回保持未来业务线白箱门禁。"
+      - "P2 将五条固定、非业务、reference-only 控制请求机械投影为报告证据绑定与章节输出、五项生成快照、报告生命周期与导出审计、外部增强与业务线白箱门禁四组纯内存结构。"
       - "真实资料、外部参考、报告、PDF、引用、快照、审计、数据库、模型 Token、Agent、OVH、生产与正式全局上传保持后续授权范围。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、原始元数据、真实证据账本、审计日志、数据库、物理索引或业务结论。"
-      - "执行外部参考或模型推理评估、外部增强展示、报告生成、PDF 渲染、引用生成、快照保存、人工确认、报告状态更新、质量评分、导出审计、重新生成、撤回、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 P2 以后阶段。"
+      - "执行外部参考或模型推理评估、外部增强展示、报告生成、PDF 渲染、引用生成、快照保存、人工确认、报告状态更新、质量评分、导出审计、重新生成、撤回、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 P3 以后阶段。"
     phases:
       - phase_id: "IDS-STAGE106-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1920,27 +1926,65 @@ stages:
             rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage105 Review 的本地零运行时状态；不改变 Stage105 P1--P4/Review、冻结任务包、真实资料、证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE106-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
-        objective: "在后续独立 run 中，以 Stage106 P1 静态合同为前序实现外部增强意见章节、报告证据绑定、快照保存、影响分析或报告质量评分的受控最小切片。"
-        status: "not_started"
+        objective: "以 Stage106 P1 静态合同为前序，固定五条非业务、reference-only 控制请求并将外部增强意见章节、报告证据绑定、五项生成快照、报告状态影响、质量评分、导出审计和业务线白箱门禁投影为纯内存控制结构。"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE106-P3-GATE"
         gate:
           gate_id: "IDS-STAGE106-P2-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE106-P3-GATE"
           github_upload_allowed: false
+        pass_conditions:
+          - "P2 固定五条、每条三十字段的非业务控制请求，保留 P1 的二十七个控制引用并加入证据等级引用；关键结论严格关联 evidence_id 或 evidence_gap。"
+          - "四组纯内存投影覆盖报告证据绑定与章节输出、五项生成快照、报告状态影响/质量评分/导出审计与报告生命周期、外部增强来源语义与业务线白箱门禁，共每条七十四字段、三百七十个检查点。"
+          - "外部增强意见保持 external_public_reference 与 model_reasoning 的底层来源类型和内部依据边界，不能成为内部项目依据、不能替代或关闭 evidence_gap、不能形成最终结论。"
+          - "真实资料、外部参考、报告、PDF、引用、快照、审计、数据库、模型 Token、Agent、OVH、生产和正式全局上传保持未执行。"
+        stop_conditions:
+          - "任何真实业务资料、外部参考、模型推理、报告、PDF、证据账本、引用、快照、审计、数据库或业务结论被读取、生成、展示、导出、保存、发布、撤回或修改。"
+          - "任何 Stage106 P3、P4、整阶段复审、Stage107、OVH、生产或正式全局上传被启动。"
         tasks:
           - task_id: "IDS-V0_1-STAGE106-P2"
             name: "实现外部增强意见章节受控最小切片"
-            status: "not_started"
+            objective: "以五条固定、非业务、reference-only 控制请求机械投影报告证据绑定与章节输出、五项生成快照、报告状态影响/质量评分/导出审计与外部增强业务线白箱门禁；输入漂移保持拒绝且不产生持久化记录。"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE106-P1"
               - "IDS-V0_1-STAGE105-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-106"
+              - "ACC-STAGE106-P2-01"
+              - "ACC-STAGE106-P2-02"
+              - "ACC-STAGE106-P2-03"
+              - "ACC-STAGE106-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage106_external_augmentation_opinion_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage106_external_augmentation_opinion_control_slice"
+              - "Stage105 Review、Stage106 P1/P2 与历史白箱兼容回归命令记录在 machine run"
+              - "python3 -B KM_IDSystem/scripts/check_batch051_060_review.py"
+              - "python3 -B KM_IDSystem/scripts/check_batch041_050_review.py"
+              - "python3 -B KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage106 P1/P2 聚焦白箱用例、历史 Stage088--Stage106 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage106 P2 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-106_外部增强意见章节.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE106_PHASE2_EXTERNAL_AUGMENTATION_OPINION_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage106_external_augmentation_opinion_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage106_external_augmentation_opinion_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage106_external_augmentation_opinion_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage106-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE106_PHASE1_EXTERNAL_AUGMENTATION_OPINION_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage106_external_augmentation_opinion_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage106-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE105_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage105_report_evidence_binding_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage105-review-local.json"
+            risk: "若将纯内存控制请求、外部增强来源语义、报告章节投影、快照、报告影响、质量评分、导出审计或聚焦用例误作真实外部参考、模型推理、内部依据、报告、证据、业务结论或生产动作，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P2 的范围说明、纯内存控制模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage106 P1 的本地零运行时状态；不改变 Stage106 P1、Stage105 Review、冻结任务包、真实资料、证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE106-P3"
         name: "Phase 3 · 外部增强意见章节专项验证与异常场景"
         objective: "在后续独立 run 中验证关键结论 evidence_id/evidence_gap、资料撤回、证据降级、索引变化和外部增强内部依据边界。"
         status: "not_started"
-        entry_authorized: false
+        entry_authorized: true
         next_gate_id: "IDS-STAGE106-P4-GATE"
         gate:
           gate_id: "IDS-STAGE106-P3-GATE"

@@ -1,3 +1,9 @@
+## 2026-08-26 · Stage106 外部增强意见章节 P2
+
+- 完成冻结 P2 的纯内存受控最小切片：固定 `5` 条、每条 `30` 字段的非业务 `reference-only` 控制请求，严格承接 P1 的 `27` 个控制引用并新增 `evidence_grade_ref`；形成报告证据绑定与章节、五项生成快照、报告生命周期与导出审计、外部增强与业务线白箱门禁 `4` 组、每条 `74` 字段、共 `370` 个控制检查点。
+- 本地验收记录：P1/P2 聚焦 `15/15`、Stage088--Stage106 连续白箱链 `868/868`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，中文视图重渲染 `7` 个文件、文档预算、无登记阻塞与双平面检查通过。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`；当前用户授权的恢复推送只保全既有开发分支，`main`、release、正式全局上传、OVH 与生产继续由后续门禁承接。下一步仅在新的独立 run 进入 `IDS-STAGE106-P3-GATE`。
+
 ## 2026-08-26 · Stage106 外部增强意见章节 P1
 
 - 完成冻结 Stage106 P1 的静态控制合同：固定外部增强意见章节的 27 个未来控制引用、external_public_reference/model_reasoning 两类底层来源语义、关键结论独立 evidence_id/evidence_gap、PDF 引用来源与页码、data/index/evidence/model/generated_at 五项快照、业务线白箱人工确认、报告状态影响、质量评分、导出审计、模板限制、重新生成和撤回控制引用。

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE106",
-  "phase": "IDS-STAGE106-P1",
-  "task": "IDS-V0_1-STAGE106-P1",
-  "real_progress": "Stage106 外部增强意见章节 P1 已固定 27 个未来控制引用、两类底层来源语义、内部依据隔离、关键结论 evidence_id/evidence_gap 独立性、PDF 引用来源与页码、五项生成快照、业务线白箱人工确认、报告状态影响、质量评分、导出审计、模板限制、重新生成与撤回控制引用。",
+  "phase": "IDS-STAGE106-P2",
+  "task": "IDS-V0_1-STAGE106-P2",
+  "real_progress": "Stage106 外部增强意见章节 P2 已将 P1 的 27 个控制引用和 evidence_grade_ref 固定为五条非业务、reference-only 纯内存控制请求，并投影报告证据绑定与章节输出、五项生成快照、报告状态影响/质量评分/导出审计与外部增强业务线白箱门禁四组控制结构。",
   "report_grade": "冻结 Stage106 任务包与 Stage105 Review 已复审报告证据绑定控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P1 只定义外部增强意见章节的控制形状。外部增强保留 external_public_reference 与 model_reasoning 的底层来源类型，不能写成内部项目依据、不能替代或关闭 evidence_gap、不能形成最终结论；真实外部参考、报告、PDF、快照、质量评分、影响分析、审计、模型 Token、Agent、OVH 与生产保持零执行。",
-  "evidence_status": "EXTERNAL_AUGMENTATION_OPINION_CHAPTER_CONTRACT_RUNTIME_DISABLED",
+  "business_verdict": "本 P2 只机械投影冻结控制标签。外部增强保留 external_public_reference 与 model_reasoning 的底层来源类型，不能写成内部项目依据、不能替代或关闭 evidence_gap、不能形成最终结论；真实外部参考、报告、PDF、快照、质量评分、影响分析、审计、模型 Token、Agent、OVH 与生产保持零执行。",
+  "evidence_status": "EXTERNAL_AUGMENTATION_OPINION_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-26",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE106-P2-GATE",
+  "next_gate": "IDS-STAGE106-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
