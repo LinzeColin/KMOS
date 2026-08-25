@@ -286,6 +286,18 @@ class Stage106ExternalAugmentationOpinionPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE106-P3",
             "IDS-STAGE106-P4-GATE",
         )
+        phase4_current = (
+            "IDS-STAGE106",
+            "IDS-STAGE106-P4",
+            "IDS-V0_1-STAGE106-P4",
+            "IDS-STAGE106-REVIEW-GATE",
+        )
+        review_current = (
+            "IDS-STAGE106",
+            "IDS-STAGE106-REVIEW",
+            "IDS-V0_1-STAGE106-REVIEW",
+            "IDS-STAGE107-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -297,7 +309,14 @@ class Stage106ExternalAugmentationOpinionPhase1Tests(unittest.TestCase):
         self.assertEqual(status["task"], plan["task"])
         self.assertIn(
             current,
-            {predecessor_current, phase1_current, phase2_current, phase3_current},
+            {
+                predecessor_current,
+                phase1_current,
+                phase2_current,
+                phase3_current,
+                phase4_current,
+                review_current,
+            },
         )
         if current == predecessor_current:
             self.assertFalse(is_current_projection)
@@ -362,6 +381,8 @@ class Stage106ExternalAugmentationOpinionPhase1Tests(unittest.TestCase):
                     phase1_current: "P1 静态合同已完成",
                     phase2_current: "P2 受控最小切片已完成",
                     phase3_current: "P3 专项异常场景已完成",
+                    phase4_current: "P1/P2/P3/P4 控制工件已完成",
+                    review_current: "整阶段已复审",
                 }[current],
                 acceptance_by_id["ACC-STAGE-106"],
             )
