@@ -353,6 +353,12 @@ class Stage105ReportEvidenceBindingPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE106-P4",
             "IDS-STAGE106-REVIEW-GATE",
         )
+        stage106_review_current = (
+            "IDS-STAGE106",
+            "IDS-STAGE106-REVIEW",
+            "IDS-V0_1-STAGE106-REVIEW",
+            "IDS-STAGE107-P1-GATE",
+        )
         self.assertEqual(status["task"], plan["task"])
         is_current_projection = assert_legacy_or_current_projection(
             self,
@@ -374,6 +380,7 @@ class Stage105ReportEvidenceBindingPhase1Tests(unittest.TestCase):
                 stage106_phase2_current,
                 stage106_phase3_current,
                 stage106_phase4_current,
+                stage106_review_current,
             },
         )
         if current == stage105_phase1_current:
@@ -400,6 +407,7 @@ class Stage105ReportEvidenceBindingPhase1Tests(unittest.TestCase):
                                 stage106_phase2_current,
                                 stage106_phase3_current,
                                 stage106_phase4_current,
+                                stage106_review_current,
                             }
                             else "P1/P2/P3/P4 控制工件已完成"
                         )

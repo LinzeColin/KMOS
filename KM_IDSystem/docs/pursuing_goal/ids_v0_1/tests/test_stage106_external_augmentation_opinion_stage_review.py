@@ -1,4 +1,4 @@
-"""Stage105 报告证据绑定整阶段机械复审的聚焦白箱验证。"""
+"""Stage106 外部增强意见章节整阶段机械复审的聚焦白箱验证。"""
 
 from __future__ import annotations
 
@@ -15,14 +15,14 @@ from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE105_STAGE_REVIEW.md"
+SCOPE = BASE / "STAGE106_STAGE_REVIEW.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage105_report_evidence_binding_stage_review_contract.json"
+    / "stage106_external_augmentation_opinion_stage_review_contract.json"
 )
 MODULE = (
-    BASE / "index_version_schema" / "stage105_report_evidence_binding_stage_review.py"
+    BASE / "index_version_schema" / "stage106_external_augmentation_opinion_stage_review.py"
 )
 TASKPACK = (
     ROOT
@@ -30,32 +30,32 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-105_报告证据绑定.md"
+    / "STAGE-106_外部增强意见章节.md"
 )
-P1_CONTRACT = BASE / "index_version_schema" / "stage105_report_evidence_binding_contract.json"
+P1_CONTRACT = BASE / "index_version_schema" / "stage106_external_augmentation_opinion_contract.json"
 P2_CONTRACT = (
-    BASE / "index_version_schema" / "stage105_report_evidence_binding_control_slice_contract.json"
+    BASE / "index_version_schema" / "stage106_external_augmentation_opinion_control_slice_contract.json"
 )
 P3_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage105_report_evidence_binding_controlled_scenarios_contract.json"
+    / "stage106_external_augmentation_opinion_controlled_scenarios_contract.json"
 )
 P4_CONTRACT = (
-    BASE / "index_version_schema" / "stage105_report_evidence_binding_delivery_contract.json"
+    BASE / "index_version_schema" / "stage106_external_augmentation_opinion_delivery_contract.json"
 )
 P4_MODULE = (
-    BASE / "index_version_schema" / "stage105_report_evidence_binding_delivery.py"
+    BASE / "index_version_schema" / "stage106_external_augmentation_opinion_delivery.py"
 )
-P4_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage105-p4-local.json"
-PREDECESSOR_REVIEW = BASE / "STAGE104_STAGE_REVIEW.md"
+P4_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage106-p4-local.json"
+PREDECESSOR_REVIEW = BASE / "STAGE105_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage104_rag_negative_testing_stage_review_contract.json"
+    / "stage105_report_evidence_binding_stage_review_contract.json"
 )
-PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage104-review-local.json"
-RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage105-review-local.json"
+PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage105-review-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage106-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -72,19 +72,19 @@ def _load_module(path: Path, name: str):
     return module
 
 
-class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
+class Stage106ExternalAugmentationOpinionStageReviewTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.module = _load_module(
-            MODULE, "stage105_report_evidence_binding_stage_review_for_test"
+            MODULE, "stage106_external_augmentation_opinion_stage_review_for_test"
         )
         cls.phase4 = _load_module(
-            P4_MODULE, "stage105_report_evidence_binding_phase4_for_review_test"
+            P4_MODULE, "stage106_external_augmentation_opinion_phase4_for_review_test"
         )
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        cls.report = cls.module.build_report_evidence_binding_stage_review()
+        cls.report = cls.module.build_external_augmentation_opinion_stage_review()
         cls.phase4_report = (
-            cls.phase4.build_report_evidence_binding_phase4_delivery_report()
+            cls.phase4.build_external_augmentation_opinion_phase4_delivery_report()
         )
 
     def test_required_scope_contract_modules_and_predecessors_exist(self) -> None:
@@ -114,14 +114,14 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
     def test_identity_reviewed_shape_failure_contract_and_boundary_are_exact(self) -> None:
         contract = self.contract
         self.assertEqual(self.module.SCHEMA_VERSION, contract["schema_version"])
-        self.assertEqual("STAGE-105", contract["stage"])
-        self.assertEqual("IDS-STAGE105-REVIEW", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE105-REVIEW", contract["task_id"])
-        self.assertEqual("ACC-STAGE-105", contract["acceptance_id"])
+        self.assertEqual("STAGE-106", contract["stage"])
+        self.assertEqual("IDS-STAGE106-REVIEW", contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE106-REVIEW", contract["task_id"])
+        self.assertEqual("ACC-STAGE-106", contract["acceptance_id"])
         self.assertEqual(self.module.REVIEW_GATE, contract["entry_gate"])
         self.assertEqual(self.module.NEXT_GATE, contract["next_gate"])
         self.assertEqual(
-            "STAGE105_REPORT_EVIDENCE_BINDING_REVIEW_RUNTIME_DISABLED",
+            "STAGE106_EXTERNAL_AUGMENTATION_OPINION_REVIEW_RUNTIME_DISABLED",
             contract["contract_state"],
         )
         self.assertEqual(
@@ -136,20 +136,20 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
         )
         self.assertFalse(failure["actual_model_or_token_execution_allowed"])
         self.assertFalse(failure["actual_agent_or_ovh_execution_allowed"])
-        self.assertTrue(failure["stage106_must_remain_not_started"])
+        self.assertTrue(failure["stage107_must_remain_not_started"])
         boundary = contract["stage_and_phase_boundary"]
         for field in (
-            "stage104_review_evidence_declared",
-            "stage105_phase1_completed",
-            "stage105_phase2_completed",
-            "stage105_phase3_completed",
-            "stage105_phase4_completed",
-            "stage105_review_started",
+            "stage105_review_evidence_declared",
+            "stage106_phase1_completed",
+            "stage106_phase2_completed",
+            "stage106_phase3_completed",
+            "stage106_phase4_completed",
+            "stage106_review_started",
             "whole_stage_review_completed_in_memory_only",
         ):
             with self.subTest(field=field):
                 self.assertTrue(boundary[field])
-        for field in ("stage106_started", "github_upload_allowed", "push_allowed"):
+        for field in ("stage107_started", "github_upload_allowed", "push_allowed"):
             with self.subTest(field=field):
                 self.assertFalse(boundary[field])
 
@@ -169,14 +169,14 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             "single_authority_boundary_preserved",
             "business_line_whitebox_gate_preserved",
             "phase4_to_phase3_rollback_preserved",
-            "stage105_review_started",
+            "stage106_review_started",
             "whole_stage_review_completed_in_memory_only",
         ):
             with self.subTest(field=field):
                 self.assertTrue(report[field])
         self.assertFalse(report["second_authoritative_source_created"])
         self.assertFalse(report["persistent_record_created"])
-        self.assertFalse(report["stage106_started"])
+        self.assertFalse(report["stage107_started"])
         self.assertEqual(
             self.module.REVIEWED_CONTROL_SHAPE, report["reviewed_control_shape"]
         )
@@ -204,10 +204,10 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
         phase3 = _load_module(
             BASE
             / "index_version_schema"
-            / "stage105_report_evidence_binding_controlled_scenarios.py",
-            "stage105_phase3_for_review_semantics",
+            / "stage106_external_augmentation_opinion_controlled_scenarios.py",
+            "stage106_phase3_for_review_semantics",
         )
-        phase3_report = phase3.build_report_evidence_binding_phase3_report()
+        phase3_report = phase3.build_external_augmentation_opinion_phase3_report()
         scenario_by_id = {
             item["scenario_id"]: item for item in phase3_report["scenario_results"]
         }
@@ -235,7 +235,7 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             "CONTROL_FUTURE_REPORT_STATUS_IMPACT_REVIEW_REQUIRED",
             lifecycle["report_status_impact_state"],
         )
-        self.assertFalse(lifecycle["actual_report_status_updated"])
+        self.assertFalse(lifecycle["actual_report_status_impact_analysis_performed"])
 
         templates = self.phase4_report[
             "report_template_and_whitebox_confirmation_control_records"
@@ -265,15 +265,15 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
 
     def test_tampered_phase_outputs_fail_closed_with_zero_runtime(self) -> None:
         malformed_p1 = json.loads(P1_CONTRACT.read_text(encoding="utf-8"))
-        malformed_p1["report_evidence_binding_contract"][
+        malformed_p1["external_augmentation_opinion_contract"][
             "future_control_reference_field_count"
         ] = 23
         malformed_p3 = _load_module(
             BASE
             / "index_version_schema"
-            / "stage105_report_evidence_binding_controlled_scenarios.py",
-            "stage105_phase3_for_review_failure",
-        ).build_report_evidence_binding_phase3_report()
+            / "stage106_external_augmentation_opinion_controlled_scenarios.py",
+            "stage106_phase3_for_review_failure",
+        ).build_external_augmentation_opinion_phase3_report()
         malformed_p3 = copy.deepcopy(malformed_p3)
         malformed_p3["scenario_results"][0]["evidence_gap_ref"] = (
             malformed_p3["scenario_results"][1]["evidence_gap_ref"]
@@ -283,25 +283,25 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
 
         failures = (
             (
-                self.module.build_report_evidence_binding_stage_review(
+                self.module.build_external_augmentation_opinion_stage_review(
                     phase1_contract_provider=lambda: malformed_p1
                 ),
                 "P1_CONTRACT_OR_CONTROL_OUTPUT_INVALID",
             ),
             (
-                self.module.build_report_evidence_binding_stage_review(
+                self.module.build_external_augmentation_opinion_stage_review(
                     phase2_provider=lambda: {}
                 ),
                 "P2_CONTRACT_OR_CONTROL_OUTPUT_INVALID",
             ),
             (
-                self.module.build_report_evidence_binding_stage_review(
+                self.module.build_external_augmentation_opinion_stage_review(
                     phase3_provider=lambda: malformed_p3
                 ),
                 "P3_CONTRACT_OR_CONTROL_OUTPUT_INVALID",
             ),
             (
-                self.module.build_report_evidence_binding_stage_review(
+                self.module.build_external_augmentation_opinion_stage_review(
                     phase4_provider=lambda: malformed_p4
                 ),
                 "P4_CONTRACT_OR_CONTROL_OUTPUT_INVALID",
@@ -337,7 +337,7 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             "业务线白箱",
             "P4→P3",
             "模型 Token",
-            "IDS-STAGE106-P1-GATE",
+            "IDS-STAGE107-P1-GATE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, scope_text)
@@ -355,46 +355,40 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
         phase4_current = (
-            "IDS-STAGE105",
-            "IDS-STAGE105-P4",
-            "IDS-V0_1-STAGE105-P4",
-            "IDS-STAGE105-REVIEW-GATE",
-        )
-        review_current = (
-            "IDS-STAGE105",
-            "IDS-STAGE105-REVIEW",
-            "IDS-V0_1-STAGE105-REVIEW",
-            "IDS-STAGE106-P1-GATE",
-        )
-        stage106_phase1_current = (
-            "IDS-STAGE106",
-            "IDS-STAGE106-P1",
-            "IDS-V0_1-STAGE106-P1",
-            "IDS-STAGE106-P2-GATE",
-        )
-        stage106_phase2_current = (
-            "IDS-STAGE106",
-            "IDS-STAGE106-P2",
-            "IDS-V0_1-STAGE106-P2",
-            "IDS-STAGE106-P3-GATE",
-        )
-        stage106_phase3_current = (
-            "IDS-STAGE106",
-            "IDS-STAGE106-P3",
-            "IDS-V0_1-STAGE106-P3",
-            "IDS-STAGE106-P4-GATE",
-        )
-        stage106_phase4_current = (
             "IDS-STAGE106",
             "IDS-STAGE106-P4",
             "IDS-V0_1-STAGE106-P4",
             "IDS-STAGE106-REVIEW-GATE",
         )
-        stage106_review_current = (
+        review_current = (
             "IDS-STAGE106",
             "IDS-STAGE106-REVIEW",
             "IDS-V0_1-STAGE106-REVIEW",
             "IDS-STAGE107-P1-GATE",
+        )
+        stage107_phase1_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P1",
+            "IDS-V0_1-STAGE107-P1",
+            "IDS-STAGE107-P2-GATE",
+        )
+        stage107_phase2_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P2",
+            "IDS-V0_1-STAGE107-P2",
+            "IDS-STAGE107-P3-GATE",
+        )
+        stage107_phase3_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P3",
+            "IDS-V0_1-STAGE107-P3",
+            "IDS-STAGE107-P4-GATE",
+        )
+        stage107_phase4_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P4",
+            "IDS-V0_1-STAGE107-P4",
+            "IDS-STAGE107-REVIEW-GATE",
         )
         is_current_projection = assert_legacy_or_current_projection(
             self,
@@ -410,11 +404,10 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             {
                 phase4_current,
                 review_current,
-                stage106_phase1_current,
-                stage106_phase2_current,
-                stage106_phase3_current,
-                stage106_phase4_current,
-            stage106_review_current,
+                stage107_phase1_current,
+                stage107_phase2_current,
+                stage107_phase3_current,
+                stage107_phase4_current,
             },
         )
         if current == phase4_current:
@@ -435,14 +428,14 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
                 item["id"]: item["status"] for item in acceptance["items"]
             }
             self.assertEqual(
-                "整阶段已复审", acceptance_by_id["ACC-STAGE-105"]
+                "整阶段已复审", acceptance_by_id["ACC-STAGE-106"]
             )
             event_ids = {
                 json.loads(line)["event_id"]
                 for line in EVENTS.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             }
-            self.assertIn("EVT-IDS-V0_1-STAGE105-REVIEW-20260826-001", event_ids)
+            self.assertIn("EVT-IDS-V0_1-STAGE106-REVIEW-20260826-001", event_ids)
 
 
 if __name__ == "__main__":
