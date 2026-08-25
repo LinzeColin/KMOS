@@ -476,6 +476,53 @@ class RuntimeState:
                 ],
             )
 
+    def has_complete_capability_scope(self, *, parser_version: str) -> bool:
+        """Return whether one parser version has a complete verified raw scope.
+
+        The startup gate uses this only to decide whether a container restart
+        needs to rerun the same expensive raw-archive audit.  A scope becomes
+        current only after the full audit has atomically replaced it.  Every
+        scoped attachment must still retain a matching capability receipt; a
+        supported item also requires its exact parser-open receipt.  Missing
+        or malformed journal evidence therefore causes a new audit instead of
+        suppressing one.
+        """
+
+        if (
+            not isinstance(parser_version, str)
+            or not parser_version
+            or len(parser_version) > 128
+            or any(ord(character) < 32 for character in parser_version)
+        ):
+            raise ValueError("invalid capability parser version")
+        with self.connection() as connection:
+            row = connection.execute(
+                """SELECT COUNT(*) AS scope_count,
+                                  SUM(
+                                      CASE
+                                        WHEN evidence.outcome = 'NEEDS_REVIEW' THEN 1
+                                        WHEN evidence.outcome = 'SUPPORTED'
+                                             AND evidence.code = 'PARSER_OPEN_OK'
+                                             AND parser.attachment_sha256 IS NOT NULL THEN 1
+                                        ELSE 0
+                                      END
+                                  ) AS verified_count
+                       FROM capability_scope AS scope
+                       LEFT JOIN capability_evidence AS evidence
+                         ON evidence.attachment_sha256 = scope.attachment_sha256
+                        AND evidence.family = scope.family
+                        AND evidence.parser_version = scope.parser_version
+                       LEFT JOIN parser_evidence AS parser
+                         ON parser.attachment_sha256 = evidence.attachment_sha256
+                        AND parser.family = evidence.family
+                        AND parser.parser_version = evidence.parser_version
+                      WHERE scope.parser_version = ?""",
+                (parser_version,),
+            ).fetchone()
+        scope_count = int(row["scope_count"])
+        verified_count = int(row["verified_count"] or 0)
+        return scope_count > 0 and verified_count == scope_count
+
     def reusable_capability_scope_receipts(
         self,
         *,
