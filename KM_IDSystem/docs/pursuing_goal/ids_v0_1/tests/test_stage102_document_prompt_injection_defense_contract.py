@@ -281,15 +281,23 @@ class Stage102DocumentPromptInjectionDefensePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE102-P2",
             "IDS-STAGE102-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE102",
+            "IDS-STAGE102-P3",
+            "IDS-V0_1-STAGE102-P3",
+            "IDS-STAGE102-P4-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
-            {phase1_current},
+            {phase1_current, phase2_current},
             status,
             plan,
             ROADMAP,
         )
-        if current == phase2_current:
+        if current == phase3_current:
+            self.assertTrue(is_current_projection)
+        elif current == phase2_current:
             self.assertTrue(is_current_projection)
         else:
             self.assertEqual(phase1_current, current)

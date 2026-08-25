@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE102",
-  "phase": "IDS-STAGE102-P2",
-  "task": "IDS-V0_1-STAGE102-P2",
-  "real_progress": "Stage102 已在纯内存中完成文档内提示注入防护 P2 受控最小切片：固定 7 条、每条 28 字段的 reference-only 控制请求，形成四组、每条 50 字段、共 350 个控制投影。",
-  "report_grade": "冻结 Stage102 任务包、Stage102 P1 静态合同与 Stage101 Review 已复审 RAG 可复现控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "文档 evidence 与文档内潜在指令保持不可信、不可执行的控制引用；IDS 规则优先，query、index_version、prompt_version、model_version 与 selected evidence 只保留未来记录形状，来源类型、evidence_gap、输出权限、业务线白箱人工确认、最终结论未发布与回退路径保持一致。",
-  "evidence_status": "STAGE102_DOCUMENT_PROMPT_INJECTION_DEFENSE_CONTROL_SLICE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE102-P3",
+  "task": "IDS-V0_1-STAGE102-P3",
+  "real_progress": "Stage102 已在纯内存中完成文档内提示注入防护 P3 专项场景：严格重放 P2 固定七条、每条二十八字段的 reference-only 控制投影，形成七条、每条三十四字段、共二百三十八个专项检查点与五个控制视图。",
+  "report_grade": "冻结 Stage102 任务包、Stage102 P1/P2 控制工件与 Stage101 Review 已复审 RAG 可复现工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "文档内潜在指令保持不可信、不可执行的控制引用，IDS 规则保持优先；无内部依据保持 evidence_gap 且不作为内部经验呈现；高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认，最终结论保持未发布。",
+  "evidence_status": "STAGE102_DOCUMENT_PROMPT_INJECTION_DEFENSE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE102-P3-GATE",
+  "next_gate": "IDS-STAGE102-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

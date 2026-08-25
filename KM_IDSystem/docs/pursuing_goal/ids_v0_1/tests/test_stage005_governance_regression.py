@@ -56,6 +56,10 @@ class Stage005GovernanceRegressionTests(unittest.TestCase):
         tampered_roadmap = roadmap_text
         for expected, replacement in (
             (
+                'current_phase_id: "IDS-STAGE102-P3"',
+                'current_phase_id: "IDS-STAGE102-P4"',
+            ),
+            (
                 'current_phase_id: "IDS-STAGE102-P2"',
                 'current_phase_id: "IDS-STAGE102-P3"',
             ),
