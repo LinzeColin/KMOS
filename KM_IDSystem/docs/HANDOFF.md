@@ -1,14 +1,24 @@
 # IDS / Industrial Data System Handoff
 
-## Recovery Checkpoint - Stage104 P4 in progress and unaccepted - 2026-08-26
+## Current Gate - Stage104 P4 accepted locally - 2026-08-26
+
+- `IDS-V0_1-STAGE104-P4` 已完成本地验收；当前治理状态为 `IDS-STAGE104 / IDS-STAGE104-P4 / IDS-V0_1-STAGE104-P4 / IDS-STAGE104-REVIEW-GATE`。Review 只可由新的独立 run 进入。
+- P4 从 P3 的 `5×34=170` 固定、非业务、`reference-only` 场景检查点派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 `5` 条，以及 prompt 回滚和模型配置回退说明 `2` 条；字段形状为 `17/12/14/17/12/12`，共 `384` 个交付字段检查点、`16` 类失败关闭与 `4` 条中文反馈。P2 的 `5×29/4×57/285` 前序结构保持可追溯。
+- 已验证：P4 聚焦 `8/8`，Stage104 P1--P4 显式兼容 `32/32`，Stage088--Stage104 精确白箱链 `805/805`，Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。九个历史白箱断言已明确接受现行 Stage104 P4 投影。
+- 文档 evidence 与文档内潜在指令保持不可信、不可执行参考，无法覆盖 IDS 规则、输出权限或人工确认；`evidence_gap` 保持独立来源类型。外部增强展示保留 `external_public_reference` 与 `model_reasoning` 的底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，人工确认未记录，最终结论未发布。prompt 回滚和模型配置回退只描述未来白箱批准、版本化依据与可验证目标。
+- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户明确授权的 `07f3a0970` 远端恢复检查点只保全 P4 在制工件；本 P4 完成态不新增远端写入，正式全局上传、`main`、release、OVH 与生产保持未变。
+- 回滚只撤回本 P4 的范围说明、执行器、合同、聚焦用例、历史投影断言、machine run、机器事实、治理路线、生成中文视图、事件、变更日志和本交接，返回 `PASS_RAG_NEGATIVE_TEST_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage104 P1/P2/P3、Stage103 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 `IDS-STAGE104-REVIEW-GATE`，继续复用唯一既有开发 worktree 与分支。
+
+## Superseded Recovery Checkpoint - Stage104 P4 in progress and unaccepted - 2026-08-26
 
 - 用户在暂停前明确要求推送一次 GitHub 恢复检查点。本检查点仅保全现有唯一开发分支 `codex/kmids-stage071-p1` 中的 P4 在制工件；它不改变 `main`、release、OVH、生产、模型、Agent 或任何业务资料状态。
 - P4 当前只包含范围说明、纯内存交付模块、静态合同、聚焦用例和全零运行回执草案。它尚未完成治理路线、机器事实、历史白箱链、批次复核、中文视图、事件或最终验收，因此不构成 P4 完成态。
-- 当前唯一治理事实保持下方 `Stage104 P3 accepted locally`：`IDS-STAGE104 / IDS-STAGE104-P3 / IDS-V0_1-STAGE104-P3 / IDS-STAGE104-P4-GATE`。恢复后必须从该门禁继续 P4，不得把本检查点解释为 P4 或 Stage104 Review 已启动。
+- 当时唯一治理事实为下方 `Stage104 P3 accepted locally`：`IDS-STAGE104 / IDS-STAGE104-P3 / IDS-V0_1-STAGE104-P3 / IDS-STAGE104-P4-GATE`。后续 P4 已由上方当前门禁承接。
 - 当前在制文件：`STAGE104_PHASE4_RAG_NEGATIVE_TEST_DELIVERY.md`、`stage104_rag_negative_testing_delivery.py`、对应合同与聚焦用例，以及 `2026-08-26-stage104-p4-local.json`。它们只表达冻结任务包的非业务、`reference-only` 控制结构，运行计数保持 `0`、运行标志保持 `false`。
 - 恢复动作：在同一 worktree 与分支上继续；先复核本检查点、P3 回执和冻结任务包，再完成 P4 治理与验收。若需回退，撤回本检查点的五个 P4 在制文件即可，P3 和此前检查点保持不变。
 
-## Current Gate - Stage104 P3 accepted locally - 2026-08-26
+## Superseded Gate - Stage104 P3 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE104-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE104 / IDS-STAGE104-P3 / IDS-V0_1-STAGE104-P3 / IDS-STAGE104-P4-GATE`。P4 只可由新的独立 run 进入。
 - P3 严格重放 P2 的 `5` 条非业务、`reference-only` 控制请求，每条 `29` 个字段；四组白箱投影每条 `57` 字段，共 `285` 个前序检查点。P3 固定形成 `5` 条、每条 `34` 字段、共 `170` 个场景检查点、`5` 个控制视图、`5` 条业务线白箱处理记录、`3` 类高风险人工确认与 `28` 类失败关闭。

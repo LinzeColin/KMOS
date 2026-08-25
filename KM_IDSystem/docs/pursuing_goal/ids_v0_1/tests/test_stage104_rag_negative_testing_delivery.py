@@ -429,6 +429,23 @@ class Stage104RagNegativeTestingPhase4Tests(unittest.TestCase):
             self.assertEqual("IDS-STAGE104-REVIEW-GATE", receipt["next_gate"])
             self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
             self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+            validation = receipt["validation"]
+            self.assertEqual(8, validation["focused_delivery_test_count"])
+            self.assertEqual(32, validation["explicit_predecessor_focused_test_count"])
+            self.assertEqual(805, validation["historical_whitebox_chain_test_count"])
+            for field in (
+                "full_whitebox_validation_recorded",
+                "stage005_governance_valid",
+                "batch041_050_review_valid",
+                "batch051_060_review_valid",
+                "document_budget_passed",
+                "blocker_stop_passed",
+                "dual_plane_passed",
+                "final_validation_recorded",
+            ):
+                with self.subTest(validation_field=field):
+                    self.assertTrue(validation[field])
+            self.assertEqual(7, validation["human_view_rendered_file_count"])
             acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
             self.assertEqual("P1/P2/P3/P4 控制工件已完成", acceptance_by_id["ACC-STAGE-104"])
             for acceptance_id in (

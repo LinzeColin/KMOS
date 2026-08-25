@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE104",
-  "phase": "IDS-STAGE104-P3",
-  "task": "IDS-V0_1-STAGE104-P3",
-  "real_progress": "Stage104 已完成 RAG 负向测试 P3 的纯内存专项异常场景：严格重放 P2 的 5 条非业务 reference-only 控制投影，保持 5×29、4×57、285 个前序检查点，形成 5 条×34 字段、共 170 个场景检查点、5 个控制视图与 5 条业务线白箱处理记录。",
+  "phase": "IDS-STAGE104-P4",
+  "task": "IDS-V0_1-STAGE104-P4",
+  "real_progress": "Stage104 已完成 RAG 负向测试 P4 的纯内存交付证据：从 P3 的 5 条×34 字段、共 170 个非业务 reference-only 场景检查点派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 5 条，以及 prompt 回滚和模型配置回退说明 2 条，共 384 个交付字段检查点。",
   "report_grade": "冻结 Stage104 任务包与 Stage103 Review 已复审模型输出权限门禁控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "检索文档与潜在指令保持不可信、不可执行的 evidence reference，IDS 规则保持优先；内部依据不足保持 evidence_gap，external_augmentation_opinion 保留外部公开参考与模型推理的底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，人工确认未记录，最终结论未发布；Stage104 P4 只开放为下一独立 run 的门禁。",
-  "evidence_status": "RAG_NEGATIVE_TEST_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "business_verdict": "检索文档与潜在指令保持不可信、不可执行的 evidence reference，IDS 规则保持优先；内部依据不足保持 evidence_gap，external_augmentation_opinion 保留外部公开参考与模型推理的底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，人工确认未记录，最终结论未发布；prompt 回滚和模型配置回退保持版本化依据、白箱批准与可验证目标前置；Stage104 Review 只开放为下一独立 run 的门禁。",
+  "evidence_status": "RAG_NEGATIVE_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-26",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE104-P4-GATE",
+  "next_gate": "IDS-STAGE104-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

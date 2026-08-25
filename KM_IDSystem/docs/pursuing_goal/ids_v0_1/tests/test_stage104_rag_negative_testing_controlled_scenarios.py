@@ -445,6 +445,12 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE104-P3",
             "IDS-STAGE104-P4-GATE",
         )
+        phase4_current = (
+            "IDS-STAGE104",
+            "IDS-STAGE104-P4",
+            "IDS-V0_1-STAGE104-P4",
+            "IDS-STAGE104-REVIEW-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self, current, legacy, status, plan, ROADMAP
         )
@@ -455,12 +461,21 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
                 status["evidence_status"],
             )
             self.assertIn("IDS-STAGE104-P4-GATE", plan["stop_condition"])
+        elif current == phase4_current:
+            self.assertTrue(is_current_projection)
+            self.assertEqual(
+                "RAG_NEGATIVE_TEST_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertIn("IDS-STAGE104-REVIEW-GATE", plan["stop_condition"])
         else:
             self.assertFalse(is_current_projection)
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         if current == phase3_current:
             self.assertEqual("P3 专项异常场景已完成", acceptance_by_id["ACC-STAGE-104"])
+        elif current == phase4_current:
+            self.assertEqual("P1/P2/P3/P4 控制工件已完成", acceptance_by_id["ACC-STAGE-104"])
         for acceptance_id in (
             "ACC-STAGE104-P3-01",
             "ACC-STAGE104-P3-02",
