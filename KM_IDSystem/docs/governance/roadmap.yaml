@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE100"
-current_phase_id: "IDS-STAGE100-P2"
-current_task_id: "IDS-V0_1-STAGE100-P2"
-next_gate_id: "IDS-STAGE100-P3-GATE"
+current_phase_id: "IDS-STAGE100-P3"
+current_task_id: "IDS-V0_1-STAGE100-P3"
+next_gate_id: "IDS-STAGE100-P4-GATE"
 current_transition_history:
+  stage100_phase3_state:
+    current_stage_id: "IDS-STAGE100"
+    current_phase_id: "IDS-STAGE100-P3"
+    current_task_id: "IDS-V0_1-STAGE100-P3"
+    next_gate_id: "IDS-STAGE100-P4-GATE"
   stage100_phase2_state:
     current_stage_id: "IDS-STAGE100"
     current_phase_id: "IDS-STAGE100-P2"
@@ -1704,23 +1709,23 @@ stages:
     task_id: "IDS-V0_1-STAGE100"
     acceptance_ids:
       - "ACC-STAGE-100"
-    objective: "依据冻结 Stage100 任务包完成无内部依据策略 P1 静态工程合同与 P2 纯内存受控最小切片，固定 evidence_gap、内部经验声明禁止、外部增强边界、版本与所选 evidence 记录形状、检索文档 evidence 身份、提示注入防护、输出权限、业务线白箱人工处理与零运行时边界。"
-    status: "phase2_completed_local"
+    objective: "依据冻结 Stage100 任务包完成无内部依据策略 P1 静态工程合同、P2 纯内存受控最小切片与 P3 专项异常场景，固定 evidence_gap、内部经验声明禁止、外部增强边界、版本与所选 evidence 记录形状、检索文档 evidence 身份、提示注入防护、输出权限、业务线白箱人工处理、未来候选与实际调用分离及零运行时边界。"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE100-P3-GATE"
+    next_gate_id: "IDS-STAGE100-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE100-P2-GATE"
+      gate_id: "IDS-STAGE100-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE100-P3-GATE"
+      next_gate_id: "IDS-STAGE100-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
-      - "冻结 Stage100 任务包与 Stage099 Review 已复审内部依据与外部增强分离控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。"
-      - "P1 的九个未来回答策略控制引用与 P2 的六条、每条二十一字段、reference-only 控制请求，以及四组、每条三十八字段、共二百二十八个控制检查点已固定。"
-      - "内部依据不足时保持 evidence_gap 与未来答案声明，不伪装为内部经验，外部增强不能填补、替代或伪装该缺口；internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 保持底层来源类型，检索文档保持 evidence 身份且 IDS 规则保持优先级。"
-      - "高风险工程建议、合同承诺和生产写回进入业务线白箱人工处理，最终结论保持未发布；真实资料、提示词、检索、模型 Token、Agent、OVH、生产、持久化与上传保持未执行。"
+      - "冻结 Stage100 任务包、Stage100 P1/P2 与 Stage099 Review 已复审内部依据与外部增强分离控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。"
+      - "P3 精确重放 P2 的六条、每条二十一字段、四组、每条三十八字段、共二百二十八个 reference-only 控制检查点，形成六条、每条二十九字段、共一百七十四个异常场景检查点、五个控制视图和六条人工处理要求。"
+      - "检索文档保持 evidence 身份且文档内指令不能覆盖 IDS 规则；内部依据不足保持 evidence_gap，外部增强展示保留 internal_evidence、external_public_reference、model_reasoning 与 evidence_gap 的底层来源类型。"
+      - "高风险工程建议、合同承诺和生产写回进入业务线白箱人工处理，最终结论保持未发布；未来模型推理候选引用与实际调用分离，真实资料、提示词、检索、模型 Token、Agent、OVH、生产、持久化与上传保持未执行。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、打开、检测、解析、评估、导入、构建、查询、执行、分类、生成、确认、发布、写回或回退任何 IDS 业务资料、原始元数据、manifest、检索结果、提示词正文、回答、真实证据账本、审计日志、报告、数据库或物理索引。"
-      - "执行实际 RAG 回答、提示词、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage100 P3。"
+      - "执行实际 RAG 回答、提示词、provider 或模型调用、模型 Token、来源类型绑定、外部增强展示、引用生成、模型输出分类、人工确认、合同承诺、生产写回、prompt 回滚、模型配置回退、数据库 schema 或连接、持久化、Agent、OVH、生产、正式全局上传或 Stage100 P4。"
     phases:
       - phase_id: "IDS-STAGE100-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1814,12 +1819,65 @@ stages:
               - "KM_IDSystem/machine/runs/2026-08-25-stage099-review-local.json"
             risk: "若将固定控制请求、无内部依据状态、版本记录形状、外部增强意见展示或聚焦用例误作真实提示词、模型配置、检索、回答、证据、审计或业务结论，会绕开单一权威与业务线白箱人工处理。"
             rollback: "只回滚本 P2 的范围说明、纯内存控制切片、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage100 P1 的本地零运行时状态；不改变 Stage100 P1、Stage099 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE100-P3"
+        name: "Phase 3 · 无内部依据策略专项验证与异常场景"
+        objective: "只重放 Stage100 P2 的固定、非业务、reference-only 控制投影，验证检索文档指令无法覆盖 IDS 规则、evidence_gap 不能伪装为内部经验、外部增强保留底层来源类型，以及三类高风险输出保持业务线白箱人工确认和最终结论未发布。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE100-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE100-P3-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE100-P4-GATE"
+          github_upload_allowed: false
+        pass_conditions:
+          - "精确重放 P2 的 6 条、每条 21 字段、4 组、每条 38 字段、共 228 个 reference-only 控制检查点，形成 6 条、每条 29 字段、共 174 个场景检查点、5 个控制视图和 6 条人工处理要求。"
+          - "检索文档保持 evidence 身份，文档内指令保持拒绝且不能覆盖 IDS 规则；无内部依据保持 evidence_gap，外部增强展示保留底层来源类型。"
+          - "高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认、人工确认未记录和最终结论未发布；未来模型推理候选引用与实际调用、实际回答发布和实际审计记录保持分离。"
+          - "真实资料、提示词正文、模型配置、检索、模型 Token、Agent、OVH、生产、持久化与本 P3 上传保持未执行。"
+        stop_conditions:
+          - "任何真实提示词、provider、模型、查询、检索、回答、资料、证据、审计记录或业务结论被创建、读取、绑定、执行或持久化。"
+          - "任何 Stage100 P4、整阶段复审、OVH、生产或正式全局上传被启动。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE100-P3"
+            name: "验证无内部依据策略专项异常场景"
+            objective: "重放 P2 的固定控制投影为纯内存场景，分别验证检索文档指令优先级、evidence_gap 声明、来源类型分离、三类高风险输出人工确认与未来候选和实际调用分离。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE100-P1"
+              - "IDS-V0_1-STAGE100-P2"
+              - "IDS-V0_1-STAGE099-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-100"
+              - "ACC-STAGE100-P3-01"
+              - "ACC-STAGE100-P3-02"
+              - "ACC-STAGE100-P3-03"
+              - "ACC-STAGE100-P3-04"
+            test_results: "Stage100 P3 聚焦纯内存场景白箱用例、Stage088--Stage100 精确历史白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage100 P3 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-100_无内部依据策略.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE100_PHASE3_NO_INTERNAL_EVIDENCE_STRATEGY_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage100_no_internal_evidence_strategy_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage100_no_internal_evidence_strategy_controlled_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage100_no_internal_evidence_strategy_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage100-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE100_PHASE2_NO_INTERNAL_EVIDENCE_STRATEGY_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage100_no_internal_evidence_strategy_control_slice_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage100-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE100_PHASE1_NO_INTERNAL_EVIDENCE_STRATEGY_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage100_no_internal_evidence_strategy_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage100-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE099_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage099_internal_evidence_external_augmentation_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-25-stage099-review-local.json"
+            risk: "若将 P2 固定控制投影、未来模型推理候选、场景报告或聚焦用例误作真实提示词、检索、模型调用、回答、审计或业务结论，会绕开单一权威与业务线白箱人工处理。"
+            rollback: "只回滚本 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage100 P2 的本地零运行时状态；不改变 Stage100 P1/P2、Stage099 Review、冻结任务包、真实资料、manifest、检索、evidence ledger、audit log、回答、报告、数据库、索引、GitHub、OVH 或应用状态。"
     next_phase_projection:
-      phase_id: "IDS-STAGE100-P3"
-      name: "Phase 3 · 无内部依据策略专项验证与异常场景"
-      entry_gate: "IDS-STAGE100-P3-GATE"
+      phase_id: "IDS-STAGE100-P4"
+      name: "Phase 4 · 无内部依据策略交付证据、回滚与中文反馈"
+      entry_gate: "IDS-STAGE100-P4-GATE"
       status: "not_started"
-      phase3_started: false
+      phase4_started: false
       entry_authorized: true
       github_upload_allowed: false
       push_allowed: false

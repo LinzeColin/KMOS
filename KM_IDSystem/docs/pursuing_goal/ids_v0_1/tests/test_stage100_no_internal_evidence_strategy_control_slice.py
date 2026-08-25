@@ -452,7 +452,6 @@ class Stage100NoInternalEvidenceStrategyPhase2Tests(unittest.TestCase):
         self.assertTrue(RECEIPT.is_file())
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P2 纯内存控制切片已完成", acceptance_by_id["ACC-STAGE-100"])
         for acceptance_id in (
             "ACC-STAGE100-P2-01",
             "ACC-STAGE100-P2-02",
@@ -473,6 +472,7 @@ class Stage100NoInternalEvidenceStrategyPhase2Tests(unittest.TestCase):
         self.assertIn("stage100_phase2_state:", roadmap_text)
         if current == phase2_current:
             self.assertFalse(is_current_projection)
+            self.assertEqual("P2 纯内存控制切片已完成", acceptance_by_id["ACC-STAGE-100"])
             for phrase in (
                 'current_phase_id: "IDS-STAGE100-P2"',
                 'next_gate_id: "IDS-STAGE100-P3-GATE"',
