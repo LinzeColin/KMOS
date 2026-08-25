@@ -2274,6 +2274,12 @@ class GitSparseWriter:
         ssh_args = (
             "ssh", "-F", "/dev/null", "-i", str(key_path),
             "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+            # The configuration allowlist pins this writer to github.com.
+            # Route that one GitHub SSH authority over its documented TLS
+            # port so restrictive cloud egress cannot block private raw
+            # readback on port 22.  The deploy key and isolated known-hosts
+            # file remain the only authentication and host-trust sources.
+            "-o", "Hostname=ssh.github.com", "-o", "Port=443",
             # A sparse audit can require several independent Git transports.
             # Bound both connection establishment and a silent established
             # session here, rather than allowing one unavailable transport to

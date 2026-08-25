@@ -5170,6 +5170,8 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     assert "SSH_AUTH_SOCK" not in env
     assert env["GIT_CONFIG_GLOBAL"] == "/dev/null"
     assert "BatchMode=yes" in env["GIT_SSH_COMMAND"]
+    assert "Hostname=ssh.github.com" in env["GIT_SSH_COMMAND"]
+    assert "Port=443" in env["GIT_SSH_COMMAND"]
     assert "ConnectTimeout=20" in env["GIT_SSH_COMMAND"]
     assert "ServerAliveInterval=15" in env["GIT_SSH_COMMAND"]
 
