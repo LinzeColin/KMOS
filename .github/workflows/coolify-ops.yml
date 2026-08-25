@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-recovery-force-rebuild, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-recovery-force-rebuild, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
-        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-recovery-force-rebuild 必填；先用 list 查）"
+        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-projection-probe-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-recovery-force-rebuild 必填；先用 list 查）"
         required: false
         type: string
       command:
@@ -57,7 +57,7 @@ jobs:
       APP: ${{ inputs.app_uuid }}
     steps:
       - name: 检出诊断代码
-        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup'
+        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup'
         uses: actions/checkout@v4
 
       - name: 安装项目成本诊断依赖
@@ -837,7 +837,7 @@ jobs:
       # remains unchanged; the child path holds no persistent policy and only
       # receives one 60-minute Service Auth policy during this run.
       - name: 受控读取或触发每日资金固定任务（短时 Access 身份自动撤销）
-        if: inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge'
+        if: inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge'
         env:
           CF_ACCOUNT_ID: ${{ secrets.DAILY_FUNDS_CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.DAILY_FUNDS_CLOUDFLARE_API_TOKEN }}
@@ -870,6 +870,15 @@ jobs:
               CONTROL_POLL_SECONDS=5
               # This route only reads the fixed values-free recovery receipt.
               # It never creates a recovery request.
+              ;;
+            daily-funds-projection-probe-bridge)
+              CONTROL_KIND=PROJECTION
+              CONTROL_LABEL=daily_funds_projection_probe_bridge
+              CONTROL_PATH=/ops/api/daily-funds/projection-probe
+              CONTROL_POLL_ATTEMPTS=1
+              CONTROL_POLL_SECONDS=0
+              # This exact GET proves the app's read-only projection contract.
+              # It does not trigger a worker run or return financial values.
               ;;
             *) echo "daily_funds_control_bridge=MODE_INVALID"; exit 1 ;;
           esac
@@ -941,6 +950,8 @@ jobs:
           summarize_control() {
             if [ "$CONTROL_KIND" = "HISTORY" ]; then
               python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-probe "$@"
+            elif [ "$CONTROL_KIND" = "PROJECTION" ]; then
+              python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-projection "$@"
             else
               python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" summarize-recovery "$@"
             fi
@@ -949,6 +960,8 @@ jobs:
           control_poll_state() {
             if [ "$CONTROL_KIND" = "HISTORY" ]; then
               python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" probe-poll-state "$@"
+            elif [ "$CONTROL_KIND" = "PROJECTION" ]; then
+              python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" projection-poll-state "$@"
             else
               python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" recovery-poll-state "$@"
             fi
@@ -1151,7 +1164,7 @@ jobs:
           # control request. This is not a retry and accepts no input.
           sleep 10
 
-          if [ "$CONTROL_KIND" != "RECOVERY_STATUS" ]; then
+          if [ "$CONTROL_KIND" = "HISTORY" ] || [ "$CONTROL_KIND" = "RECOVERY" ]; then
             request_control POST "$bridge_dir/probe-post.json"
             summarize_control_start \
               --response "$bridge_dir/probe-post.json" --headers "$bridge_dir/probe-post.json.headers" --http-status "$REQUEST_STATUS" \
@@ -1175,7 +1188,11 @@ jobs:
             poll_state="$(control_poll_state --receipt "$bridge_dir/probe-receipt.json")"
             case "$poll_state" in
               COMPLETED)
-                probe_outcome=HISTORY_PROBE_COMPLETED
+                if [ "$CONTROL_KIND" = "PROJECTION" ]; then
+                  probe_outcome=PROJECTION_VERIFIED
+                else
+                  probe_outcome=HISTORY_PROBE_COMPLETED
+                fi
                 break
                 ;;
               PUBLISHED)
@@ -1206,6 +1223,7 @@ jobs:
           echo "$CONTROL_LABEL=$probe_outcome"
           case "$CONTROL_KIND" in
             HISTORY) test "$probe_outcome" = "HISTORY_PROBE_COMPLETED" ;;
+            PROJECTION) test "$probe_outcome" = "PROJECTION_VERIFIED" ;;
             RECOVERY|RECOVERY_STATUS)
               test "$probe_outcome" = "RECOVERY_ASYNC_RUNNING" || test "$probe_outcome" = "RECOVERY_PUBLISHED" || test "$probe_outcome" = "RECOVERY_PUBLISHED_NEEDS_REVIEW"
               ;;
@@ -1215,7 +1233,7 @@ jobs:
       # Each cleanup mode binds the prior run tag to one exact control path,
       # then proves the corresponding short-lived policy and token are absent.
       - name: 清理指定每日资金控制路径的短时 Access 身份
-        if: inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup'
+        if: inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup'
         env:
           CF_ACCOUNT_ID: ${{ secrets.DAILY_FUNDS_CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.DAILY_FUNDS_CLOUDFLARE_API_TOKEN }}
@@ -1230,6 +1248,10 @@ jobs:
             daily-funds-recovery-cleanup)
               CONTROL_LABEL=daily_funds_recovery_cleanup
               CONTROL_PATH=/ops/api/daily-funds/recovery
+              ;;
+            daily-funds-projection-probe-cleanup)
+              CONTROL_LABEL=daily_funds_projection_probe_cleanup
+              CONTROL_PATH=/ops/api/daily-funds/projection-probe
               ;;
             *) echo "daily_funds_control_cleanup=MODE_INVALID"; exit 1 ;;
           esac

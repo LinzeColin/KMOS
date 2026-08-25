@@ -2554,6 +2554,9 @@ DAILY_FUNDS_RECOVERY_MACHINE_CODES = {
     "DAILY_FUNDS_RECOVERY_EXPIRED",
     "DAILY_FUNDS_RECOVERY_UNHANDLED",
 }
+DAILY_FUNDS_PROJECTION_PROBE_SCHEMA = "kmfa.daily_funds.projection_probe.v1"
+DAILY_FUNDS_PROJECTION_PROBE_ENDPOINT_HEADER = "X-KMFA-Daily-Funds-Projection-Probe"
+DAILY_FUNDS_PROJECTION_PROBE_ENDPOINT_VALUE = "v1"
 DAILY_FUNDS_ALLOWED_RANGES = {"1d": 1, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "360d": 360}
 DAILY_FUNDS_HUMAN_STATUSES = {"已更新", "处理中", "需处理"}
 DAILY_FUNDS_HARD_THRESHOLD_FEN = 60_000_000
@@ -4385,6 +4388,40 @@ def daily_funds_source_health():
     return _daily_funds_source_health_view()
 
 
+@app.get("/ops/api/daily-funds/projection-probe")
+def daily_funds_projection_probe():
+    """Prove the complete read-only publication surface without returning money.
+
+    The daily-funds worker owns D1/R2/OCI writes.  This app owns only the
+    read-only projection volume, so the probe checks the exact worker-written
+    shape and the full browser read model, then reduces that proof to fixed
+    operational states.  It never returns the publication identifier, source
+    versions, account aliases, dates, totals, or any other financial value.
+    """
+
+    unavailable = {
+        "schema_version": DAILY_FUNDS_PROJECTION_PROBE_SCHEMA,
+        "state": "UNAVAILABLE",
+        "d1_projection": "UNVERIFIED",
+        "r2_mirror": "UNVERIFIED",
+        "oci_backup": "UNKNOWN",
+        "readonly_projection": "UNVERIFIED",
+    }
+    try:
+        payload = _daily_funds_current()
+        projection = _daily_funds_projection_view(payload)
+    except HTTPException:
+        return _daily_funds_projection_probe_response(unavailable)
+    return _daily_funds_projection_probe_response({
+        "schema_version": DAILY_FUNDS_PROJECTION_PROBE_SCHEMA,
+        "state": "PUBLISHED",
+        "d1_projection": "VERIFIED",
+        "r2_mirror": "VERIFIED",
+        "oci_backup": projection["backup_state"],
+        "readonly_projection": "VERIFIED",
+    })
+
+
 @app.get("/ops/api/daily-funds/cashflow-observations")
 @app.get("/api/daily-funds/cashflow-observations")
 def daily_funds_cashflow_observations(
@@ -4626,6 +4663,14 @@ def _daily_funds_recovery_error(*, status_code: int, detail: str) -> JSONRespons
 
     response = _daily_funds_auth_response({"detail": detail}, status_code=status_code)
     response.headers[DAILY_FUNDS_RECOVERY_ENDPOINT_HEADER] = DAILY_FUNDS_RECOVERY_ENDPOINT_VALUE
+    return response
+
+
+def _daily_funds_projection_probe_response(payload: dict[str, str]) -> JSONResponse:
+    """Return the fixed, values-free proof for the app's read-only projection."""
+
+    response = _daily_funds_auth_response(payload)
+    response.headers[DAILY_FUNDS_PROJECTION_PROBE_ENDPOINT_HEADER] = DAILY_FUNDS_PROJECTION_PROBE_ENDPOINT_VALUE
     return response
 
 

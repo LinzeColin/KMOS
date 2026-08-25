@@ -22,12 +22,14 @@ from urllib.parse import urlsplit
 ACCESS_BRIDGE_SCHEMA = "kmfa.daily_funds.cloudflare_access_bridge.v1"
 PROBE_PATH = "/ops/api/daily-funds/history-probe"
 RECOVERY_PATH = "/ops/api/daily-funds/recovery"
+PROJECTION_PATH = "/ops/api/daily-funds/projection-probe"
 KMFA_DAILY_FUNDS_ACCESS_ORIGIN = "https://kmfa.linzezhang.com"
 SERVICE_TOKEN_DURATION = "60m"
 _MAX_RESPONSE_BYTES = 512 * 1024
 _CONTROL_APPLICATION_NAMES = {
     PROBE_PATH: "kmfa-daily-funds-history-probe-control",
     RECOVERY_PATH: "kmfa-daily-funds-recovery-control",
+    PROJECTION_PATH: "kmfa-daily-funds-projection-probe-control",
 }
 # Cloudflare describes these opaque identifiers as UUIDs but does not promise
 # an RFC-version nibble.  Keep the route-safe canonical 36-character shape
@@ -91,6 +93,8 @@ _PROBE_ORIGIN_HEADER = b"x-kmfa-daily-funds-probe"
 _PROBE_ORIGIN_VALUE = b"v1"
 _RECOVERY_ORIGIN_HEADER = b"x-kmfa-daily-funds-recovery"
 _RECOVERY_ORIGIN_VALUE = b"v1"
+_PROJECTION_ORIGIN_HEADER = b"x-kmfa-daily-funds-projection-probe"
+_PROJECTION_ORIGIN_VALUE = b"v1"
 _MAX_RESPONSE_HEADER_BYTES = 65_536
 
 _RECOVERY_STATES = frozenset({"NOT_REQUESTED", "REQUESTED", "RUNNING", "WAITING", "SUCCEEDED", "FAILED", "EXPIRED"})
@@ -516,6 +520,14 @@ def _recovery_origin_confirmed(response_headers_path: str | Path) -> bool:
     )
 
 
+def _projection_origin_confirmed(response_headers_path: str | Path) -> bool:
+    return _origin_confirmed(
+        response_headers_path,
+        header=_PROJECTION_ORIGIN_HEADER,
+        expected_value=_PROJECTION_ORIGIN_VALUE,
+    )
+
+
 def _unexpected_http_transport(status: str) -> str:
     """Classify an unexpected fixed HTTP status without exposing the number."""
 
@@ -755,6 +767,111 @@ def probe_poll_state(receipt_path: str | Path) -> str:
         return "TERMINAL_NOT_MET"
     if payload.get("probe_state") in {"REQUESTED", "RUNNING"}:
         return "PENDING"
+    return "TERMINAL_NOT_MET"
+
+
+def _projection_summary(transport: str) -> dict[str, str]:
+    return {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": transport,
+        "projection_state": "UNCLASSIFIED",
+        "d1_projection": "UNCLASSIFIED",
+        "r2_mirror": "UNCLASSIFIED",
+        "oci_backup": "UNCLASSIFIED",
+        "readonly_projection": "UNCLASSIFIED",
+        "result": "NOT_MET",
+    }
+
+
+def summarize_projection_response(
+    response_path: str | Path,
+    *,
+    response_headers_path: str | Path,
+    http_status: object,
+    curl_exit: object,
+) -> dict[str, str]:
+    """Reduce the app's complete read-only projection check to finite states."""
+
+    try:
+        curl_ok = int(curl_exit) == 0
+    except (TypeError, ValueError):
+        curl_ok = False
+    status = str(http_status)
+    if not curl_ok or _HTTP_STATUS_RE.fullmatch(status) is None:
+        return _projection_summary("TRANSPORT_FAILED")
+    if status in {"401", "403"}:
+        return _projection_summary("HTTP_DENIED")
+    if status != "200":
+        return _projection_summary(_unexpected_http_transport(status))
+    if not _projection_origin_confirmed(response_headers_path):
+        return _projection_summary("HTTP_ORIGIN_UNVERIFIED")
+    try:
+        payload = _read_object(response_path)
+    except AccessBridgeInputError:
+        return _projection_summary("INVALID_RESPONSE")
+    expected = {
+        "schema_version", "state", "d1_projection", "r2_mirror", "oci_backup", "readonly_projection",
+    }
+    if set(payload) != expected or payload.get("schema_version") != "kmfa.daily_funds.projection_probe.v1":
+        return _projection_summary("INVALID_RESPONSE")
+    state = payload.get("state")
+    d1_projection = payload.get("d1_projection")
+    r2_mirror = payload.get("r2_mirror")
+    oci_backup = payload.get("oci_backup")
+    readonly_projection = payload.get("readonly_projection")
+    if state == "UNAVAILABLE":
+        if (
+            d1_projection != "UNVERIFIED"
+            or r2_mirror != "UNVERIFIED"
+            or oci_backup != "UNKNOWN"
+            or readonly_projection != "UNVERIFIED"
+        ):
+            return _projection_summary("INVALID_RESPONSE")
+        return {
+            "schema_version": ACCESS_BRIDGE_SCHEMA,
+            "transport": "OK",
+            "projection_state": "UNAVAILABLE",
+            "d1_projection": "UNVERIFIED",
+            "r2_mirror": "UNVERIFIED",
+            "oci_backup": "UNKNOWN",
+            "readonly_projection": "UNVERIFIED",
+            "result": "NOT_MET",
+        }
+    if (
+        state != "PUBLISHED"
+        or d1_projection != "VERIFIED"
+        or r2_mirror != "VERIFIED"
+        or readonly_projection != "VERIFIED"
+        or oci_backup not in {"OK", "LAG", "PENDING"}
+    ):
+        return _projection_summary("INVALID_RESPONSE")
+    return {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "projection_state": "PUBLISHED",
+        "d1_projection": "VERIFIED",
+        "r2_mirror": "VERIFIED",
+        "oci_backup": oci_backup,
+        "readonly_projection": "VERIFIED",
+        "result": "PROJECTION_VERIFIED" if oci_backup == "OK" else "PROJECTION_NEEDS_REVIEW",
+    }
+
+
+def projection_poll_state(receipt_path: str | Path) -> str:
+    """Return whether a values-free projection receipt proves full publication."""
+
+    try:
+        payload = _read_object(receipt_path)
+    except AccessBridgeInputError:
+        return "TERMINAL_NOT_MET"
+    expected = {
+        "schema_version", "transport", "projection_state", "d1_projection", "r2_mirror",
+        "oci_backup", "readonly_projection", "result",
+    }
+    if set(payload) != expected or payload.get("schema_version") != ACCESS_BRIDGE_SCHEMA:
+        return "TERMINAL_NOT_MET"
+    if payload.get("result") == "PROJECTION_VERIFIED":
+        return "COMPLETED"
     return "TERMINAL_NOT_MET"
 
 

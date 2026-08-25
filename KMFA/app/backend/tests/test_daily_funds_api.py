@@ -763,6 +763,61 @@ def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypa
     assert client.get("/api/daily-funds/summary", params={"range": "custom", "from": "2026-07-30", "to": "2026-07-30"}).status_code == 422
 
 
+def test_daily_funds_projection_probe_is_values_free_and_requires_the_full_read_model(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/projection-probe")
+
+    assert response.status_code == 200
+    assert response.headers[main_module.DAILY_FUNDS_PROJECTION_PROBE_ENDPOINT_HEADER] == "v1"
+    assert response.headers["cache-control"] == "private, no-store"
+    assert response.json() == {
+        "schema_version": "kmfa.daily_funds.projection_probe.v1",
+        "state": "PUBLISHED",
+        "d1_projection": "VERIFIED",
+        "r2_mirror": "VERIFIED",
+        "oci_backup": "OK",
+        "readonly_projection": "VERIFIED",
+    }
+
+    current_path = publication / "current.json"
+    current = json.loads(current_path.read_text(encoding="utf-8"))
+    current["untrusted_raw"] = "must-not-escape"
+    current_path.write_text(json.dumps(current), encoding="utf-8")
+
+    unavailable = client.get("/ops/api/daily-funds/projection-probe")
+    assert unavailable.json() == {
+        "schema_version": "kmfa.daily_funds.projection_probe.v1",
+        "state": "UNAVAILABLE",
+        "d1_projection": "UNVERIFIED",
+        "r2_mirror": "UNVERIFIED",
+        "oci_backup": "UNKNOWN",
+        "readonly_projection": "UNVERIFIED",
+    }
+    assert "must-not-escape" not in unavailable.text
+
+    current.pop("untrusted_raw")
+    current_path.write_text(json.dumps(current), encoding="utf-8")
+    current = json.loads(current_path.read_text(encoding="utf-8"))
+    current["runtime"] = {
+        "oci_backup_state": "LAG",
+        "git_publication_commit_sha": "f" * 40,
+    }
+    current_path.write_text(json.dumps(current), encoding="utf-8")
+
+    lagging = client.get("/ops/api/daily-funds/projection-probe")
+    assert lagging.json() == {
+        "schema_version": "kmfa.daily_funds.projection_probe.v1",
+        "state": "PUBLISHED",
+        "d1_projection": "VERIFIED",
+        "r2_mirror": "VERIFIED",
+        "oci_backup": "LAG",
+        "readonly_projection": "VERIFIED",
+    }
+
+
 def test_unpublished_daily_funds_projection_is_values_free_but_usable(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     publication.mkdir()

@@ -31,6 +31,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     diagnose_bridge_target,
     owned_bridge_resource_ids,
     policy_payload,
+    projection_poll_state,
     probe_poll_state,
     probe_start_poll_state,
     recovery_poll_state,
@@ -39,6 +40,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     service_token_payload,
     summarize_recovery_start_response,
     summarize_recovery_response,
+    summarize_projection_response,
     summarize_probe_start_response,
     summarize_probe_response,
     validate_success_response,
@@ -217,6 +219,16 @@ def main(argv: list[str] | None = None) -> int:
     recovery_start_poll = subparsers.add_parser("recovery-start-poll-state")
     recovery_start_poll.add_argument("--receipt", required=True)
 
+    projection_summary = subparsers.add_parser("summarize-projection")
+    projection_summary.add_argument("--response", required=True)
+    projection_summary.add_argument("--headers", required=True)
+    projection_summary.add_argument("--http-status", required=True)
+    projection_summary.add_argument("--curl-exit", required=True)
+    projection_summary.add_argument("--output")
+
+    projection_poll = subparsers.add_parser("projection-poll-state")
+    projection_poll.add_argument("--receipt", required=True)
+
     owned = subparsers.add_parser("write-owned-resource-env")
     owned.add_argument("--service-tokens", required=True)
     owned.add_argument("--policies", required=True)
@@ -322,6 +334,19 @@ def main(argv: list[str] | None = None) -> int:
             print(recovery_poll_state(args.receipt))
         elif args.command == "recovery-start-poll-state":
             print(recovery_start_poll_state(args.receipt))
+        elif args.command == "summarize-projection":
+            receipt = summarize_projection_response(
+                args.response,
+                response_headers_path=args.headers,
+                http_status=args.http_status,
+                curl_exit=args.curl_exit,
+            )
+            if args.output:
+                write_private_json(_private_output(parser, args), receipt)
+            else:
+                print(json.dumps(receipt, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+        elif args.command == "projection-poll-state":
+            print(projection_poll_state(args.receipt))
         elif args.command == "write-owned-resource-env":
             _write_owned_resource_material(
                 _private_output(parser, args),

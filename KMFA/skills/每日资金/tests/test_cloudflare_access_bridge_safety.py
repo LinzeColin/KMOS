@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 from daily_funds.access_bridge import (  # noqa: E402
     ACCESS_BRIDGE_SCHEMA,
     AccessBridgeInputError,
+    PROJECTION_PATH,
     PROBE_PATH,
     RECOVERY_PATH,
     capture_policy,
@@ -27,6 +28,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     diagnose_bridge_target,
     owned_bridge_resource_ids,
     policy_payload,
+    projection_poll_state,
     probe_poll_state,
     probe_start_poll_state,
     recovery_poll_state,
@@ -35,6 +37,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     service_token_payload,
     summarize_recovery_start_response,
     summarize_recovery_response,
+    summarize_projection_response,
     summarize_probe_start_response,
     summarize_probe_response,
 )
@@ -58,6 +61,12 @@ def _probe_headers(path: Path, *, origin_marker: bool = True) -> Path:
 
 def _recovery_headers(path: Path, *, origin_marker: bool = True) -> Path:
     marker = b"X-KMFA-Daily-Funds-Recovery: v1\r\n" if origin_marker else b""
+    path.write_bytes(b"HTTP/2 200\r\n" + marker + b"Cache-Control: private, no-store\r\n\r\n")
+    return path
+
+
+def _projection_headers(path: Path, *, origin_marker: bool = True) -> Path:
+    marker = b"X-KMFA-Daily-Funds-Projection-Probe: v1\r\n" if origin_marker else b""
     path.write_bytes(b"HTTP/2 200\r\n" + marker + b"Cache-Control: private, no-store\r\n\r\n")
     return path
 
@@ -108,6 +117,17 @@ def _valid_probe(
         "continuation_state": continuation,
         "cursor_transcript": cursor,
         "record_list_shape": record_list_shape,
+    }
+
+
+def _valid_projection(*, oci_backup: str = "OK") -> dict[str, str]:
+    return {
+        "schema_version": "kmfa.daily_funds.projection_probe.v1",
+        "state": "PUBLISHED",
+        "d1_projection": "VERIFIED",
+        "r2_mirror": "VERIFIED",
+        "oci_backup": oci_backup,
+        "readonly_projection": "VERIFIED",
     }
 
 
@@ -288,6 +308,12 @@ def test_control_application_payload_and_policy_state_are_fixed_and_values_free(
     assert control_application_payload(RECOVERY_PATH) == {
         "name": "kmfa-daily-funds-recovery-control",
         "domain": f"kmfa.linzezhang.com{RECOVERY_PATH}",
+        "type": "self_hosted",
+        "app_launcher_visible": False,
+    }
+    assert control_application_payload(PROJECTION_PATH) == {
+        "name": "kmfa-daily-funds-projection-probe-control",
+        "domain": f"kmfa.linzezhang.com{PROJECTION_PATH}",
         "type": "self_hosted",
         "app_launcher_visible": False,
     }
@@ -741,6 +767,69 @@ def test_recovery_poll_keeps_control_server_errors_terminal(tmp_path: Path) -> N
     assert recovery_poll_state(receipt) == "TERMINAL_NOT_MET"
 
 
+def test_projection_probe_receipt_requires_full_storage_and_readonly_projection(tmp_path: Path) -> None:
+    response = tmp_path / "projection.json"
+    headers = _projection_headers(tmp_path / "projection.headers")
+    _write(response, _valid_projection())
+
+    summary = summarize_projection_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+
+    assert summary == {
+        "schema_version": ACCESS_BRIDGE_SCHEMA,
+        "transport": "OK",
+        "projection_state": "PUBLISHED",
+        "d1_projection": "VERIFIED",
+        "r2_mirror": "VERIFIED",
+        "oci_backup": "OK",
+        "readonly_projection": "VERIFIED",
+        "result": "PROJECTION_VERIFIED",
+    }
+    _write(response, summary)
+    assert projection_poll_state(response) == "COMPLETED"
+
+    _write(response, _valid_projection(oci_backup="LAG"))
+    lagging = summarize_projection_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+    assert lagging["result"] == "PROJECTION_NEEDS_REVIEW"
+    _write(response, lagging)
+    assert projection_poll_state(response) == "TERMINAL_NOT_MET"
+
+    _write(response, {
+        "schema_version": "kmfa.daily_funds.projection_probe.v1",
+        "state": "UNAVAILABLE",
+        "d1_projection": "UNVERIFIED",
+        "r2_mirror": "UNVERIFIED",
+        "oci_backup": "UNKNOWN",
+        "readonly_projection": "UNVERIFIED",
+        "untrusted": "must-not-escape",
+    })
+    malformed = summarize_projection_response(
+        response,
+        response_headers_path=headers,
+        http_status="200",
+        curl_exit=0,
+    )
+    assert malformed["result"] == "NOT_MET"
+    assert "must-not-escape" not in json.dumps(malformed)
+
+    unmarked = summarize_projection_response(
+        response,
+        response_headers_path=_projection_headers(tmp_path / "unmarked.headers", origin_marker=False),
+        http_status="200",
+        curl_exit=0,
+    )
+    assert unmarked["transport"] == "HTTP_ORIGIN_UNVERIFIED"
+
+
 def test_recovery_start_receipt_is_fixed_and_only_pending_is_pollable(tmp_path: Path) -> None:
     response = tmp_path / "recovery-start.json"
     headers = _recovery_headers(tmp_path / "recovery-start.headers")
@@ -832,6 +921,17 @@ def test_bridge_manager_writes_private_material_and_only_prints_finite_receipt(t
     assert "kmfa.linzezhang.com" not in output
     assert "service-secret" not in output
 
+    projection = tmp_path / "projection.json"
+    projection_headers = _projection_headers(tmp_path / "projection.headers")
+    _write(projection, _valid_projection())
+    assert manager.main([
+        "summarize-projection", "--response", str(projection), "--headers", str(projection_headers), "--http-status", "200", "--curl-exit", "0",
+    ]) == 0
+    output = capsys.readouterr().out
+    assert json.loads(output)["result"] == "PROJECTION_VERIFIED"
+    assert "kmfa.linzezhang.com" not in output
+    assert "service-secret" not in output
+
 
 def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() -> None:
     workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
@@ -842,13 +942,16 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "inputs.mode == 'daily-funds-history-probe-bridge'" in step
     assert "inputs.mode == 'daily-funds-recovery-bridge'" in step
     assert "inputs.mode == 'daily-funds-recovery-status-bridge'" in step
+    assert "inputs.mode == 'daily-funds-projection-probe-bridge'" in step
     assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
     assert "access/service_tokens" in step
     assert "/access/apps/${CF_ACCESS_APP_ID}/policies" in step
     assert "CF-Access-Client-Secret" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/history-probe" in step
     assert "CONTROL_PATH=/ops/api/daily-funds/recovery" in step
+    assert "CONTROL_PATH=/ops/api/daily-funds/projection-probe" in step
     assert "CONTROL_KIND=RECOVERY_STATUS" in step
+    assert "CONTROL_KIND=PROJECTION" in step
     assert '"$CONTROL_ORIGIN$CONTROL_PATH"' in step
     assert "diagnose-target" in step
     assert "--coolify-env" not in step
@@ -862,6 +965,7 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "capture-policy" in step
     assert "summarize-probe-start" in step
     assert "summarize-recovery-start" in step
+    assert "summarize-projection" in step
     assert '-D "$output.headers"' in step
     assert "probe-post.json.headers" in step
     assert "probe-get.json.headers" in step
@@ -870,13 +974,14 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "CONTROL_POLL_ATTEMPTS=3" in step
     assert "ASYNC_RUNNING)" in step
     assert "RECOVERY_ASYNC_RUNNING" in step
-    assert 'if [ "$CONTROL_KIND" != "RECOVERY_STATUS" ]; then' in step
+    assert 'if [ "$CONTROL_KIND" = "HISTORY" ] || [ "$CONTROL_KIND" = "RECOVERY" ]; then' in step
     assert "RECOVERY|RECOVERY_STATUS)" in step
+    assert "PROJECTION) test \"$probe_outcome\" = \"PROJECTION_VERIFIED\" ;;" in step
     assert "RETRY)" in step
     assert "sleep 10" in step
     policy_ready = step.index("policy_created=1")
     access_settle = step.index("sleep 10", policy_ready)
-    status_post_guard = step.index('if [ "$CONTROL_KIND" != "RECOVERY_STATUS" ]; then')
+    status_post_guard = step.index('if [ "$CONTROL_KIND" = "HISTORY" ] || [ "$CONTROL_KIND" = "RECOVERY" ]; then')
     assert policy_ready < access_settle < status_post_guard
     assert "reconcile_owned_resources()" in step
     assert "write-owned-resource-env" in step
@@ -889,6 +994,7 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
 
     assert "daily-funds-history-probe-cleanup" in workflow
     assert "daily-funds-recovery-cleanup" in workflow
+    assert "daily-funds-projection-probe-cleanup" in workflow
     assert "inputs.bridge_run_tag" in workflow
     assert "RUN_TAG_INVALID" in workflow
 
