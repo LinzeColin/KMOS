@@ -9,7 +9,15 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage102 P1 accepted locally - 2026-08-25
+## Current Gate - Stage102 P2 recoverable checkpoint - 2026-08-25
+
+- `IDS-V0_1-STAGE102-P2` 已建立可恢复开发检查点；当前治理状态保持 `IDS-STAGE102 / IDS-STAGE102-P1 / IDS-V0_1-STAGE102-P1 / IDS-STAGE102-P2-GATE`。P2 尚待治理投影、历史白箱链与本地验收，P3 保持新的独立 run 门禁。
+- 检查点固定 `7` 条非业务、`reference-only` 控制请求，每条 `28` 个未来控制引用；四组白箱投影共 `50` 字段／条、`350` 个检查点，覆盖回答可复现记录、文档内潜在指令防护、来源类型与外部增强分离，以及模型输出权限和人工确认门禁。
+- 本次保全范围包括 P2 的纯内存控制模块、静态合同、中文范围说明、聚焦测试和本地回执。当前回执记录 `0` 个运行时请求、`0` 个模型 Token、`0` 个 Agent 执行，全部运行时标志为 `false`；治理验收结果继续由后续 P2 run 填入。
+- 本检查点只保全可恢复开发状态；真实资料、文档正文、查询、检索、Prompt、模型、OVH、生产、main 与 release 保持既有门禁。回滚目标为已验收的 Stage102 P1 提交 `952dfa06e`。
+- 下一步：续接 P2 的治理投影与白箱验收；通过后再以独立 run 进入 `IDS-STAGE102-P3-GATE`。
+
+## Superseded Gate - Stage102 P1 accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE102-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE102 / IDS-STAGE102-P1 / IDS-V0_1-STAGE102-P1 / IDS-STAGE102-P2-GATE`。P2 保持未启动，且只可由新的独立 run 进入。
 - P1 固定 `17` 个未来控制引用：文档 evidence、文档内潜在指令、IDS 规则、Prompt 版本、提示注入防护策略、查询、索引、所选 evidence、内部依据、外部增强、evidence_gap、来源类型、模型输出权限、业务线白箱人工确认与审计边界；同时固定 `7` 类潜在指令越权类别、`4` 类底层来源类型、`5` 类输出权限、`25` 类失败关闭和 `4` 条中文反馈。
