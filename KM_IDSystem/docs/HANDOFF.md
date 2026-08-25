@@ -9,7 +9,16 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage101 P1 accepted locally - 2026-08-25
+## Current Gate - Stage101 P2 accepted locally - 2026-08-25
+
+- `IDS-V0_1-STAGE101-P2` 已完成本地验收；当前治理状态为 `IDS-STAGE101 / IDS-STAGE101-P2 / IDS-V0_1-STAGE101-P2 / IDS-STAGE101-P3-GATE`。Stage101 P3 保持未启动，且只可由新的独立 run 进入。
+- P2 固定 `6` 条非业务、`reference-only` 控制请求，每条 `23` 个未来控制引用；四组投影分别覆盖回答合同与可复现绑定、query/index/prompt/model/selected evidence 记录、来源类型与外部增强展示、提示注入与输出权限，共 `45` 字段／条、`270` 个检查点。`8` 个记录键引用保持 query、index_version、prompt_version、model_provider、model_version、temperature、retrieval_context 与 selected_evidence 的可复现形状。
+- 已验证：P1/P2 聚焦 `17/17`，Stage088--Stage101 精确白箱链 `663/663`；Stage005 当前态治理投影全项为真；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞和双平面检查均通过。验证范围只覆盖冻结控制工件、治理兼容和零运行时边界。
+- 检索文档保持 evidence 身份且文档内指令无法覆盖 IDS 规则；内部依据不足保持 `evidence_gap`，外部公开参考与模型推理作为外部增强展示时保留各自底层来源类型。`safe_summary`、`draft_recommendation`、高风险工程建议、合同承诺和生产写回仅定义未来分类语义；高风险工程建议、合同承诺与生产写回保持业务线白箱人工确认，最终结论保持未发布。
+- 本轮继续只使用 `codex/kmids-stage071-p1` 与唯一开发 worktree；main、release、正式全局上传、OVH、生产、模型与 Agent 保持后续门禁范围。运行计数均为 `0`，运行标志均为 `false`，模型 Token 与 Agent 执行计数均为 `0`。
+- 回滚范围仅包括本次 P2 的范围说明、纯内存控制切片、静态合同、聚焦用例、机器事实、治理路线、中文视图、本地回执、事件和本交接，恢复到 `PHASE1_RAG_REPRODUCIBILITY_CONTRACT_RUNTIME_DISABLED`。Stage101 P1、Stage100 P1/P2/P3/P4/Review、冻结任务包、受保护资料、GitHub main/release、OVH 与应用状态保持原状。
+
+## Superseded Gate - Stage101 P1 accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE101-P1` 已完成本地验收；当前治理状态为 `IDS-STAGE101 / IDS-STAGE101-P1 / IDS-V0_1-STAGE101-P1 / IDS-STAGE101-P2-GATE`。Stage101 P2 仅作为未启动的下一独立 run 门禁。
 - P1 固定未来 RAG 回答的 `15` 个可复现控制引用：回答结构、查询、索引、Prompt、模型提供方、模型版本、温度、检索上下文、所选依据、内部依据、外部增强、evidence_gap、来源类型、输出权限和人工确认门禁；其中 `8` 个记录键引用覆盖 query、index_version、prompt_version、model_provider、model_version、temperature、retrieval_context 与 selected_evidence。

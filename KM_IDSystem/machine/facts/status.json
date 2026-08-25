@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE101",
-  "phase": "IDS-STAGE101-P1",
-  "task": "IDS-V0_1-STAGE101-P1",
-  "real_progress": "Stage101 已在纯内存中完成 RAG 可复现 P1 静态合同：未来回答的查询、索引、Prompt、模型、检索上下文、所选依据、来源语义、内部依据不足、输出权限和人工确认门禁保持为可审计控制引用。",
-  "report_grade": "冻结 Stage101 任务包与已复审 Stage100 无内部依据策略控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "检索文档保持 evidence 身份且 IDS 规则保持优先级；内部依据不足保持 evidence_gap，外部增强保留底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理，人工确认未记录，最终结论未发布。Stage101 P2 只开放下一门禁，尚未启动。",
-  "evidence_status": "STAGE101_RAG_REPRODUCIBILITY_CONTRACT_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE101-P2",
+  "task": "IDS-V0_1-STAGE101-P2",
+  "real_progress": "Stage101 已在纯内存中完成 RAG 可复现 P2 受控最小切片：六条固定、非业务、reference-only 控制请求保留回答结构、查询、索引、Prompt、模型提供方、模型版本、温度、检索上下文、所选依据、来源语义、输出权限和人工确认门禁的可审计控制引用。",
+  "report_grade": "冻结 Stage101 任务包、Stage101 P1 静态合同与已复审 Stage100 无内部依据策略控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "检索文档保持 evidence 身份且 IDS 规则保持优先级；内部依据不足保持 evidence_gap，external_augmentation_opinion 只作展示组合并保留底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理，人工确认未记录，最终结论未发布。Stage101 P3 只开放下一门禁，尚未启动。",
+  "evidence_status": "STAGE101_RAG_REPRODUCIBILITY_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE101-P2-GATE",
+  "next_gate": "IDS-STAGE101-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
