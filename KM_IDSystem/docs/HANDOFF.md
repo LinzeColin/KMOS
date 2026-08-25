@@ -16,7 +16,7 @@
 - 已验证：P3 聚焦 `8/8`，Stage088--Stage102 精确白箱链 `712/712`，Stage005 治理回归 `178/178`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
 - 文档内潜在指令保持不可信、不可执行控制引用，不能覆盖 IDS 规则；无内部依据保持 `evidence_gap`，不作为内部经验呈现；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。
 - 回执记录所有运行计数为 `0`、所有运行标志为 `false`，其中模型 Token 与 Agent 执行均为 `0`。真实资料、文档正文、查询、检索、Prompt、模型、OVH、生产、main 与 release 保持既有门禁。
-- 用户授权的恢复推送已将既有隔离分支 `codex/kmids-stage071-p1` 同步到已验收的 Stage102 P2 提交 `4f0f6c6752aa13fbba02b8d95d6ad6308bf086e4`；P3 只建立同一分支上的本地恢复提交，正式全局上传保持关闭。
+- 用户授权的恢复推送已将既有隔离分支 `codex/kmids-stage071-p1` 同步到已验收的 Stage102 P3 恢复提交；该同步只保全恢复能力，正式全局上传继续保持关闭。
 - 下一步：只在新的独立 run 进入 `IDS-STAGE102-P4-GATE`，继续复用唯一开发 worktree 与分支。
 
 ## Superseded Gate - Stage102 P2 accepted locally - 2026-08-25

@@ -104,7 +104,7 @@
     "stage102_p2_evidence_preserved": true,
     "user_authorized_recovery_checkpoint_push_performed": true,
     "user_authorized_recovery_checkpoint_branch": "codex/kmids-stage071-p1",
-    "user_authorized_recovery_checkpoint_commit": "68cecab378a901ce23f1f8d0e3439ef6eb636491",
+    "user_authorized_recovery_checkpoint_commit": "a2486f0b881063913a7d601552848dde0e8dc436",
     "phase_delivery_push_performed": false,
     "stage102_p3_github_upload_performed": false,
     "stage102_p3_push_performed": false,
