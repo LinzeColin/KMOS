@@ -136,6 +136,17 @@ _SOURCE_DISCOVERY_STATES = frozenset({
 })
 _EXPLICIT_FACT_FAMILIES = frozenset({ACCOUNT_FAMILY, "资金流水明细"})
 _GENERIC_DOCUMENT_FAMILY = "资金明细"
+# A raw-archive failure reaches the recovery broker through a fixed session
+# schema.  Preserve the privacy boundary by projecting only decision-relevant
+# operational classes.  The projection contains no provider response, source
+# identity, filename, byte count, hash, amount, or exception text.
+_RAW_ARCHIVE_AUDIT_FAILURE_PROJECTIONS = {
+    "GIT_AUDIT_TRANSPORT_RETRYABLE": "RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE",
+    "SOURCE_MISSING": "RAW_ARCHIVE_AUDIT_SOURCE_MISSING",
+    "RAW_ARCHIVE_CENSUS_LIMIT_EXCEEDED": "RAW_ARCHIVE_AUDIT_CENSUS_LIMIT",
+    "GIT_READBACK_FAILED": "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW",
+    "GIT_SPARSE_SCOPE_VIOLATION": "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW",
+}
 
 
 @dataclass(frozen=True)
@@ -1840,14 +1851,21 @@ class DailyFundsRuntime:
         except IngestionError as exc:
             if exc.code == "RAW_ARCHIVE_AUDIT_LOCK_HELD":
                 return self.status.write("处理中", exc.code)
-            # The precise private-Git/DWS-envelope error remains in neither
-            # cron output nor the shared status projection.  This controlled
-            # result is still an explicit non-pass and cannot be promoted to
-            # a real parser, source-pair or financial publication receipt.
+            # The precise private archive error remains in neither cron output
+            # nor the shared status projection.  The recovery broker receives
+            # only a fixed operational class, which remains an explicit
+            # non-pass and cannot be promoted to a parser, source-pair, or
+            # financial-publication receipt.
             self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
-            return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
+            return {
+                "ok": False,
+                "code": _RAW_ARCHIVE_AUDIT_FAILURE_PROJECTIONS.get(
+                    exc.code,
+                    "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+                ),
+            }
 
     def _raw_archive_audit_locked(self) -> dict[str, Any]:
         """Run one full raw-archive audit while its process lock is held."""
@@ -1870,7 +1888,7 @@ class DailyFundsRuntime:
             self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
-            return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW"}
+            return {"ok": False, "code": "RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW"}
 
         # A capability receipt becomes visible only after this exact complete
         # private-Git census succeeds.  Retaining historic evidence is useful

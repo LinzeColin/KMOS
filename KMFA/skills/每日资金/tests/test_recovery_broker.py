@@ -211,6 +211,39 @@ def test_recovery_preserves_the_runtime_configuration_classification(tmp_path: P
     assert "must-not-escape" not in json.dumps(session)
 
 
+@pytest.mark.parametrize(("audit_code", "expected_machine_code"), (
+    ("RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE", "DAILY_FUNDS_RECOVERY_AUDIT_TRANSPORT_UNAVAILABLE"),
+    ("RAW_ARCHIVE_AUDIT_SOURCE_MISSING", "DAILY_FUNDS_RECOVERY_AUDIT_SOURCE_MISSING"),
+    ("RAW_ARCHIVE_AUDIT_CENSUS_LIMIT", "DAILY_FUNDS_RECOVERY_AUDIT_CENSUS_LIMIT"),
+    ("RAW_ARCHIVE_AUDIT_INTEGRITY_NEEDS_REVIEW", "DAILY_FUNDS_RECOVERY_AUDIT_INTEGRITY_NEEDS_REVIEW"),
+))
+def test_recovery_projects_only_safe_raw_archive_failure_classes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    audit_code: str,
+    expected_machine_code: str,
+) -> None:
+    config = _config(tmp_path)
+
+    class FakeRuntime:
+        def __init__(self, _actual_config: DailyFundsConfig) -> None:
+            return None
+
+        def raw_archive_audit(self):
+            return {"ok": False, "code": audit_code, "private_raw": "must-not-escape"}
+
+    monkeypatch.setattr(recovery_module, "DailyFundsRuntime", FakeRuntime)
+    _request(config, "e" * 64)
+    DailyFundsRecoveryBroker(config).run_once()
+
+    session = json.loads((config.control_dir / SESSION_FILE).read_text(encoding="utf-8"))
+    assert session["state"] == "FAILED"
+    assert session["machine_code"] == expected_machine_code
+    assert session["completed_steps"] == []
+    assert session["active_step"] == "RAW_ARCHIVE_AUDIT"
+    assert "must-not-escape" not in json.dumps(session)
+
+
 def test_recovery_rejects_malformed_control_input_before_constructing_runtime(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
