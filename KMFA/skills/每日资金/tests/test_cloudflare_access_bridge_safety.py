@@ -928,6 +928,11 @@ def test_workflow_component_restart_requires_an_exact_compose_component_mapping(
     assert 'app.get("name") != "kmfa-kmos-p1"' in step
     assert 'app.get("build_pack") != "dockercompose"' in step
     assert '"docker_compose_raw"' in step
+    assert 'destination_id = app.get("destination_id")' in step
+    assert 'destination_type = app.get("destination_type")' in step
+    assert "TARGET_RUNTIME_BINDING_UNAVAILABLE" in step
+    assert 'service.get("destination_id") != destination_id' in step
+    assert 'service.get("destination_type") != destination_type' in step
     assert "app_compose.isdisjoint(service_compose)" in step
     assert 'component.get("name") == "daily-funds"' in step
     assert '"$BASE/api/v1/services"' in step

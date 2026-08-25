@@ -2033,9 +2033,10 @@ jobs:
           echo "daily_funds_recovery_restart=REQUESTED"
 
       # A Docker Compose Application restart can leave a separately modelled
-      # Compose component untouched. This action uses Coolify's service-
-      # application lifecycle API only after proving that the service has the
-      # same compose payload and environment as the fixed KMFA application.
+      # Compose component untouched. Coolify can withhold the Application's
+      # raw compose content, so this action binds the fixed Application to a
+      # Service by its exact environment and destination. It then requires the
+      # fixed daily-funds service/container declaration and one component row.
       - name: 精确重启每日资金组件
         if: inputs.mode == 'daily-funds-recovery-component-restart'
         run: |
@@ -2110,19 +2111,26 @@ jobs:
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
               fail("TARGET_UNEXPECTED")
           environment_id = app.get("environment_id")
+          destination_id = app.get("destination_id")
+          destination_type = app.get("destination_type")
           app_compose = compose_variants(app)
-          if environment_id is None or not app_compose:
-              fail("TARGET_COMPOSE_UNAVAILABLE")
+          if environment_id is None or destination_id is None or not isinstance(destination_type, str):
+              fail("TARGET_RUNTIME_BINDING_UNAVAILABLE")
 
           matching_services: list[str] = []
           for service in services:
-              if not isinstance(service, dict) or service.get("environment_id") != environment_id:
+              if (
+                  not isinstance(service, dict)
+                  or service.get("environment_id") != environment_id
+                  or service.get("destination_id") != destination_id
+                  or service.get("destination_type") != destination_type
+              ):
                   continue
               service_uuid = service.get("uuid")
               service_compose = compose_variants(service)
               if not isinstance(service_uuid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{6,128}", service_uuid):
                   continue
-              if app_compose.isdisjoint(service_compose):
+              if app_compose and app_compose.isdisjoint(service_compose):
                   continue
               if not any(contains_daily_funds_component(compose) for compose in service_compose):
                   continue
