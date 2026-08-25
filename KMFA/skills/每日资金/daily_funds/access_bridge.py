@@ -25,7 +25,10 @@ RECOVERY_PATH = "/ops/api/daily-funds/recovery"
 KMFA_DAILY_FUNDS_ACCESS_ORIGIN = "https://kmfa.linzezhang.com"
 SERVICE_TOKEN_DURATION = "60m"
 _MAX_RESPONSE_BYTES = 512 * 1024
-_AUD_RE = re.compile(r"^[a-f0-9]{64}$")
+_CONTROL_APPLICATION_NAMES = {
+    PROBE_PATH: "kmfa-daily-funds-history-probe-control",
+    RECOVERY_PATH: "kmfa-daily-funds-recovery-control",
+}
 # Cloudflare describes these opaque identifiers as UUIDs but does not promise
 # an RFC-version nibble.  Keep the route-safe canonical 36-character shape
 # without needlessly rejecting a valid provider-generated identifier.
@@ -216,81 +219,71 @@ def _parse_public_domain(value: object) -> tuple[str, str]:
     return f"https://{host}", path
 
 
-def _path_covers_probe(path: str) -> bool:
-    """Accept only a specific /ops path pattern, never a host-wide catchall."""
-
-    if path in {PROBE_PATH, f"{PROBE_PATH}/*"}:
-        return True
-    prefixes = ("/ops/*", "/ops/api/*", "/ops/api/daily-funds/*")
-    return path in prefixes
+def _validated_control_path(control_path: object) -> str:
+    if not isinstance(control_path, str) or control_path not in _CONTROL_APPLICATION_NAMES:
+        raise AccessBridgeInputError("control path invalid")
+    return control_path
 
 
-def _path_is_narrow_ops_scope(path: str) -> bool:
-    """Allow the exact ``/ops`` landing path alongside probe-capable paths.
+def control_application_payload(control_path: str) -> dict[str, object]:
+    """Declare the exact child Access application for one fixed control route."""
 
-    An exact landing path does not cover the fixed history-probe route, but it
-    also cannot extend a short-lived service token outside the operational
-    namespace.  Callers must separately require at least one destination that
-    does cover ``PROBE_PATH``.
-    """
+    path = _validated_control_path(control_path)
+    return {
+        "name": _CONTROL_APPLICATION_NAMES[path],
+        "domain": f"kmfa.linzezhang.com{path}",
+        "type": "self_hosted",
+        "app_launcher_visible": False,
+    }
 
-    return path == "/ops" or _path_covers_probe(path)
 
-
-def _narrow_app_origin(app: Mapping[str, Any]) -> str | None:
-    """Return a validated narrow origin, or ``None`` for an unsafe app.
-
-    Cloudflare's newer ``destinations`` field is authoritative when present.
-    Some provider responses retain a stale legacy ``domain`` field after a
-    path migration, so using that field as a second routing authority would
-    incorrectly reject an otherwise narrow application.  We still require
-    every effective destination to share one HTTPS origin and an explicit
-    /ops pattern; a token can never be attached to a mixed or host-wide app.
-    """
+def _effective_application_destinations(app: Mapping[str, Any]) -> tuple[tuple[str, str], ...] | None:
+    """Return provider-effective destinations without trusting stale fields."""
 
     destinations = app.get("destinations")
     if destinations is not None:
         if not isinstance(destinations, list) or not destinations:
             return None
-        origin: str | None = None
-        probe_covered = False
+        parsed_destinations: list[tuple[str, str]] = []
         for destination in destinations:
             if not isinstance(destination, Mapping) or destination.get("type") != "public":
                 return None
             try:
-                candidate_origin, candidate_path = _parse_public_domain(destination.get("uri"))
+                parsed_destinations.append(_parse_public_domain(destination.get("uri")))
             except AccessBridgeInputError:
                 return None
-            if not _path_is_narrow_ops_scope(candidate_path):
-                return None
-            probe_covered = probe_covered or _path_covers_probe(candidate_path)
-            if origin is None:
-                origin = candidate_origin
-            elif candidate_origin != origin:
-                return None
-        return origin if probe_covered else None
+        return tuple(parsed_destinations)
 
     try:
         origin, path = _parse_public_domain(app.get("domain"))
     except AccessBridgeInputError:
         return None
-    if not _path_is_narrow_ops_scope(path):
-        return None
     legacy_domains = app.get("self_hosted_domains")
     if legacy_domains is None:
-        return origin if _path_covers_probe(path) else None
+        return ((origin, path),)
     if not isinstance(legacy_domains, list) or not legacy_domains:
         return None
-    probe_covered = _path_covers_probe(path)
+    parsed_domains = [(origin, path)]
     for domain in legacy_domains:
         try:
-            candidate_origin, candidate_path = _parse_public_domain(domain)
+            parsed_domains.append(_parse_public_domain(domain))
         except AccessBridgeInputError:
             return None
-        if candidate_origin != origin or not _path_is_narrow_ops_scope(candidate_path):
-            return None
-        probe_covered = probe_covered or _path_covers_probe(candidate_path)
-    return origin if probe_covered else None
+    return tuple(parsed_domains)
+
+
+def _exact_control_app_origin(app: Mapping[str, Any], control_path: str) -> str | None:
+    """Return the KMFA origin only when every target is one fixed child path."""
+
+    destinations = _effective_application_destinations(app)
+    if not destinations:
+        return None
+    if any(
+        origin != KMFA_DAILY_FUNDS_ACCESS_ORIGIN or path != control_path
+        for origin, path in destinations
+    ):
+        return None
+    return KMFA_DAILY_FUNDS_ACCESS_ORIGIN
 
 
 def _access_application_list(path: str | Path) -> list[object]:
@@ -310,37 +303,27 @@ def _access_application_list(path: str | Path) -> list[object]:
     return result
 
 
-def _kmfa_ops_target_candidates(applications: list[object]) -> list[dict[str, str]]:
-    """Return exact-host, narrow-ops candidates for the fixed KMFA controls.
-
-    Coolify can redact environment values in its configuration API.  The
-    Cloudflare application itself is the routing authority for the bridge, so
-    target selection binds to the one public KMFA origin and the narrow /ops
-    route.  The protected endpoint then remains the authoritative runtime
-    acceptance check for its configured Access audience.
-    """
+def _control_target_candidates(
+    applications: list[object],
+    control_path: str,
+) -> list[dict[str, str]]:
+    """Return exact-path child Access applications for one fixed control."""
 
     matches: list[dict[str, str]] = []
     for app in applications:
         if not isinstance(app, Mapping) or app.get("type") != "self_hosted":
             continue
         app_id = app.get("id")
-        audience = app.get("aud")
-        if (
-            not isinstance(app_id, str)
-            or _UUID_RE.fullmatch(app_id.lower()) is None
-            or not isinstance(audience, str)
-            or _AUD_RE.fullmatch(audience) is None
-        ):
+        if not isinstance(app_id, str) or _UUID_RE.fullmatch(app_id.lower()) is None:
             continue
-        origin = _narrow_app_origin(app)
-        if origin != KMFA_DAILY_FUNDS_ACCESS_ORIGIN:
+        origin = _exact_control_app_origin(app, control_path)
+        if origin is None:
             continue
         matches.append({"app_id": app_id.lower(), "origin": origin})
     return matches
 
 
-def diagnose_bridge_target(access_apps_path: str | Path) -> str:
+def diagnose_bridge_target(access_apps_path: str | Path, control_path: str) -> str:
     """Classify target resolution without revealing provider values.
 
     The bridge's temporary input contains Access application IDs, audiences and
@@ -355,22 +338,36 @@ def diagnose_bridge_target(access_apps_path: str | Path) -> str:
             return "ACCESS_APP_LIST_INCOMPLETE"
         return "ACCESS_APP_RESPONSE_INVALID"
 
-    matches = _kmfa_ops_target_candidates(applications)
+    try:
+        path = _validated_control_path(control_path)
+    except AccessBridgeInputError:
+        return "CONTROL_PATH_INVALID"
+    matches = _control_target_candidates(applications, path)
     if len(matches) == 1:
         return "RESOLVED"
     if len(matches) > 1:
-        return "KMFA_OPS_TARGET_AMBIGUOUS"
-    return "KMFA_OPS_TARGET_UNAVAILABLE"
+        return "CONTROL_APP_AMBIGUOUS"
+    return "CONTROL_APP_MISSING"
 
 
-def resolve_bridge_target(access_apps_path: str | Path) -> dict[str, str]:
-    """Resolve exactly one exact-host, narrow self-hosted Access application."""
+def resolve_bridge_target(access_apps_path: str | Path, control_path: str) -> dict[str, str]:
+    """Resolve exactly one self-hosted child application for the fixed path."""
 
     applications = _access_application_list(access_apps_path)
-    matches = _kmfa_ops_target_candidates(applications)
+    matches = _control_target_candidates(applications, _validated_control_path(control_path))
     if len(matches) != 1:
-        raise AccessBridgeInputError("Access history-probe application ambiguous")
+        raise AccessBridgeInputError("Access control application ambiguous")
     return matches[0]
+
+
+def control_application_policy_state(policies_path: str | Path) -> str:
+    """Require an empty child-app policy list before adding ephemeral access."""
+
+    try:
+        policies = _cloudflare_single_page_result(policies_path)
+    except AccessBridgeInputError:
+        return "INVALID"
+    return "EMPTY" if not policies else "NOT_EMPTY"
 
 
 def bridge_resource_name(run_tag: str) -> str:

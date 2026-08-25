@@ -26,6 +26,8 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_policy,
     capture_service_token,
     capture_service_token_id,
+    control_application_payload,
+    control_application_policy_state,
     diagnose_bridge_target,
     owned_bridge_resource_ids,
     policy_payload,
@@ -56,7 +58,7 @@ def _write_shell_material(path: Path, values: dict[str, str]) -> None:
     # here.  The workflow can source the mode-0600 file without turning a
     # provider response into shell syntax.
     allowed_keys = {
-        "CF_ACCESS_APP_ID", "PROBE_ORIGIN", "CF_ACCESS_CLIENT_ID",
+        "CF_ACCESS_APP_ID", "CONTROL_ORIGIN", "CF_ACCESS_CLIENT_ID",
         "CF_ACCESS_CLIENT_SECRET", "CF_ACCESS_SERVICE_TOKEN_ID", "CF_ACCESS_POLICY_ID",
     }
     if (
@@ -137,10 +139,19 @@ def main(argv: list[str] | None = None) -> int:
 
     resolve = subparsers.add_parser("resolve-target")
     resolve.add_argument("--access-apps", required=True)
+    resolve.add_argument("--control-path", required=True)
     resolve.add_argument("--output", required=True)
 
     diagnose = subparsers.add_parser("diagnose-target")
     diagnose.add_argument("--access-apps", required=True)
+    diagnose.add_argument("--control-path", required=True)
+
+    control_app_payload = subparsers.add_parser("write-control-app-payload")
+    control_app_payload.add_argument("--control-path", required=True)
+    control_app_payload.add_argument("--output", required=True)
+
+    control_app_policy = subparsers.add_parser("control-app-policy-state")
+    control_app_policy.add_argument("--policies", required=True)
 
     service_payload = subparsers.add_parser("write-service-token-payload")
     service_payload.add_argument("--run-tag", required=True)
@@ -220,13 +231,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
-            target = resolve_bridge_target(args.access_apps)
+            target = resolve_bridge_target(args.access_apps, args.control_path)
             _write_shell_material(_private_output(parser, args), {
                 "CF_ACCESS_APP_ID": target["app_id"],
-                "PROBE_ORIGIN": target["origin"],
+                "CONTROL_ORIGIN": target["origin"],
             })
         elif args.command == "diagnose-target":
-            print(diagnose_bridge_target(args.access_apps))
+            print(diagnose_bridge_target(args.access_apps, args.control_path))
+        elif args.command == "write-control-app-payload":
+            write_private_json(
+                _private_output(parser, args),
+                control_application_payload(args.control_path),
+            )
+        elif args.command == "control-app-policy-state":
+            print(control_application_policy_state(args.policies))
         elif args.command == "write-service-token-payload":
             write_private_json(_private_output(parser, args), service_token_payload(args.run_tag))
         elif args.command == "capture-service-token":

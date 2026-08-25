@@ -32,6 +32,10 @@ _TARGET_ROOTS = (
     "/public-api/项目成本",
     "/public-api/项目成本表",
 )
+_PRIVATE_CONTROL_PATHS = (
+    "/ops/api/daily-funds/history-probe",
+    "/ops/api/daily-funds/recovery",
+)
 _MAX_RESPONSE_BYTES = 512 * 1024
 
 
@@ -120,6 +124,8 @@ def _is_public_dashboard_path(path: str) -> bool:
     # domain.
     if path in {"/", "/*"}:
         return True
+    if any(path in {control_path, f"{control_path}/*"} for control_path in _PRIVATE_CONTROL_PATHS):
+        return False
     return any(path == root or path.startswith(f"{root}/") for root in _TARGET_ROOTS)
 
 

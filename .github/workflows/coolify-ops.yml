@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-history-probe-cleanup=按唯一 run tag 清理遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-history-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
         description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge 必填；先用 list 查）"
         required: false
@@ -29,7 +29,7 @@ on:
         required: false
         type: string
       bridge_run_tag:
-        description: "仅 daily-funds-history-probe-cleanup：精确的 GitHub run-id-attempt（例如 123-1）"
+        description: "仅每日资金 cleanup 模式：精确的 GitHub run-id-attempt（例如 123-1）"
         required: false
         default: ""
         type: string
@@ -57,7 +57,7 @@ jobs:
       APP: ${{ inputs.app_uuid }}
     steps:
       - name: 检出诊断代码
-        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup'
+        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup'
         uses: actions/checkout@v4
 
       - name: 安装项目成本诊断依赖
@@ -832,11 +832,10 @@ jobs:
           echo "public_dashboard_origin_guard=DISABLED"
           echo "public_dashboard_redeploy=TRIGGERED"
 
-      # This is the sole mutating Access operation for the fixed daily-funds
-      # controls.  It never accepts a command or source argument: first resolve
-      # exactly one narrow /ops Access app, then create a 60-minute service
-      # token + app-specific Service Auth policy, call the fixed no-body
-      # endpoint, and delete only those two resources in the EXIT trap.
+      # This fixed control flow creates or resolves one exact child Access app
+      # for its endpoint.  The public dashboard's broad /ops Bypass boundary
+      # remains unchanged; the child path holds no persistent policy and only
+      # receives one 60-minute Service Auth policy during this run.
       - name: 受控触发每日资金固定历史探针或恢复（短时 Access 身份自动撤销）
         if: inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge'
         env:
@@ -896,14 +895,14 @@ jobs:
             fi
           }
 
-          request_probe() {
+          request_control() {
             local method="$1"
             local output="$2"
             if REQUEST_STATUS="$(curl -sS --request "$method" --connect-timeout 2 --max-time 3 \
               -D "$output.headers" -o "$output" -w '%{http_code}' \
               -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
               -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
-              -H "Origin: $PROBE_ORIGIN" "$PROBE_ORIGIN$CONTROL_PATH" 2>/dev/null)"; then
+              -H "Origin: $CONTROL_ORIGIN" "$CONTROL_ORIGIN$CONTROL_PATH" 2>/dev/null)"; then
               REQUEST_EXIT=0
             else
               REQUEST_EXIT=$?
@@ -996,9 +995,11 @@ jobs:
               fi
             fi
             unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET CF_ACCESS_SERVICE_TOKEN_ID
-            unset CF_ACCESS_POLICY_ID CF_ACCESS_APP_ID PROBE_ORIGIN
+            unset CF_ACCESS_POLICY_ID CF_ACCESS_APP_ID CONTROL_ORIGIN
             rm -f -- "$bridge_dir/access-apps.json" \
-              "$bridge_dir/target.env" "$bridge_dir/service-token-payload.json" \
+              "$bridge_dir/target.env" "$bridge_dir/control-app-payload.json" \
+              "$bridge_dir/control-app-response.json" "$bridge_dir/control-app-policies-before.json" \
+              "$bridge_dir/service-token-payload.json" \
               "$bridge_dir/service-token-response.json" "$bridge_dir/service-token-id.env" \
               "$bridge_dir/service-token.env" "$bridge_dir/policy-payload.json" \
               "$bridge_dir/policy-response.json" "$bridge_dir/policy.env" \
@@ -1020,27 +1021,73 @@ jobs:
           }
           trap cleanup EXIT
 
+          resolve_control_target() {
+            python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
+              --access-apps "$bridge_dir/access-apps.json" --control-path "$CONTROL_PATH" \
+              --output "$bridge_dir/target.env"
+          }
+
+          diagnose_control_target() {
+            python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
+              --access-apps "$bridge_dir/access-apps.json" --control-path "$CONTROL_PATH" 2>/dev/null \
+              || printf '%s' 'UNCLASSIFIED_INPUT_INVALID'
+          }
+
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$bridge_dir/access-apps.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
             echo "$CONTROL_LABEL=ACCESS_APP_NOT_READABLE"
             exit 1
           fi
-          if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
-            --access-apps "$bridge_dir/access-apps.json" \
-            --output "$bridge_dir/target.env"; then
-            target_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
-              --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
+          if ! resolve_control_target; then
+            target_diagnostic="$(diagnose_control_target)"
             case "$target_diagnostic" in
-              ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|KMFA_OPS_TARGET_UNAVAILABLE|KMFA_OPS_TARGET_AMBIGUOUS)
+              CONTROL_APP_MISSING)
+                python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-control-app-payload \
+                  --control-path "$CONTROL_PATH" --output "$bridge_dir/control-app-payload.json"
+                request_cf POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps" \
+                  "$bridge_dir/control-app-response.json" "$bridge_dir/control-app-payload.json"
+                if [ "$REQUEST_EXIT" -ne 0 ] || { [ "$REQUEST_STATUS" != "200" ] && [ "$REQUEST_STATUS" != "201" ]; } \
+                  || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/control-app-response.json" >/dev/null 2>&1; then
+                  echo "$CONTROL_LABEL=CONTROL_ACCESS_APPLICATION_NOT_CREATED"
+                  exit 1
+                fi
+                request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$bridge_dir/access-apps.json"
+                if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
+                  echo "$CONTROL_LABEL=CONTROL_ACCESS_APPLICATION_POSTREAD_UNAVAILABLE"
+                  exit 1
+                fi
+                if ! resolve_control_target; then
+                  echo "$CONTROL_LABEL=CONTROL_ACCESS_APPLICATION_POSTREAD_INVALID"
+                  exit 1
+                fi
+                echo "$CONTROL_LABEL=CONTROL_ACCESS_APPLICATION_CREATED"
                 ;;
-              *) target_diagnostic=UNCLASSIFIED_INPUT_INVALID ;;
+              ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|CONTROL_APP_AMBIGUOUS|CONTROL_PATH_INVALID)
+                echo "$CONTROL_LABEL=ACCESS_TARGET_${target_diagnostic}"
+                exit 1
+                ;;
+              *)
+                echo "$CONTROL_LABEL=ACCESS_TARGET_UNCLASSIFIED_INPUT_INVALID"
+                exit 1
+                ;;
             esac
-            echo "$CONTROL_LABEL=ACCESS_TARGET_${target_diagnostic}"
-            exit 1
           fi
           . "$bridge_dir/target.env"
           echo "::add-mask::$CF_ACCESS_APP_ID"
-          echo "::add-mask::$PROBE_ORIGIN"
+          echo "::add-mask::$CONTROL_ORIGIN"
+
+          request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies?per_page=1000" "$bridge_dir/control-app-policies-before.json"
+          if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
+            echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_NOT_READABLE"
+            exit 1
+          fi
+          control_app_policy_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" control-app-policy-state \
+            --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INVALID')"
+          case "$control_app_policy_state" in
+            EMPTY) ;;
+            NOT_EMPTY) echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_NOT_EMPTY"; exit 1 ;;
+            *) echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_INVALID"; exit 1 ;;
+          esac
 
           run_tag="${GITHUB_RUN_ID:-0}-${GITHUB_RUN_ATTEMPT:-0}"
           python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-service-token-payload \
@@ -1090,7 +1137,7 @@ jobs:
           # edge.  Give that fixed, short window to settle before the only
           # allowed POST; this is not an unbounded retry and accepts no input.
           sleep 10
-          request_probe POST "$bridge_dir/probe-post.json"
+          request_control POST "$bridge_dir/probe-post.json"
           summarize_control_start \
             --response "$bridge_dir/probe-post.json" --headers "$bridge_dir/probe-post.json.headers" --http-status "$REQUEST_STATUS" \
             --curl-exit "$REQUEST_EXIT" --output "$bridge_dir/probe-start-receipt.json"
@@ -1105,7 +1152,7 @@ jobs:
 
           probe_outcome=NOT_MET
           for attempt in $(seq 1 "$CONTROL_POLL_ATTEMPTS"); do
-            request_probe GET "$bridge_dir/probe-get.json"
+            request_control GET "$bridge_dir/probe-get.json"
             summarize_control \
               --response "$bridge_dir/probe-get.json" --headers "$bridge_dir/probe-get.json.headers" --http-status "$REQUEST_STATUS" \
               --curl-exit "$REQUEST_EXIT" --output "$bridge_dir/probe-receipt.json"
@@ -1142,22 +1189,32 @@ jobs:
           esac
 
       # A failed bridge must not leave a 60-minute service credential behind.
-      # This recovery mode accepts no source, URL, ID or arbitrary command:
-      # it deletes only the exact name derived from a validated prior Actions
-      # run tag, then proves the corresponding lists are empty.
-      - name: 清理指定每日资金历史探针的短时 Access 身份
-        if: inputs.mode == 'daily-funds-history-probe-cleanup'
+      # Each cleanup mode binds the prior run tag to one exact control path,
+      # then proves the corresponding short-lived policy and token are absent.
+      - name: 清理指定每日资金控制路径的短时 Access 身份
+        if: inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup'
         env:
           CF_ACCOUNT_ID: ${{ secrets.DAILY_FUNDS_CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.DAILY_FUNDS_CLOUDFLARE_API_TOKEN }}
           BRIDGE_RUN_TAG: ${{ inputs.bridge_run_tag }}
         run: |
           set -euo pipefail
-          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_history_probe_cleanup=MAIN_REF_REQUIRED"; exit 1; }
-          test -n "${APP:-}" || { echo "daily_funds_history_probe_cleanup=APP_REQUIRED"; exit 1; }
-          test -n "${CF_ACCOUNT_ID:-}" || { echo "daily_funds_history_probe_cleanup=CONFIG_UNAVAILABLE"; exit 1; }
-          test -n "${CF_API_TOKEN:-}" || { echo "daily_funds_history_probe_cleanup=CONFIG_UNAVAILABLE"; exit 1; }
-          [[ "${BRIDGE_RUN_TAG:-}" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]] || { echo "daily_funds_history_probe_cleanup=RUN_TAG_INVALID"; exit 1; }
+          case "${MODE:-}" in
+            daily-funds-history-probe-cleanup)
+              CONTROL_LABEL=daily_funds_history_probe_cleanup
+              CONTROL_PATH=/ops/api/daily-funds/history-probe
+              ;;
+            daily-funds-recovery-cleanup)
+              CONTROL_LABEL=daily_funds_recovery_cleanup
+              CONTROL_PATH=/ops/api/daily-funds/recovery
+              ;;
+            *) echo "daily_funds_control_cleanup=MODE_INVALID"; exit 1 ;;
+          esac
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "$CONTROL_LABEL=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "$CONTROL_LABEL=APP_REQUIRED"; exit 1; }
+          test -n "${CF_ACCOUNT_ID:-}" || { echo "$CONTROL_LABEL=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${CF_API_TOKEN:-}" || { echo "$CONTROL_LABEL=CONFIG_UNAVAILABLE"; exit 1; }
+          [[ "${BRIDGE_RUN_TAG:-}" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$ ]] || { echo "$CONTROL_LABEL=RUN_TAG_INVALID"; exit 1; }
           echo "::add-mask::$CF_ACCOUNT_ID"
           echo "::add-mask::$CF_API_TOKEN"
           bridge_dir="$(mktemp -d "$RUNNER_TEMP/daily-funds-access-cleanup.XXXXXX")"
@@ -1185,30 +1242,30 @@ jobs:
           }
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps?per_page=1000" "$bridge_dir/access-apps.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "daily_funds_history_probe_cleanup=ACCESS_APP_NOT_READABLE"; exit 1
+            echo "$CONTROL_LABEL=ACCESS_APP_NOT_READABLE"; exit 1
           fi
           if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" resolve-target \
-            --access-apps "$bridge_dir/access-apps.json" \
+            --access-apps "$bridge_dir/access-apps.json" --control-path "$CONTROL_PATH" \
             --output "$bridge_dir/target.env"; then
             target_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-target \
-              --access-apps "$bridge_dir/access-apps.json" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
+              --access-apps "$bridge_dir/access-apps.json" --control-path "$CONTROL_PATH" 2>/dev/null || printf '%s' 'UNCLASSIFIED_INPUT_INVALID')"
             case "$target_diagnostic" in
-              ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|KMFA_OPS_TARGET_UNAVAILABLE|KMFA_OPS_TARGET_AMBIGUOUS)
+              ACCESS_APP_RESPONSE_INVALID|ACCESS_APP_LIST_INCOMPLETE|CONTROL_APP_MISSING|CONTROL_APP_AMBIGUOUS|CONTROL_PATH_INVALID)
                 ;;
               *) target_diagnostic=UNCLASSIFIED_INPUT_INVALID ;;
             esac
-            echo "daily_funds_history_probe_cleanup=ACCESS_TARGET_${target_diagnostic}"; exit 1
+            echo "$CONTROL_LABEL=ACCESS_TARGET_${target_diagnostic}"; exit 1
           fi
           . "$bridge_dir/target.env"
           echo "::add-mask::$CF_ACCESS_APP_ID"
 
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/service-token-list-before.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "daily_funds_history_probe_cleanup=SERVICE_TOKEN_LIST_NOT_READABLE"; exit 1
+            echo "$CONTROL_LABEL=SERVICE_TOKEN_LIST_NOT_READABLE"; exit 1
           fi
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies?per_page=1000" "$bridge_dir/policy-list-before.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "daily_funds_history_probe_cleanup=POLICY_LIST_NOT_READABLE"; exit 1
+            echo "$CONTROL_LABEL=POLICY_LIST_NOT_READABLE"; exit 1
           fi
           python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-owned-resource-env \
             --service-tokens "$bridge_dir/service-token-list-before.json" \
@@ -1219,28 +1276,28 @@ jobs:
           for owned_policy_id in $CF_ACCESS_OWNED_POLICY_IDS; do
             request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies/${owned_policy_id}" "$bridge_dir/policy-delete.json"
             if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ] || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/policy-delete.json" >/dev/null 2>&1; then
-              echo "daily_funds_history_probe_cleanup=POLICY_DELETE_UNCONFIRMED"; exit 1
+              echo "$CONTROL_LABEL=POLICY_DELETE_UNCONFIRMED"; exit 1
             fi
           done
           for owned_service_token_id in $CF_ACCESS_OWNED_SERVICE_TOKEN_IDS; do
             request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens/${owned_service_token_id}" "$bridge_dir/service-token-delete.json"
             if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ] || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/service-token-delete.json" >/dev/null 2>&1; then
-              echo "daily_funds_history_probe_cleanup=SERVICE_TOKEN_DELETE_UNCONFIRMED"; exit 1
+              echo "$CONTROL_LABEL=SERVICE_TOKEN_DELETE_UNCONFIRMED"; exit 1
             fi
           done
           unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/service-token-list-after.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "daily_funds_history_probe_cleanup=SERVICE_TOKEN_POSTREAD_UNAVAILABLE"; exit 1
+            echo "$CONTROL_LABEL=SERVICE_TOKEN_POSTREAD_UNAVAILABLE"; exit 1
           fi
           request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies?per_page=1000" "$bridge_dir/policy-list-after.json"
           if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then
-            echo "daily_funds_history_probe_cleanup=POLICY_POSTREAD_UNAVAILABLE"; exit 1
+            echo "$CONTROL_LABEL=POLICY_POSTREAD_UNAVAILABLE"; exit 1
           fi
           final_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" owned-resource-state \
             --service-tokens "$bridge_dir/service-token-list-after.json" \
             --policies "$bridge_dir/policy-list-after.json" --run-tag "$BRIDGE_RUN_TAG")"
-          echo "daily_funds_history_probe_cleanup=$final_state"
+          echo "$CONTROL_LABEL=$final_state"
           test "$final_state" = "ABSENT"
 
       - name: 就地生成备份密钥并注入 Coolify（私钥不落人手）
