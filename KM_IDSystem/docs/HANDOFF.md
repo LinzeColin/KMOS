@@ -6,7 +6,7 @@
 - P4 从 P3 的 `5×34=170` 个固定、非业务、`reference-only` 场景检查点派生报告样例、报告快照、报告质量评分、影响分析、模板限制与业务线白箱人工确认各 `5` 条，以及重新生成与撤回说明 `2` 条；字段形状为 `17/13/13/15/14/14`，共 `388` 个 metadata-only 交付检查点、`17` 类失败关闭与 `4` 条中文反馈。
 - 已验证：P1/P2/P3/P4 聚焦 `31/31`，Stage088--Stage106 连续白箱链 `884/884`，Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
 - 关键结论继续保持 `evidence_id` 或 `evidence_gap` 严格二选一；外部增强保留 `external_public_reference` 与 `model_reasoning` 的底层来源语义，不能成为内部项目依据或替代缺口。模板限制、人工确认、最终结论、重新生成与撤回都保持业务线白箱人工确认、版本化依据与 P3 回退目标。
-- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。此前用户授权的恢复检查点已同步既有开发分支，只保全恢复能力；P4 完成态没有新增远端推送，`main`、release、正式全局上传、OVH 与生产仍由后续门禁承接。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。用户授权的恢复检查点已将 P4 完成态同步至既有开发分支 `codex/kmids-stage071-p1@b3db594af8c5c5494913b97cd1c1dc4342b53533`，只保全恢复能力；`main`、release、正式全局上传、OVH 与生产仍由后续门禁承接。
 - 回滚只撤回 P4 的范围说明、纯内存交付模块、合同、聚焦用例、历史治理投影、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_EXTERNAL_AUGMENTATION_OPINION_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；P1/P2/P3、Stage105 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
 - 下一步：保持此唯一 worktree 与分支，在新的独立 run 进入 `IDS-STAGE106-REVIEW-GATE`。
 
