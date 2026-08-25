@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE103",
-  "phase": "IDS-STAGE103-P3",
-  "task": "IDS-V0_1-STAGE103-P3",
-  "real_progress": "Stage103 已完成模型输出权限门禁 P3 的纯内存专项异常场景验证：严格重放 P2 的 5 条、每条 26 字段、4 组、每条 46 字段、共 230 个前序控制检查点，形成 5 条、每条 34 字段、共 170 个场景检查点与 5 个控制视图。",
+  "phase": "IDS-STAGE103-P4",
+  "task": "IDS-V0_1-STAGE103-P4",
+  "real_progress": "Stage103 已完成模型输出权限门禁 P4 的纯内存交付证据：从 P3 的 5 条、每条 34 字段、共 170 个固定 reference-only 场景检查点派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 5 条，以及 prompt 回滚和模型配置回退说明 2 条，共 384 个交付字段检查点。",
   "report_grade": "冻结 Stage103 任务包与 Stage102 Review 已复审文档内提示注入防护控制工件构成唯一控制上下文；来源文档与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "文档 evidence 与潜在指令保持不可信、不可执行的 reference，IDS 规则保持优先；内部依据不足保持 evidence_gap，external_augmentation_opinion 保留底层来源类型且不能伪装为内部经验；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，人工确认未记录，最终结论未发布；Stage103 P4 只开放为下一独立 run 的门禁。",
-  "evidence_status": "STAGE103_MODEL_OUTPUT_PERMISSION_GATE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "business_verdict": "文档 evidence 与潜在指令保持不可信、不可执行的 reference，IDS 规则保持优先；内部依据不足保持 evidence_gap，external_augmentation_opinion 保留底层来源类型且不能伪装为内部经验；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，人工确认未记录，最终结论未发布；Stage103 Review 只开放为下一独立 run 的门禁。",
+  "evidence_status": "STAGE103_MODEL_OUTPUT_PERMISSION_GATE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-25",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE103-P4-GATE",
+  "next_gate": "IDS-STAGE103-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

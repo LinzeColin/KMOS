@@ -733,6 +733,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("status") == "completed"
             )
             or (
+                roadmap.get("current_stage_id") == "IDS-STAGE103"
+                and roadmap.get("current_phase_id") == "IDS-STAGE103-P4"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE103-P4"
+                and roadmap.get("next_gate_id") == "IDS-STAGE103-REVIEW-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
+            or (
             roadmap.get("current_stage_id") == "IDS-STAGE038"
             and source_gate.get("gate_id")
             == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"

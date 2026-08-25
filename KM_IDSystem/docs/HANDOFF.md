@@ -1,12 +1,14 @@
 # IDS / Industrial Data System Handoff
 
-## Current Implementation Checkpoint - Stage103 P4 delivery work in progress - 2026-08-25
+## Current Gate - Stage103 P4 accepted locally - 2026-08-25
 
-- 唯一开发位置保持为 `/Users/linzezhang/Documents/Codex/GithubProject/_scratch/KMOS-kmids-stage071-p1` 的既有分支 `codex/kmids-stage071-p1`；未创建 worktree、分支或 PR。主树不写入。
-- Stage103 P3 仍是唯一已本地验收的当前治理门禁。P4 尚未标记完成：本检查点仅保存其纯内存受控交付模块、静态合同、范围说明、聚焦测试，以及让既有前序用例识别 P4 后继状态的兼容性调整。
-- 已确认 P4 当前开发工件与显式 Stage101--Stage103 前序链 `65/65` 通过，`git diff --check` 通过。验证没有访问受保护资料、真实文档、查询、检索、Prompt、模型、Agent、OVH、生产或业务系统；模型 Token 与 Agent 执行保持 `0`。
-- 该检查点恢复后必须继续完成 P4 的机器回执、事件、机器事实、路线、中文视图和 Stage005／Batch 白箱治理验收，才可切换当前门禁到 `IDS-STAGE103-P4-GATE`。Stage103 Review、Stage104、正式全局上传、`main`、release、OVH 与生产均不在本检查点范围。
-- 回退本检查点只撤回未完成的 P4 工件及兼容性调整，回到下方已验收的 P3 门禁；P3、Stage102 Review、冻结任务包和既有恢复检查点保持原状。
+- `IDS-V0_1-STAGE103-P4` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-P4 / IDS-V0_1-STAGE103-P4 / IDS-STAGE103-REVIEW-GATE`。Review 只可由新的独立 run 进入。
+- P4 从 P3 的 `5` 条、每条 `34` 字段、共 `170` 个非业务、`reference-only` 场景检查点派生回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各 `5` 条，以及 prompt 回滚和模型配置回退说明 `2` 条；字段形状为 `17/12/14/17/12/12`，共 `384` 个交付字段检查点、`16` 类失败关闭与 `4` 条中文反馈。
+- 已验证：P4 与显式前序聚焦 `65/65`，Stage088--Stage103 精确白箱链 `763/763`，Stage005 治理回归 `178/178` 与直接校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文视图，文档预算、无登记阻塞和双平面检查均通过。
+- 文档 evidence 与文档内潜在指令保持不可信、不可执行参考，无法覆盖 IDS 规则；无内部依据保持 `evidence_gap`，不能伪装为内部经验；高风险工程建议、合同承诺和生产写回保持业务线白箱人工确认，最终结论保持未发布。prompt 回滚与模型配置回退保持版本化依据、可验证目标和白箱批准前置。
+- 回执记录所有运行计数为 `0`、所有运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。用户授权的既有分支恢复检查点已同步到 `codex/kmids-stage071-p1`；本次 P4 完成态仍为本地提交边界，正式全局上传、`main`、release、OVH 与生产保持后续门禁。
+- 回滚只撤回本 P4 的说明、纯内存交付模块、合同、聚焦用例、machine run、机器事实、治理路线、生成中文视图、事件和本交接，返回 `PASS_MODEL_OUTPUT_PERMISSION_GATE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage103 P1/P2/P3、Stage102 Review、冻结任务包、来源文档、业务白箱、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：只在新的独立 run 进入 `IDS-STAGE103-REVIEW-GATE`，继续复用唯一开发 worktree 与分支。
 
 ## Canonical Repository Override - 2026-07-18
 
@@ -17,7 +19,7 @@
 - `/Users/linzezhang/Downloads/IDS_MetaData` remains a path-only no-read/no-list/no-hash/no-copy/no-modify boundary.
 - Public-safe BidScout Skill contracts are integrated under `KM_IDSystem/搜标项目/`; they are not evidence that the full BidScout product or real-data pipeline has been implemented.
 
-## Current Gate - Stage103 P3 accepted locally - 2026-08-25
+## Superseded Gate - Stage103 P3 accepted locally - 2026-08-25
 
 - `IDS-V0_1-STAGE103-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE103 / IDS-STAGE103-P3 / IDS-V0_1-STAGE103-P3 / IDS-STAGE103-P4-GATE`。P4 只可由新的独立 run 进入。
 - P3 严格重放 P2 的 `5` 条、每条 `26` 字段、四组、每条 `46` 字段、共 `230` 个非业务、`reference-only` 前序控制检查点，形成 `5` 条、每条 `34` 字段、共 `170` 个场景检查点、`5` 个控制视图、`5` 条业务线白箱处理记录、`28` 类失败关闭与 `4` 条中文反馈。

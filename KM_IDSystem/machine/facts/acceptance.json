@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE103",
-  "phase": "IDS-STAGE103-P3",
-  "task": "IDS-V0_1-STAGE103-P3",
-  "next_gate": "IDS-STAGE103-P4-GATE",
+  "phase": "IDS-STAGE103-P4",
+  "task": "IDS-V0_1-STAGE103-P4",
+  "next_gate": "IDS-STAGE103-REVIEW-GATE",
   "items": [
     {
       "id": "ACC-STAGE-103",
-      "criteria": "Stage103 模型输出权限门禁已形成可执行、可测试、可回滚的 P1 静态工程合同、P2 纯内存受控最小切片与 P3 专项异常场景：回答合同、Prompt 版本、query、index_version、model_version、selected evidence、来源类型、文档 evidence、IDS 规则、输出权限、输出分类与业务线白箱人工确认均保持为独立控制引用。",
-      "status": "P3 专项异常场景已完成"
+      "criteria": "Stage103 模型输出权限门禁已形成可执行、可测试、可回滚的 P1 静态工程合同、P2 纯内存受控最小切片、P3 专项异常场景与 P4 交付证据：回答样例、负向测试结果、prompt/version、可复现日志、模型输出权限边界、P4→P3 回退和业务线白箱人工确认均保持为独立控制引用。",
+      "status": "P1/P2/P3/P4 控制工件已完成"
     },
     {
       "id": "ACC-STAGE103-P1-01",
@@ -67,6 +67,26 @@
     {
       "id": "ACC-STAGE103-P3-04",
       "criteria": "P3 保持真实资料、文档正文、查询、检索、提示词、回答、证据账本、审计、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产与正式全局上传的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage103 P4。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE103-P4-01",
+      "criteria": "冻结 Stage103 任务包、Stage103 P1/P2/P3 与 Stage102 Review 已复审文档内提示注入防护控制工件保持为唯一控制上下文；P4 只从五条固定、非业务、reference-only P3 场景派生交付记录，来源文档与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE103-P4-02",
+      "criteria": "P4 固定回答样例、负向测试结果、prompt/version 记录、可复现日志和模型输出权限边界各五条，以及 prompt 回滚和模型配置回退说明两条，字段形状为 17/12/14/17/12/12，共三百八十四个交付字段检查点；回答样例和可复现日志保留 query、index_version、prompt_version、model_version、selected evidence、document evidence、document instruction candidate 与 IDS rule 八元引用。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE103-P4-03",
+      "criteria": "文档内潜在指令保持 evidence 身份且 IDS 规则保持优先级；无内部依据保持 evidence_gap，外部增强保留底层来源类型；高风险工程建议、合同承诺和生产写回保持业务线白箱人工处理、人工确认未记录与最终结论未发布；prompt 回滚和模型配置回退保持未来白箱批准、版本化依据与可验证目标。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE103-P4-04",
+      "criteria": "P4 保持真实资料、文档正文、查询、检索、提示词、模型配置、回答、真实日志、证据账本、审计、数据库、模型、模型 Token、外部 API、持久化、Agent、OVH、生产、正式全局上传与推送的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage103 Review。",
       "status": "已遵守"
     },
     {
