@@ -93,3 +93,24 @@ def test_app_log_probe_is_read_only_and_values_free() -> None:
     assert "-X POST" not in step
     assert "-X PATCH" not in step
     assert "-X DELETE" not in step
+
+
+def test_public_routing_audit_is_values_free_and_service_specific() -> None:
+    workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
+    start = workflow.index("只读核对 KMFA app 服务域名接线")
+    end = workflow.index("受控强制重建每日资金恢复目标", start)
+    step = workflow[start:end]
+
+    assert "daily-funds-public-routing-audit" in workflow
+    assert "inputs.mode == 'daily-funds-public-routing-audit'" in step
+    assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
+    assert '"$BASE/api/v1/applications/$APP"' in step
+    assert 'EXPECTED_DOMAIN = "kmfa.linzezhang.com"' in step
+    assert "daily_funds_public_routing_target=" in step
+    assert "daily_funds_public_routing_app_service_marker=" in step
+    assert "daily_funds_public_routing_expected_domain=" in step
+    assert "print(raw)" not in step
+    assert "print(payload)" not in step
+    assert "-X POST" not in step
+    assert "-X PATCH" not in step
+    assert "-X DELETE" not in step
