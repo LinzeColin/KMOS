@@ -1132,6 +1132,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("status") == "completed"
             )
             or (
+                roadmap.get("current_stage_id") == "IDS-STAGE107"
+                and roadmap.get("current_phase_id") == "IDS-STAGE107-REVIEW"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE107-REVIEW"
+                and roadmap.get("next_gate_id") == "IDS-STAGE108-P1-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
+            or (
             roadmap.get("current_stage_id") == "IDS-STAGE038"
             and source_gate.get("gate_id")
             == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -4366,6 +4385,25 @@ def evaluate_stage038_source_reverification(
                 and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
                 and stage_review.get("status") == "completed"
             )
+            or (
+                roadmap.get("current_stage_id") == "IDS-STAGE107"
+                and roadmap.get("current_phase_id") == "IDS-STAGE107-REVIEW"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE107-REVIEW"
+                and roadmap.get("next_gate_id") == "IDS-STAGE108-P1-GATE"
+                and source_gate.get("gate_id")
+                == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
+                and source_gate.get("status") == "passed"
+                and source_gate.get("task_id")
+                == "IDS-V0_1-STAGE038-P1-SOURCE-REVERIFY"
+                and source_gate.get("phase2_entry_authorized") is True
+                and phase2.get("entry_authorized") is True
+                and phase2.get("status") == "passed_with_local_evidence"
+                and phase3.get("status") == "passed_with_local_evidence"
+                and phase4.get("status") == "passed_with_local_evidence"
+                and stage_review.get("review_id") == "IDS-STAGE038-REVIEW"
+                and stage_review.get("task_id") == "IDS-V0_1-STAGE038-REVIEW"
+                and stage_review.get("status") == "completed"
+            )
         ),
         "no_mixed_yaml_state": not any(
             token in batch_text or token in roadmap_text
@@ -5311,6 +5349,7 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage106_external_augmentation_opinion_controlled_scenarios.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE106_PHASE4_EXTERNAL_AUGMENTATION_OPINION_DELIVERY.md",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage106_external_augmentation_opinion_delivery.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage106_external_augmentation_opinion_stage_review.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage101_rag_reproducibility_controlled_scenarios.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage102_document_prompt_injection_defense_contract.py",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage102_document_prompt_injection_defense_controlled_scenarios.py",
@@ -22193,6 +22232,102 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
         },
     }
 
+    event_specs["EVT-IDS-V0_1-STAGE107-REVIEW-20260826-001"] = {
+        "event_type": "stage_review_completed",
+        "allow_stage_gate": True,
+        "task_id": "IDS-V0_1-STAGE107-REVIEW",
+        "acceptance_ids": [
+            "ACC-STAGE-107",
+            "ACC-STAGE107-REVIEW-01",
+            "ACC-STAGE107-REVIEW-02",
+            "ACC-STAGE107-REVIEW-03",
+            "ACC-STAGE107-REVIEW-04",
+        ],
+        "required_changed_files": {
+            "KM_IDSystem/docs/governance/events.jsonl",
+            "KM_IDSystem/docs/governance/roadmap.yaml",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage107_human_confirmation_items_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage107_human_confirmation_items_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/validate_stage005_governance_regression.py",
+            "KM_IDSystem/scripts/check_batch051_060_review.py",
+            "KM_IDSystem/machine/facts/acceptance.json",
+            "KM_IDSystem/machine/facts/plan.json",
+            "KM_IDSystem/machine/facts/status.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-review-local.json",
+        },
+        "required_refs": {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-107_人工确认事项章节.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage107_human_confirmation_items_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-review-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_PHASE4_HUMAN_CONFIRMATION_ITEMS_DELIVERY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_delivery_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p4-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_PHASE3_HUMAN_CONFIRMATION_ITEMS_CONTROLLED_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_controlled_scenarios_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p3-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_PHASE2_HUMAN_CONFIRMATION_ITEMS_CONTROL_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_control_slice_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p2-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_PHASE1_HUMAN_CONFIRMATION_ITEMS_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p1-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE106_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage106_external_augmentation_opinion_stage_review_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage106-review-local.json",
+        },
+        "required_note_assignments": {
+            "contract_state": "STAGE107_HUMAN_CONFIRMATION_ITEMS_REVIEW_RUNTIME_DISABLED",
+            "second_authoritative_source_created": "false",
+            "phase1_reference_field_count": "25",
+            "phase1_human_confirmation_category_count": "6",
+            "phase1_snapshot_component_count": "5",
+            "phase1_failure_state_count": "21",
+            "phase1_chinese_feedback_count": "4",
+            "phase2_control_request_count": "6",
+            "phase2_input_field_count": "29",
+            "phase2_projection_group_count": "4",
+            "phase2_projection_field_count_per_request": "79",
+            "phase2_control_field_check_count": "474",
+            "phase3_scenario_count": "6",
+            "phase3_scenario_field_count": "39",
+            "phase3_scenario_field_check_count": "234",
+            "phase3_control_view_count": "5",
+            "phase3_human_handling_count": "6",
+            "phase3_whitebox_confirmation_required_count": "6",
+            "phase4_delivery_field_check_count": "460",
+            "phase4_failure_state_count": "17",
+            "critical_conclusion_evidence_binding_preserved": "true",
+            "external_augmentation_internal_evidence_boundary_preserved": "true",
+            "report_status_impact_and_whitebox_control_preserved": "true",
+            "phase4_to_phase3_rollback_preserved": "true",
+            "actual_report_or_pdf_execution_performed": "false",
+            "actual_human_confirmation_or_lifecycle_execution_performed": "false",
+            "actual_persistence_or_audit_write_performed": "false",
+            "model_call_performed": "false",
+            "model_token_consumption_performed": "false",
+            "agent_execution_performed": "false",
+            "ovh_deployment_performed": "false",
+            "production_runtime_activation_performed": "false",
+            "stage106_review_preserved": "true",
+            "stage107_phase1_completed": "true",
+            "stage107_phase2_completed": "true",
+            "stage107_phase3_completed": "true",
+            "stage107_phase4_completed": "true",
+            "stage107_review_completed": "true",
+            "stage108_started": "false",
+            "formal_global_upload_performed": "false",
+            "github_upload_allowed": "false",
+            "push_allowed": "false",
+            "next_gate": "IDS-STAGE108-P1-GATE",
+        },
+    }
+
 
     errors: list[str] = []
     recognized_events = 0
@@ -23028,6 +23163,14 @@ def evaluate_current_state_consistency(
                         "ACC-STAGE107-REVIEW-04",
                     ],
                     "python3 -B -m unittest -q "
+                    "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                    "test_stage107_human_confirmation_items_contract "
+                    "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                    "test_stage107_human_confirmation_items_control_slice "
+                    "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                    "test_stage107_human_confirmation_items_controlled_scenarios "
+                    "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                    "test_stage107_human_confirmation_items_delivery "
                     "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
                     "test_stage107_human_confirmation_items_stage_review"
                     in review_task.get("test_commands", []),

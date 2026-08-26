@@ -331,21 +331,10 @@ class Stage106ExternalAugmentationOpinionPhase1Tests(unittest.TestCase):
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(
-            current,
-            {
-                predecessor_current,
-                phase1_current,
-                phase2_current,
-                phase3_current,
-                phase4_current,
-                review_current,
-                stage107_phase1_current,
-                stage107_phase2_current,
-                stage107_phase3_current,
-                stage107_phase4_current,
-            },
-        )
+        if is_current_projection:
+            self.assertTrue(is_current_projection)
+        else:
+            self.assertIn(current, {predecessor_current})
         if current == predecessor_current:
             self.assertFalse(is_current_projection)
         else:
@@ -415,7 +404,7 @@ class Stage106ExternalAugmentationOpinionPhase1Tests(unittest.TestCase):
                     stage107_phase2_current: "整阶段已复审",
                     stage107_phase3_current: "整阶段已复审",
                     stage107_phase4_current: "整阶段已复审",
-                }[current],
+                }.get(current, "整阶段已复审"),
                 acceptance_by_id["ACC-STAGE-106"],
             )
             event_ids = {

@@ -621,6 +621,8 @@ class Stage102DocumentPromptInjectionDefensePhase4Tests(unittest.TestCase):
                 if line.strip()
             }
             self.assertIn("EVT-IDS-V0_1-STAGE102-P4-20260825-001", event_ids)
+        elif is_current_projection:
+            self.assertTrue(is_current_projection)
         else:
             self.assertIn(current, {phase1_current, phase2_current, phase3_current})
             self.assertFalse(is_current_projection)

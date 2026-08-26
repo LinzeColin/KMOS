@@ -8,6 +8,10 @@ import json
 from pathlib import Path
 import unittest
 
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import (
+    assert_legacy_or_current_projection,
+)
+
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
@@ -24,6 +28,12 @@ P4_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage107-p4-local.json"
 PREDECESSOR_REVIEW = BASE / "STAGE106_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = BASE / "index_version_schema" / "stage106_external_augmentation_opinion_stage_review_contract.json"
 PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage106-review-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage107-review-local.json"
+STATUS = ROOT / "machine" / "facts" / "status.json"
+PLAN = ROOT / "machine" / "facts" / "plan.json"
+ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
+EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 
 def _load_module(path: Path, name: str):
@@ -59,6 +69,12 @@ class Stage107HumanConfirmationItemsStageReviewTests(unittest.TestCase):
             PREDECESSOR_REVIEW,
             PREDECESSOR_CONTRACT,
             PREDECESSOR_RECEIPT,
+            RECEIPT,
+            STATUS,
+            PLAN,
+            ACCEPTANCE,
+            EVENTS,
+            ROADMAP,
         ):
             with self.subTest(artifact=artifact.name):
                 self.assertTrue(artifact.is_file())
@@ -193,6 +209,66 @@ class Stage107HumanConfirmationItemsStageReviewTests(unittest.TestCase):
                 self.assertEqual({}, failed_report["reviewed_control_shape"])
                 self.assertTrue(all(value == 0 for key, value in failed_report.items() if key.startswith("actual_") and key.endswith("_count")))
                 self.assertTrue(all(value is False for value in failed_report["runtime_boundary"].values()))
+
+    def test_current_governance_receipt_and_event_are_exact(self) -> None:
+        receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+        if receipt.get("final_validation", {}).get("state") == "IN_PROGRESS":
+            self.skipTest("Review 最终治理投影将在全量本地验收完成后启用")
+        status = json.loads(STATUS.read_text(encoding="utf-8"))
+        plan = json.loads(PLAN.read_text(encoding="utf-8"))
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        review_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-REVIEW",
+            "IDS-V0_1-STAGE107-REVIEW",
+            "IDS-STAGE108-P1-GATE",
+        )
+        self.assertTrue(
+            assert_legacy_or_current_projection(
+                self, current, set(), status, plan, ROADMAP
+            )
+        )
+        self.assertEqual(review_current, current)
+        self.assertEqual(
+            "REVIEWED_HUMAN_CONFIRMATION_ITEMS_RUNTIME_DISABLED",
+            status["evidence_status"],
+        )
+        self.assertEqual(self.module.PASS_RESULT, receipt["result"])
+        self.assertEqual(self.module.REVIEW_GATE, receipt["entry_gate"])
+        self.assertEqual(self.module.NEXT_GATE, receipt["next_gate"])
+        self.assertEqual(self.module.REVIEWED_CONTROL_SHAPE, receipt["controlled_replay"])
+        self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+        self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+        validation = receipt["final_validation"]
+        self.assertEqual(7, validation["focused_review_test_count"])
+        self.assertEqual(38, validation["stage107_phase1_to_review_compatibility_test_count"])
+        self.assertEqual(929, validation["stage088_to_stage107_precise_chain_test_count"])
+        self.assertTrue(validation["stage005_direct_validation_valid"])
+        self.assertEqual(
+            "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+            validation["batch041_050_result"],
+        )
+        self.assertEqual(
+            "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+            validation["batch051_060_result"],
+        )
+        acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
+        acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
+        self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-107"])
+        for acceptance_id in (
+            "ACC-STAGE107-REVIEW-01",
+            "ACC-STAGE107-REVIEW-02",
+            "ACC-STAGE107-REVIEW-03",
+        ):
+            with self.subTest(acceptance_id=acceptance_id):
+                self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE107-REVIEW-04"])
+        event_ids = {
+            json.loads(line)["event_id"]
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+        self.assertIn("EVT-IDS-V0_1-STAGE107-REVIEW-20260826-001", event_ids)
 
     def test_scope_contract_and_review_output_keep_every_runtime_surface_closed(self) -> None:
         scope_text = SCOPE.read_text(encoding="utf-8")

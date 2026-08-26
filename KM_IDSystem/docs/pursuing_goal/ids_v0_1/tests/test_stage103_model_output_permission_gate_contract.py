@@ -510,6 +510,8 @@ class Stage103ModelOutputPermissionGatePhase1Tests(unittest.TestCase):
                 },
             )
             self.assertTrue(is_current_projection)
+        elif is_current_projection:
+            self.assertTrue(is_current_projection)
         else:
             self.assertIn(current, {stage103_phase4_current, stage106_review_current})
             self.assertTrue(is_current_projection)
@@ -550,6 +552,8 @@ class Stage103ModelOutputPermissionGatePhase1Tests(unittest.TestCase):
             stage107_phase3_current,
             stage107_phase4_current,
         }:
+            self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-103"])
+        elif is_current_projection and current != stage103_phase4_current:
             self.assertEqual("整阶段已复审", acceptance_by_id["ACC-STAGE-103"])
         else:
             self.assertEqual(

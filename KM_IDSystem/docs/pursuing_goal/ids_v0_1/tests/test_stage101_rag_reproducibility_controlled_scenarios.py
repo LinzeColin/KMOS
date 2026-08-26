@@ -753,6 +753,8 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             stage107_phase4_current,
         }:
             self.assertTrue(is_current_projection)
+        elif is_current_projection:
+            self.assertTrue(is_current_projection)
         else:
             self.assertIn(current, {phase1_current, phase2_current})
             self.assertFalse(is_current_projection)

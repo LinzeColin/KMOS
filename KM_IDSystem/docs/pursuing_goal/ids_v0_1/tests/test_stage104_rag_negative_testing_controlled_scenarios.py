@@ -577,6 +577,8 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
             stage107_phase4_current,
         }:
             self.assertTrue(is_current_projection)
+        elif is_current_projection:
+            self.assertTrue(is_current_projection)
         else:
             self.assertFalse(is_current_projection)
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))

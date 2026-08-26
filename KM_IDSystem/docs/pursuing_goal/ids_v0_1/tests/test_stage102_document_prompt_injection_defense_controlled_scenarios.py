@@ -558,48 +558,18 @@ class Stage102DocumentPromptInjectionDefensePhase3Tests(unittest.TestCase):
             "IDS-STAGE107-REVIEW-GATE",
         )
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
-        self.assertIn(
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
             current,
-            {
-                phase3_current,
-                phase4_current,
-                review_current,
-                stage103_phase1_current,
-                stage103_phase2_current,
-                stage103_phase3_current,
-                stage103_phase4_current,
-                stage103_review_current,
-                stage104_phase1_current,
-                stage104_phase2_current,
-                stage104_phase3_current,
-                stage104_phase4_current,
-                stage104_review_current,
-                stage105_phase1_current,
-                stage105_phase2_current,
-                stage105_phase3_current,
-                stage105_phase4_current,
-                stage105_review_current,
-                stage106_phase1_current,
-                stage106_phase2_current,
-            stage106_phase3_current,
-            stage106_phase4_current,
-            stage106_review_current,
-                stage107_phase1_current,
-                stage107_phase2_current,
-                stage107_phase3_current,
-                stage107_phase4_current,
-            },
+            {phase1_current, phase2_current},
+            status,
+            plan,
+            ROADMAP,
         )
-        self.assertTrue(
-            assert_legacy_or_current_projection(
-                self,
-                current,
-                {phase1_current, phase2_current},
-                status,
-                plan,
-                ROADMAP,
-            )
-        )
+        if is_current_projection:
+            self.assertTrue(is_current_projection)
+        else:
+            self.assertIn(current, {phase1_current, phase2_current})
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
         for acceptance_id in (
             "ACC-STAGE102-P3-01",

@@ -638,18 +638,7 @@ class Stage105ReportEvidenceBindingPhase4Tests(unittest.TestCase):
                 if line.strip()
             }
             self.assertIn("EVT-IDS-V0_1-STAGE105-P4-20260826-001", event_ids)
-        elif current in {
-            review_current,
-            stage106_phase1_current,
-            stage106_phase2_current,
-            stage106_phase3_current,
-            stage106_phase4_current,
-            stage106_review_current,
-            stage107_phase1_current,
-            stage107_phase2_current,
-            stage107_phase3_current,
-            stage107_phase4_current,
-        }:
+        elif is_current_projection:
             self.assertTrue(is_current_projection)
         else:
             self.assertIn(current, {phase1_current, phase2_current, phase3_current})

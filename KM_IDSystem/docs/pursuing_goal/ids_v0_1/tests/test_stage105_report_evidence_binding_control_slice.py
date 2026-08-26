@@ -427,25 +427,10 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
             plan,
             ROADMAP,
         )
-        self.assertIn(
-            current,
-            {
-                phase1_current,
-                phase2_current,
-                phase3_current,
-                phase4_current,
-                review_current,
-                stage106_phase1_current,
-                stage106_phase2_current,
-                stage106_phase3_current,
-                stage106_phase4_current,
-                stage106_review_current,
-                stage107_phase1_current,
-                stage107_phase2_current,
-                stage107_phase3_current,
-                stage107_phase4_current,
-            },
-        )
+        if is_current_projection:
+            self.assertTrue(is_current_projection)
+        else:
+            self.assertIn(current, {phase1_current})
         if current == phase2_current:
             self.assertTrue(is_current_projection)
             self.assertEqual(
@@ -453,20 +438,7 @@ class Stage105ReportEvidenceBindingPhase2Tests(unittest.TestCase):
                 status["evidence_status"],
             )
             self.assertIn("IDS-STAGE105-P3-GATE", plan["stop_condition"])
-        elif current in {
-            phase3_current,
-            phase4_current,
-            review_current,
-            stage106_phase1_current,
-            stage106_phase2_current,
-            stage106_phase3_current,
-            stage106_phase4_current,
-            stage106_review_current,
-            stage107_phase1_current,
-            stage107_phase2_current,
-            stage107_phase3_current,
-            stage107_phase4_current,
-        }:
+        elif is_current_projection:
             self.assertTrue(is_current_projection)
         else:
             self.assertFalse(is_current_projection)

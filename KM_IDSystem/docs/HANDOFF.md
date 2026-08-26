@@ -1,14 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Recovery Checkpoint - Stage107 Review in progress - 2026-08-26
+## Current Gate - Stage107 Review accepted locally - 2026-08-26
 
-- 用户已授权将当前唯一开发分支作为恢复检查点同步到 GitHub。该检查点只保全 `codex/kmids-stage071-p1` 的本地在制工件；`main`、release、正式全局上传、OVH、生产、模型、Agent、业务资料与真实证据账本保持原状。
-- 当前在制范围为 Stage107 Review：范围说明、纯内存复审模块、静态合同、聚焦用例，以及对应的路线图、机器事实和治理验证器预置更新。范围仅复核既有 P1--P4 的固定 metadata-only 结构，运行计数与运行标志继续保持关闭。
-- 已完成的最小本地检查：Review 模块与用例可编译，聚焦 Review 用例 `6/6` 通过，工作区差异格式检查通过。此结果只覆盖当前在制工件，不构成整阶段验收。
-- 仍需完成：Review 事件与全零回执、Batch051--060 当前态投影、历史 P1--P4 兼容更新、Stage005 与连续白箱链验证、机器中文视图重渲染、文档/变更记录以及最终本地验收。Stage108 尚未启动。
-- 恢复动作：继续使用同一 worktree 与分支；先检查此检查点和下方 P4 已验收门禁，再完成冻结的 `IDS-STAGE107-REVIEW-GATE`。若需撤回在制范围，只撤回本检查点列出的 Review 工件，P1--P4 与 Stage106 Review 保持不变。
+- `IDS-V0_1-STAGE107-REVIEW` 已完成本地机械验收；当前治理状态为 `IDS-STAGE107 / IDS-STAGE107-REVIEW / IDS-V0_1-STAGE107-REVIEW / IDS-STAGE108-P1-GATE`。Stage108 保持未启动，只能由新的独立 run 在冻结任务包定义的门禁下进入。
+- Review 固定复核 P1 的 `25/6/5/21/4`、P2 的 `6×29/4×79/474/15/4`、P3 的 `6×39=234/5/6/6/15/4` 与 P4 的 `6/6/6/6/6/2`、`17/13/13/15/14/14`、`460/4/17`；关键结论 `evidence_id/evidence_gap` 二选一、外部增强的底层来源语义、报告状态影响、业务线白箱确认和 P4→P3 回退保持一致。
+- 已验证：Review 聚焦 `7/7`、Stage107 P1--Review 显式兼容 `38/38`、Stage088--Stage107 精确白箱链 `929/929`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- 验收范围固定为冻结控制工件、治理投影与机器生成中文视图；收据明确保留“未声明完整仓库绿”，完整仓库回归由独立范围管理。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。用户授权的恢复检查点已保全既有开发分支 `codex/kmids-stage071-p1@223925fcac3613914b467dcab8352761c1cf1e43`；本 Review 没有新增正式全局上传或远端推送，`main`、release、OVH 与生产继续由后续门禁承接。
+- 回滚只撤回 Stage107 Review 的范围说明、纯内存复审模块、合同、聚焦用例、历史治理投影、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_HUMAN_CONFIRMATION_ITEMS_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage107 P1--P4、Stage106 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE108-P1-GATE`，继续使用同一既有 scratch worktree 与开发分支。
 
-## Current Gate - Stage107 P4 accepted locally - 2026-08-26
+## Superseded Gate - Stage107 P4 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE107-P4` 已完成本地机械验收；当前治理状态为 `IDS-STAGE107 / IDS-STAGE107-P4 / IDS-V0_1-STAGE107-P4 / IDS-STAGE107-REVIEW-GATE`。Review 保持未启动，并由冻结任务包的后续独立 run 承接。
 - P4 从 P3 的 `6×39=234` 固定、非业务、`reference-only` 场景派生报告样例、报告快照、报告质量评分、报告影响分析、模板限制与业务线白箱人工确认各 `6` 条，以及重新生成与撤回说明 `2` 条；字段形状为 `17/13/13/15/14/14`，共 `460` 个 metadata-only 交付检查点、`17` 类失败关闭和 `4` 条中文反馈。

@@ -59,6 +59,7 @@ PREDECESSOR_CONTRACT = (
     / "stage106_external_augmentation_opinion_stage_review_contract.json"
 )
 RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage107-p4-local.json"
+REVIEW_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage107-review-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -346,6 +347,25 @@ class Stage107HumanConfirmationItemsPhase4Tests(unittest.TestCase):
         self.assertIn(current, {phase3_current, phase4_current, review_current})
         if current == phase3_current:
             self.assertEqual("HUMAN_CONFIRMATION_ITEMS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED", status["evidence_status"])
+            return
+
+        if current == review_current:
+            self.assertEqual(status["task"], plan["task"])
+            self.assertEqual(
+                "REVIEWED_HUMAN_CONFIRMATION_ITEMS_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertTrue(REVIEW_RECEIPT.is_file())
+            review_receipt = json.loads(REVIEW_RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual(
+                "PASS_REVIEWED_HUMAN_CONFIRMATION_ITEMS_RUNTIME_DISABLED",
+                review_receipt["result"],
+            )
+            self.assertEqual("IDS-STAGE108-P1-GATE", review_receipt["next_gate"])
+            self.assertEqual(
+                460,
+                review_receipt["controlled_replay"]["phase4_delivery_field_check_count"],
+            )
             return
 
         self.assertEqual(status["task"], plan["task"])

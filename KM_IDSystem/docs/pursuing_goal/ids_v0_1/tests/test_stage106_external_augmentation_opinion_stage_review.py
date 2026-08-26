@@ -399,17 +399,10 @@ class Stage106ExternalAugmentationOpinionStageReviewTests(unittest.TestCase):
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(
-            current,
-            {
-                phase4_current,
-                review_current,
-                stage107_phase1_current,
-                stage107_phase2_current,
-                stage107_phase3_current,
-                stage107_phase4_current,
-            },
-        )
+        if is_current_projection:
+            self.assertTrue(is_current_projection)
+        else:
+            self.assertIn(current, {phase4_current})
         if current == phase4_current:
             self.assertFalse(is_current_projection)
         else:

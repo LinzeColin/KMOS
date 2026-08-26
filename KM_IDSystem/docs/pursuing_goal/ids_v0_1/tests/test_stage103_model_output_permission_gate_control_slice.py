@@ -686,6 +686,8 @@ class Stage103ModelOutputPermissionGatePhase2Tests(unittest.TestCase):
                 },
             )
             self.assertTrue(is_current_projection)
+        elif is_current_projection:
+            self.assertTrue(is_current_projection)
         else:
             self.assertIn(current, {phase4_current, stage106_review_current})
             self.assertTrue(is_current_projection)

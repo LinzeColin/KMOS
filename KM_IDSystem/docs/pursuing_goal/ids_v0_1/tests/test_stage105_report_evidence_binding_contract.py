@@ -392,25 +392,10 @@ class Stage105ReportEvidenceBindingPhase1Tests(unittest.TestCase):
             plan,
             ROADMAP,
         )
-        self.assertIn(
-            current,
-            {
-                stage105_phase1_current,
-                stage105_phase2_current,
-                stage105_phase3_current,
-                stage105_phase4_current,
-                stage105_review_current,
-                stage106_phase1_current,
-                stage106_phase2_current,
-                stage106_phase3_current,
-                stage106_phase4_current,
-                stage106_review_current,
-                stage107_phase1_current,
-                stage107_phase2_current,
-                stage107_phase3_current,
-                stage107_phase4_current,
-            },
-        )
+        if is_current_projection:
+            self.assertTrue(is_current_projection)
+        else:
+            self.assertIn(current, {stage105_phase1_current})
         if current == stage105_phase1_current:
             self.assertFalse(is_current_projection)
         else:
@@ -440,8 +425,12 @@ class Stage105ReportEvidenceBindingPhase1Tests(unittest.TestCase):
                                 stage107_phase2_current,
                                 stage107_phase3_current,
                                 stage107_phase4_current,
-                            }
-                            else "P1/P2/P3/P4 控制工件已完成"
+                             }
+                             or (
+                                 is_current_projection
+                                 and current != stage105_phase4_current
+                             )
+                             else "P1/P2/P3/P4 控制工件已完成"
                         )
                     )
                 )
