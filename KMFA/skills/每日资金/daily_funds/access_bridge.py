@@ -739,6 +739,110 @@ def legacy_service_auth_resource_ids(
     }
 
 
+def _projection_legacy_allow_material(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> tuple[str, str, str]:
+    """Select one pre-migration projection policy with an exact bridge token.
+
+    Older Cloudflare Access APIs represented a Service Auth policy as
+    ``allow``.  The current bridge uses ``non_identity`` and deliberately
+    leaves an ``allow`` policy untouched during ordinary runs.  This helper is
+    reserved for the explicit projection-control migration: it still requires
+    one policy, one service-token selector, one completed bridge run tag and
+    the fixed 60-minute token duration before it exposes opaque cleanup IDs.
+    """
+
+    policies = _cloudflare_single_page_result(policies_path)
+    if len(policies) != 1:
+        raise AccessBridgeInputError("projection legacy allow policy is not unique")
+    policy = policies[0]
+    policy_id = policy.get("id")
+    if (
+        not isinstance(policy_id, str)
+        or _UUID_RE.fullmatch(policy_id.lower()) is None
+        or policy.get("decision") != "allow"
+    ):
+        raise AccessBridgeInputError("projection legacy allow policy is invalid")
+    include = policy.get("include")
+    if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
+        raise AccessBridgeInputError("projection legacy allow selector is invalid")
+    selector = include[0]
+    service_token = selector.get("service_token")
+    if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
+        raise AccessBridgeInputError("projection legacy allow selector is invalid")
+    token_id = service_token.get("token_id")
+    if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
+        raise AccessBridgeInputError("projection legacy allow token is invalid")
+
+    tokens = _cloudflare_single_page_result(service_tokens_path)
+    matched_tokens = [
+        token
+        for token in tokens
+        if isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
+    ]
+    if len(matched_tokens) != 1:
+        raise AccessBridgeInputError("projection legacy allow token is not unique")
+    token = matched_tokens[0]
+    token_name = token.get("name")
+    if not isinstance(token_name, str) or not token_name.startswith(_BRIDGE_RESOURCE_PREFIX):
+        raise AccessBridgeInputError("projection legacy allow token name is invalid")
+    run_tag = token_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
+    if (
+        bridge_resource_name(run_tag) != token_name
+        or _COMPLETED_RUN_TAG_RE.fullmatch(run_tag) is None
+        or token.get("duration") != SERVICE_TOKEN_DURATION
+    ):
+        raise AccessBridgeInputError("projection legacy allow token is invalid")
+    return policy_id.lower(), token_id.lower(), run_tag
+
+
+def projection_legacy_allow_run_tag(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> str:
+    """Return the exact completed bridge tag for one legacy projection policy."""
+
+    _, _, run_tag = _projection_legacy_allow_material(service_tokens_path, policies_path)
+    return run_tag
+
+
+def projection_legacy_allow_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+    *,
+    retired_run_tag: str | None = None,
+) -> dict[str, tuple[str, ...]]:
+    """Return cleanup IDs only after the proven source bridge run completed."""
+
+    policy_id, token_id, run_tag = _projection_legacy_allow_material(
+        service_tokens_path,
+        policies_path,
+    )
+    if retired_run_tag != run_tag:
+        raise AccessBridgeInputError("projection legacy allow token is not retired")
+    return {
+        "service_token_ids": (token_id,),
+        "policy_ids": (policy_id,),
+    }
+
+
+def projection_legacy_allow_resource_state(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+    *,
+    retired_run_tag: str,
+) -> str:
+    """Verify that one migrated projection bridge policy and token are absent."""
+
+    expected_name = bridge_resource_name(retired_run_tag)
+    policies = _cloudflare_single_page_result(policies_path)
+    tokens = _cloudflare_single_page_result(service_tokens_path)
+    if policies or any(token.get("name") == expected_name for token in tokens):
+        return "PRESENT"
+    return "ABSENT"
+
+
 def _strict_credential(value: object) -> str:
     if not isinstance(value, str) or _CREDENTIAL_RE.fullmatch(value) is None:
         raise AccessBridgeInputError("service token response invalid")

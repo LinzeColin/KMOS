@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-runtime-topology=只读分类唯一 daily-funds worker 的云端资源归属 | daily-funds-app-logs=只读汇总 KMFA app 容器日志 | daily-funds-public-routing-audit=只读核对 app 服务域名接线 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-source-advance=核验唯一 KMFA Compose 目标后将受控源码前进到当前 main 并重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-projection-legacy-access-reconcile=仅迁移已完成旧运行留下的投影 Access allow 策略 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-runtime-topology=只读分类唯一 daily-funds worker 的云端资源归属 | daily-funds-app-logs=只读汇总 KMFA app 容器日志 | daily-funds-public-routing-audit=只读核对 app 服务域名接线 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-source-advance=核验唯一 KMFA Compose 目标后将受控源码前进到当前 main 并重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-runtime-topology, daily-funds-worker-logs, daily-funds-app-logs, daily-funds-public-routing-audit, daily-funds-recovery-force-rebuild, daily-funds-source-advance, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-projection-legacy-access-reconcile, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-runtime-topology, daily-funds-worker-logs, daily-funds-app-logs, daily-funds-public-routing-audit, daily-funds-recovery-force-rebuild, daily-funds-source-advance, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
         description: "目标应用 uuid（daily-funds* 与 public-dashboard 可留空，工作流会按唯一 KMFA Compose 目标解析并回读；其他模式按需填写）"
         required: false
@@ -62,7 +62,7 @@ jobs:
       # in GitHub's masked runner environment only.  Every later action still
       # verifies the resolved target before reading, restarting, or deploying.
       - name: 解析唯一每日资金目标（零标识输出）
-        if: inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-recovery-restart' || inputs.mode == 'daily-funds-recovery-component-restart' || inputs.mode == 'daily-funds-runtime-topology' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs' || inputs.mode == 'daily-funds-public-routing-audit' || inputs.mode == 'daily-funds-recovery-force-rebuild' || inputs.mode == 'daily-funds-source-advance' || inputs.mode == 'sync-daily-funds-secrets'
+        if: inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-projection-legacy-access-reconcile' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-recovery-restart' || inputs.mode == 'daily-funds-recovery-component-restart' || inputs.mode == 'daily-funds-runtime-topology' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs' || inputs.mode == 'daily-funds-public-routing-audit' || inputs.mode == 'daily-funds-recovery-force-rebuild' || inputs.mode == 'daily-funds-source-advance' || inputs.mode == 'sync-daily-funds-secrets'
         run: |
           set -euo pipefail
           target_file="$RUNNER_TEMP/daily-funds-target-resolution.json"
@@ -114,7 +114,7 @@ jobs:
           echo "daily_funds_target_resolution=VERIFIED"
 
       - name: 检出诊断代码
-        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs'
+        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-projection-legacy-access-reconcile' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs'
         uses: actions/checkout@v4
 
       - name: 安装项目成本诊断依赖
@@ -894,7 +894,7 @@ jobs:
       # remains unchanged; the child path holds no persistent policy and only
       # receives one 60-minute Service Auth policy during this run.
       - name: 受控读取或触发每日资金固定任务（短时 Access 身份自动撤销）
-        if: inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge'
+        if: inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-projection-legacy-access-reconcile'
         env:
           CONTROL_MODE: ${{ inputs.mode }}
           CF_ACCOUNT_ID: ${{ secrets.DAILY_FUNDS_CF_ACCOUNT_ID }}
@@ -938,6 +938,16 @@ jobs:
               CONTROL_POLL_SECONDS=0
               # This exact GET proves the app's read-only projection contract.
               # It does not trigger a worker run or return financial values.
+              ;;
+            daily-funds-projection-legacy-access-reconcile)
+              CONTROL_KIND=PROJECTION_LEGACY_RECONCILE
+              CONTROL_LABEL=daily_funds_projection_legacy_access_reconcile
+              CONTROL_PATH=/ops/api/daily-funds/projection-probe
+              CONTROL_POLL_ATTEMPTS=0
+              CONTROL_POLL_SECONDS=0
+              # This one-time migration never calls the app.  It retires only
+              # a pre-non_identity allow policy tied to a completed 60-minute
+              # bridge run, then leaves this control child application empty.
               ;;
             *) echo "daily_funds_control_bridge=MODE_INVALID"; exit 1 ;;
           esac
@@ -1181,6 +1191,62 @@ jobs:
             fi
           }
 
+          reconcile_projection_legacy_allow_policy() {
+            # This explicit owner-authorized migration is intentionally
+            # separate from ordinary bridge cleanup.  It accepts only the
+            # pre-non_identity ``allow`` shape when one fixed service-token
+            # selector, its 60-minute bridge credential, and the originating
+            # completed Actions attempt all agree.  It cannot remove an
+            # identity, group, email, multi-policy, active-run, or arbitrary
+            # service-token rule.
+            local retired_run_tag=""
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/projection-legacy-service-token-list.json"
+            if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+            if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-projection-legacy-allow-run-tag-env \
+              --service-tokens "$bridge_dir/projection-legacy-service-token-list.json" \
+              --policies "$bridge_dir/control-app-policies-before.json" \
+              --output "$bridge_dir/projection-legacy-run-tag.env"; then return 1; fi
+            unset CF_ACCESS_ORPHANED_RUN_TAG
+            . "$bridge_dir/projection-legacy-run-tag.env"
+            if [[ ! "${CF_ACCESS_ORPHANED_RUN_TAG:-}" =~ ^[1-9][0-9]{0,31}-[1-9][0-9]{0,15}$ ]]; then return 1; fi
+            retired_run_tag="$CF_ACCESS_ORPHANED_RUN_TAG"
+            local retired_run_id="${retired_run_tag%-*}"
+            local retired_run_attempt="${retired_run_tag##*-}"
+            local retired_run_state
+            if ! retired_run_state="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${retired_run_id}/attempts/${retired_run_attempt}" --jq '[.status, .run_attempt, .path, .head_branch, .event] | @tsv' 2>/dev/null)"; then return 1; fi
+            local retired_status observed_attempt retired_workflow_path retired_branch retired_event
+            IFS=$'\t' read -r retired_status observed_attempt retired_workflow_path retired_branch retired_event <<< "$retired_run_state"
+            if [ "$retired_status" != "completed" ] || [ "$observed_attempt" != "$retired_run_attempt" ] \
+              || [ "$retired_workflow_path" != ".github/workflows/coolify-ops.yml@main" ] \
+              || [ "$retired_branch" != "main" ] || [ "$retired_event" != "workflow_dispatch" ]; then return 1; fi
+            unset CF_ACCESS_ORPHANED_RUN_TAG
+            if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-projection-legacy-allow-resource-env \
+              --service-tokens "$bridge_dir/projection-legacy-service-token-list.json" \
+              --policies "$bridge_dir/control-app-policies-before.json" \
+              --retired-run-tag "$retired_run_tag" \
+              --output "$bridge_dir/projection-legacy-resources.env"; then return 1; fi
+            unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
+            . "$bridge_dir/projection-legacy-resources.env"
+            for retired_policy_id in $CF_ACCESS_OWNED_POLICY_IDS; do
+              request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies/${retired_policy_id}" "$bridge_dir/projection-legacy-policy-delete.json"
+              if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ] || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/projection-legacy-policy-delete.json" >/dev/null 2>&1; then return 1; fi
+            done
+            for retired_service_token_id in $CF_ACCESS_OWNED_SERVICE_TOKEN_IDS; do
+              request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens/${retired_service_token_id}" "$bridge_dir/projection-legacy-service-token-delete.json"
+              if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ] || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/projection-legacy-service-token-delete.json" >/dev/null 2>&1; then return 1; fi
+            done
+            unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies?per_page=1000" "$bridge_dir/projection-legacy-policy-list-after.json"
+            if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/projection-legacy-service-token-list-after.json"
+            if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+            final_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" projection-legacy-allow-resource-state \
+              --service-tokens "$bridge_dir/projection-legacy-service-token-list-after.json" \
+              --policies "$bridge_dir/projection-legacy-policy-list-after.json" \
+              --retired-run-tag "$retired_run_tag")"
+            test "$final_state" = "ABSENT"
+          }
+
           cleanup() {
             set +e
             if [ "$policy_created" = "1" ] && [ -f "$bridge_dir/policy.env" ]; then
@@ -1219,7 +1285,12 @@ jobs:
               "$bridge_dir/orphaned-service-token-list.json" "$bridge_dir/orphaned-run-tag.env" \
               "$bridge_dir/orphaned-resources.env" "$bridge_dir/orphaned-policy-delete.json" \
               "$bridge_dir/orphaned-service-token-delete.json" "$bridge_dir/orphaned-service-token-list-after.json" \
-              "$bridge_dir/orphaned-policy-list-after.json"
+              "$bridge_dir/orphaned-policy-list-after.json" \
+              "$bridge_dir/projection-legacy-service-token-list.json" "$bridge_dir/projection-legacy-run-tag.env" \
+              "$bridge_dir/projection-legacy-resources.env" "$bridge_dir/projection-legacy-policy-delete.json" \
+              "$bridge_dir/projection-legacy-service-token-delete.json" \
+              "$bridge_dir/projection-legacy-policy-list-after.json" \
+              "$bridge_dir/projection-legacy-service-token-list-after.json"
             if ! rmdir "$bridge_dir" 2>/dev/null; then
               cleanup_result=NEEDS_ATTENTION
             fi
@@ -1250,6 +1321,10 @@ jobs:
           fi
           if ! resolve_control_target; then
             target_diagnostic="$(diagnose_control_target)"
+            if [ "$CONTROL_KIND" = "PROJECTION_LEGACY_RECONCILE" ]; then
+              echo "$CONTROL_LABEL=ACCESS_TARGET_${target_diagnostic}"
+              exit 1
+            fi
             case "$target_diagnostic" in
               CONTROL_APP_MISSING)
                 python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-control-app-payload \
@@ -1293,6 +1368,23 @@ jobs:
           fi
           control_app_policy_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" control-app-policy-state \
             --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INVALID')"
+          if [ "$CONTROL_KIND" = "PROJECTION_LEGACY_RECONCILE" ]; then
+            case "$control_app_policy_state" in
+              EMPTY)
+                echo "$CONTROL_LABEL=NOT_REQUIRED"
+                exit 0
+                ;;
+              NOT_EMPTY)
+                if ! reconcile_projection_legacy_allow_policy; then
+                  echo "$CONTROL_LABEL=LEGACY_POLICY_NOT_RECONCILABLE"
+                  exit 1
+                fi
+                echo "$CONTROL_LABEL=RECONCILED"
+                exit 0
+                ;;
+              *) echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_INVALID"; exit 1 ;;
+            esac
+          fi
           case "$control_app_policy_state" in
             EMPTY) ;;
             NOT_EMPTY)
