@@ -865,6 +865,11 @@ def test_private_daily_funds_projection_range_and_no_raw_leak(tmp_path, monkeypa
         "状态": "COMPLETE_PAIR_READY",
         "说明": "账户与流水已成对，等待后续勾稽与发布",
     }
+    assert source_health["payment_request_refresh"] == {
+        "状态": "已更新",
+        "说明": "最新付款请示已完成固定版式与总合计复核。",
+        "最近一次": "2026-07-30T12:05:15Z",
+    }
     assert "machine_code" not in source_health and "publication_id" not in source_health
     body = response.text.lower()
     assert "attachment" not in body and "openmessage" not in body and "raw/messages" not in body
@@ -1381,6 +1386,32 @@ def test_daily_funds_source_health_exposes_values_free_historical_backfill_cover
     }
     assert "cursor-fixture" not in response.text
     assert "backfill-fixture" not in response.text
+
+
+def test_daily_funds_source_health_reduces_payment_request_refresh_to_a_safe_stage(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    flow_path = publication / "flow_state.json"
+    flow = json.loads(flow_path.read_text(encoding="utf-8"))
+    flow["operations"]["payment-request-refresh"] = {
+        "state": "FAILED",
+        "code": "PAYMENT_REQUEST_REFRESH_CONFIG_INVALID",
+        "finished_at": "2026-08-02T10:05:00Z",
+        "private_detail_must_not_escape": "financial-group-fixture",
+    }
+    flow_path.write_text(json.dumps(flow), encoding="utf-8")
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/source-health")
+
+    assert response.status_code == 200
+    assert response.json()["payment_request_refresh"] == {
+        "状态": "需处理",
+        "说明": "云端财务群读取配置待补齐。",
+        "最近一次": "2026-08-02T10:05:00Z",
+    }
+    assert "PAYMENT_REQUEST_REFRESH_CONFIG_INVALID" not in response.text
+    assert "financial-group-fixture" not in response.text
 
 
 def test_daily_funds_source_discovery_distinguishes_missing_fact_gates(tmp_path, monkeypatch):
