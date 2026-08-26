@@ -180,6 +180,11 @@ def _write_projection(root: Path) -> None:
                 "finished_at": "2026-07-30T12:05:00Z",
                 "raw_fixture_should_not_escape": "message-fixture",
             },
+            "payment-request-refresh": {
+                "state": "SUCCEEDED",
+                "code": "PAYMENT_REQUEST_REFRESH_VERIFIED",
+                "finished_at": "2026-07-30T12:05:15Z",
+            },
             "auth-probe": {
                 "state": "SUCCEEDED",
                 "code": "AUTH_OK",
@@ -1090,6 +1095,11 @@ def test_daily_funds_status_is_visible_in_existing_schedule_center(tmp_path, mon
         "状态": "成功",
         "结果": "VALID_PUBLISHED",
         "最近一次": "2026-07-30T12:05:00Z",
+    }
+    assert flow["运行回执"]["待付款请示刷新"] == {
+        "状态": "成功",
+        "结果": "PAYMENT_REQUEST_REFRESH_VERIFIED",
+        "最近一次": "2026-07-30T12:05:15Z",
     }
     assert flow["运行回执"]["认证探测"] == {
         "状态": "成功",

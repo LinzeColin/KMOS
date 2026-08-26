@@ -2706,6 +2706,7 @@ DAILY_FUNDS_BUSINESS_FLOW_STAGES = {
 }
 DAILY_FUNDS_OPERATION_RECEIPTS = (
     ("poll", "历史轮询"),
+    ("payment-request-refresh", "待付款请示刷新"),
     ("auth-probe", "认证探测"),
     ("keepalive", "认证保活"),
     ("backfill", "历史回填"),
