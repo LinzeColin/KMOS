@@ -1,5 +1,13 @@
 # IDS / Industrial Data System Handoff
 
+## 休眠前恢复检查点 — Stage114 P2 初始实现已固化，尚未验收 — 2026-08-27
+
+- 当前治理门禁仍为 `IDS-STAGE114 / IDS-STAGE114-P1 / IDS-V0_1-STAGE114-P1 / IDS-STAGE114-P2-GATE`。`IDS-V0_1-STAGE114-P2` 已在同一既有开发 worktree 中形成五个初始控制工件：范围说明、纯内存模块、静态合同、聚焦用例与本地 run；路线、机器事实、事件、批次门禁、中文视图与完整回执仍保持 P1 已验收状态。
+- 本检查点只保存 P2 的可恢复开发进度，不构成 P2 本地验收。已运行聚焦用例 `7` 项，其中 `6` 项通过、`1` 项因本地 run 仍为 `IN_PROGRESS_LOCAL_VALIDATION` 而跳过；尚未执行治理接入、全套前向验证或 P2 最终回执。
+- 用户已明确授权在休眠前将现有开发分支作为恢复检查点同步到 GitHub。该同步只使用既有 `codex/kmids-stage071-p1` 分支；`main`、release、PR、OVH 与生产运行保持既有边界。
+- 恢复时先完成 P2 的治理投影、回执与全量冻结门禁验证；P3、P4、Stage114 Review 与 Stage115 均保持未启动。
+- 回退范围仅为本检查点新增的五个 P2 初始工件与本条交接记录；Stage114 P1、Stage113 Review、冻结任务包、业务事实来源与既有远端恢复记录保持原状。
+
 ## Current Gate - Stage114 P1 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE114-P1` 已完成冻结复核工作流范围、输入输出与边界确认；当前治理状态为 `IDS-STAGE114 / IDS-STAGE114-P1 / IDS-V0_1-STAGE114-P1 / IDS-STAGE114-P2-GATE`。Stage114 P2 仅由后续独立 run 在冻结任务包门禁下承接。

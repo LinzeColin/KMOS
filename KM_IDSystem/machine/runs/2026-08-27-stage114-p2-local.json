@@ -1,0 +1,13 @@
+{
+  "schema_version": "ids.stage114.review_workflow.phase2.run.v1",
+  "run_id": "RUN-IDS-V0_1-STAGE114-P2-20260827-001",
+  "project_id": "KM_IDSystem",
+  "stage": "IDS-STAGE114",
+  "phase": "IDS-STAGE114-P2",
+  "task_id": "IDS-V0_1-STAGE114-P2",
+  "entry_gate": "IDS-STAGE114-P2-GATE",
+  "next_gate": "IDS-STAGE114-P3-GATE",
+  "final_validation": {
+    "state": "IN_PROGRESS_LOCAL_VALIDATION"
+  }
+}
