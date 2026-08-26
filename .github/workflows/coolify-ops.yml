@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-runtime-topology=只读分类唯一 daily-funds worker 的云端资源归属 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-source-advance=核验唯一 KMFA Compose 目标后将受控源码前进到当前 main 并重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-runtime-topology=只读分类唯一 daily-funds worker 的云端资源归属 | daily-funds-app-logs=只读汇总 KMFA app 容器日志 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-source-advance=核验唯一 KMFA Compose 目标后将受控源码前进到当前 main 并重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-runtime-topology, daily-funds-worker-logs, daily-funds-recovery-force-rebuild, daily-funds-source-advance, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-runtime-topology, daily-funds-worker-logs, daily-funds-app-logs, daily-funds-recovery-force-rebuild, daily-funds-source-advance, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
         description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-projection-probe-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-runtime-topology / daily-funds-recovery-force-rebuild / daily-funds-source-advance 必填；先用 list 查）"
         required: false
@@ -56,7 +56,7 @@ jobs:
       APP: ${{ inputs.app_uuid }}
     steps:
       - name: 检出诊断代码
-        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-worker-logs'
+        if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs'
         uses: actions/checkout@v4
 
       - name: 安装项目成本诊断依赖
@@ -2413,6 +2413,65 @@ jobs:
           set +e
           code="$(curl -sS -o "$log_file" -w '%{http_code}' \
             -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/logs?lines=200&service=daily-funds" \
+            2>"$curl_error_file")"
+          curl_exit=$?
+          set -e
+          python3 "KMFA/skills/每日资金/scripts/summarize_coolify_logs.py" \
+            --input "$log_file" \
+            --http-status "$code" \
+            --curl-exit "$curl_exit"
+
+      # The public route targets the ``app`` compose service, while the
+      # daily-funds worker can remain healthy during an app restart.  Keep the
+      # app response runner-private and use the same values-free summary: it
+      # reports transport and line-count facts without copying application
+      # output, request data or any financial source content into Actions.
+      - name: 只读汇总 KMFA app 运行状态
+        if: inputs.mode == 'daily-funds-app-logs'
+        run: |
+          set -euo pipefail
+          app_file="$RUNNER_TEMP/daily-funds-app-logs-app.json"
+          log_file="$RUNNER_TEMP/daily-funds-app-logs.out"
+          curl_error_file="$RUNNER_TEMP/daily-funds-app-logs.curl.err"
+          trap 'rm -f "$app_file" "$log_file" "$curl_error_file"' EXIT
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_app_logs=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "daily_funds_app_logs=APP_REQUIRED"; exit 1; }
+          case "$APP" in *[!A-Za-z0-9_-]*) echo "daily_funds_app_logs=APP_INVALID"; exit 1 ;; esac
+          test -n "${BASE:-}" || { echo "daily_funds_app_logs=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "daily_funds_app_logs=CONFIG_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+
+          app_status="$(curl -sS -o "$app_file" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP" 2>/dev/null || true)"
+          test "$app_status" = "200" || { echo "daily_funds_app_logs=CONTROL_UNAVAILABLE"; exit 1; }
+          python3 - "$app_file" "$APP" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_app_logs={code}")
+              raise SystemExit(1)
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              fail("CONTROL_RESPONSE_INVALID")
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          if not isinstance(payload, dict):
+              fail("CONTROL_RESPONSE_INVALID")
+          if (
+              payload.get("uuid") != sys.argv[2]
+              or payload.get("name") != "kmfa-kmos-p1"
+              or payload.get("build_pack") != "dockercompose"
+          ):
+              fail("TARGET_UNEXPECTED")
+          print("daily_funds_app_logs_target=VERIFIED")
+          PY
+
+          set +e
+          code="$(curl -sS -o "$log_file" -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications/$APP/logs?lines=200&service=app" \
             2>"$curl_error_file")"
           curl_exit=$?
           set -e
