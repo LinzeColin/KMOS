@@ -44,6 +44,27 @@ _DEVICE_CODE_RE = re.compile(
     re.IGNORECASE,
 )
 _DEVICE_URL_RE = re.compile(r"https://[^\s<>\"']+", re.IGNORECASE)
+_DWS_DOWNLOAD_SUFFIX_BY_MIME = {
+    "application/pdf": ".pdf",
+    "application/vnd.ms-excel": ".xls",
+    "application/vnd.ms-excel.sheet.macroenabled.12": ".xlsm",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+    "image/bmp": ".bmp",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "text/csv": ".csv",
+    "text/plain": ".txt",
+}
+_DWS_DOWNLOAD_SUFFIXES = frozenset({
+    *ALLOWED_SUFFIXES,
+    ".bmp",
+    ".jpeg",
+    ".jpg",
+    ".pdf",
+    ".png",
+    ".webp",
+})
 
 # A history-probe receipt may report only this bounded protocol classification
 # when a terminal DWS page omits the explicit message list required by DF-002.
@@ -300,6 +321,24 @@ def _attachment_resource(attachment: Mapping[str, Any]) -> tuple[str, str] | Non
         # Untyped historical resource IDs are the legacy media representation.
         return "mediaId", media_id
     return None
+
+
+def _dws_download_target_name(*, index: int, declared_filename: str | None, declared_mime: str | None) -> str:
+    """Return one private, explicit relative target for a DWS resource download.
+
+    The DWS downloader treats ``--output`` as a file path.  Passing a bare
+    directory worked only in some releases and makes older pinned releases
+    reject an otherwise readable attachment.  This target never incorporates
+    a provider filename, while retaining a bounded suffix when the message
+    already declares one.  The downstream parser still validates the source
+    filename, MIME and byte signature before admitting any fact.
+    """
+
+    suffix = Path(declared_filename).suffix.lower() if declared_filename else ""
+    if suffix not in _DWS_DOWNLOAD_SUFFIXES:
+        normalized_mime = declared_mime.lower().split(";", 1)[0].strip() if declared_mime else ""
+        suffix = _DWS_DOWNLOAD_SUFFIX_BY_MIME.get(normalized_mime, ".download")
+    return f"attachment-{index}{suffix}"
 
 
 def _dws_history_failure_code(*values: object, fallback: str = "DWS_HISTORY_FAILED") -> str:
@@ -1471,16 +1510,20 @@ class DwsHistoryClient:
         with tempfile.TemporaryDirectory(prefix="daily-funds-dws-", dir=self.config.state_dir) as temp:
             output_dir = Path(temp) / "download"
             output_dir.mkdir()
-            # The current DWS resource downloader writes into a *relative*
-            # working-directory path.  Running it inside this short-lived
-            # private directory supports both native fileId workbooks and
-            # mediaId previews without reusing a provider filename as a path.
+            # The downloader requires a concrete relative *file* path.  Keep
+            # it inside the short-lived private directory and never pass a
+            # provider filename as a filesystem path.
+            output_name = _dws_download_target_name(
+                index=index,
+                declared_filename=declared_filename,
+                declared_mime=declared_mime,
+            )
             command = [
                 self.config.dws_bin,
                 "chat", "+messages-resource-download",
                 "--type", resource_type,
                 "--resource-id", resource_id,
-                "--output", ".",
+                "--output", output_name,
                 "--format", "json",
                 "--timeout", "150",
             ]
