@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE108"
-current_phase_id: "IDS-STAGE108-P1"
-current_task_id: "IDS-V0_1-STAGE108-P1"
-next_gate_id: "IDS-STAGE108-P2-GATE"
+current_phase_id: "IDS-STAGE108-P2"
+current_task_id: "IDS-V0_1-STAGE108-P2"
+next_gate_id: "IDS-STAGE108-P3-GATE"
 current_transition_history:
+  stage108_phase2_state:
+    current_stage_id: "IDS-STAGE108"
+    current_phase_id: "IDS-STAGE108-P2"
+    current_task_id: "IDS-V0_1-STAGE108-P2"
+    next_gate_id: "IDS-STAGE108-P3-GATE"
   stage108_phase1_state:
     current_stage_id: "IDS-STAGE108"
     current_phase_id: "IDS-STAGE108-P1"
@@ -1900,22 +1905,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-108"
     objective: "依据冻结 Stage108 任务包完成报告快照的 P1 静态边界、后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审；报告证据绑定、外部增强来源语义、人工确认项、PDF 引用来源、data/index/evidence/model/generated_at 快照、报告状态影响、质量评分、导出审计、模板限制和重新生成／撤回保持受控。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE108-P2-GATE"
+    next_gate_id: "IDS-STAGE108-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE108-P1-GATE"
+      gate_id: "IDS-STAGE108-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE108-P2-GATE"
+      next_gate_id: "IDS-STAGE108-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage108 任务包与 Stage107 Review 已复审人工确认事项章节控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 固定报告证据绑定、外部增强章节、人工确认项、关键结论 evidence_id/evidence_gap、证据等级、PDF 引用来源与页码、五项生成快照、报告快照、报告状态影响、质量评分、导出审计、模板限制与重新生成／撤回说明的控制引用。"
-      - "P2 只在后续独立 run 实现受控最小切片；P3 只验证关键结论证据绑定、资料撤回／证据降级／索引版本变化的未来报告状态影响和外部增强来源边界；P4 只交付控制记录、回滚说明与中文反馈。"
+      - "P2 固定五条非业务 reference-only 控制请求，机械投影报告证据绑定与章节输出、五项生成快照、报告生命周期以及外部增强与业务线白箱门禁四组纯内存记录。P3 只验证关键结论证据绑定、资料撤回／证据降级／索引版本变化的未来报告状态影响和外部增强来源边界；P4 只交付控制记录、回滚说明与中文反馈。"
       - "真实资料、人工确认、报告、PDF、快照、审计、数据库、模型、Agent、OVH、生产与正式全局上传保持零执行。"
     forbidden_actions:
       - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、原始元数据、真实证据账本、审计日志、数据库、物理索引或业务结论。"
-      - "执行人工确认、外部参考或模型推理评估、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、质量评分、导出审计、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage108 P2 以后阶段。"
+      - "执行人工确认、外部参考或模型推理评估、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、质量评分、导出审计、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage108 P3 以后阶段。"
     phases:
       - phase_id: "IDS-STAGE108-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -1963,26 +1968,52 @@ stages:
       - phase_id: "IDS-STAGE108-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
         objective: "以 Stage108 P1 静态合同为前序，受控实现报告证据绑定、章节输出、快照保存、影响分析或报告质量评分切片，并记录 future report 的证据等级、引用页码、人工确认项与导出审计。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE108-P3-GATE"
         gate:
           gate_id: "IDS-STAGE108-P2-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE108-P3-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE108-P2"
             name: "报告快照受控最小切片"
             objective: "在新的独立 run 中受控实现冻结任务包列出的报告快照最小切片。"
-            status: "not_started"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE108-P1"
+            acceptance_ids:
+              - "ACC-STAGE-108"
+              - "ACC-STAGE108-P2-01"
+              - "ACC-STAGE108-P2-02"
+              - "ACC-STAGE108-P2-03"
+              - "ACC-STAGE108-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage108_report_snapshot_control_slice"
+              - "Stage088--Stage108 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage108 P2 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage108 P2 聚焦纯内存控制切片白箱用例、Stage108 P1 兼容、Stage088--Stage108 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage108 P2 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-108_报告快照.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE108_PHASE2_REPORT_SNAPSHOT_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage108_report_snapshot_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage108_report_snapshot_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage108_report_snapshot_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage108-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE108_PHASE1_REPORT_SNAPSHOT_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage108_report_snapshot_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage108-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage107-review-local.json"
+            risk: "将固定控制请求、纯内存投影、测试、路线或机器事实误作真实报告、快照、人工确认、业务事实、审计或生产动作，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P2 的范围说明、纯内存模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage108 P1 静态合同的本地零运行时状态；不改变 Stage108 P1、Stage107 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE108-P3"
         name: "Phase 3 · 报告快照专项验证与异常场景"
         objective: "验证关键结论 evidence_id/evidence_gap、资料撤回／证据降级／索引版本变化的报告状态影响及外部增强来源边界。"
         status: "not_started"
-        entry_authorized: false
+        entry_authorized: true
         next_gate_id: "IDS-STAGE108-P4-GATE"
         gate:
           gate_id: "IDS-STAGE108-P3-GATE"
