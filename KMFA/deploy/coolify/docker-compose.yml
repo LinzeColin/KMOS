@@ -234,12 +234,14 @@ services:
     expose:
       - "8000"                                    # 经 Coolify Traefik 暴露；域名在 Coolify 面板设，无需开放主机端口
     healthcheck:
+      # 只判定 Web 进程是否能响应。SQLite 与对象存储属于业务就绪度，
+      # 由受保护的业务状态面表达，不能把可用网站从代理摘除。
       test:
         [
           "CMD",
           "python3",
           "-c",
-          "import urllib.request;from pathlib import Path;from app.object_storage import configured_write_store;from app.structured_store import open_structured_store;p=Path('/var/lib/kmfa/state/walking-skeleton');s=open_structured_store(p/'walking_skeleton.sqlite3');assert s.schema_version()==4;s.close();o=configured_write_store(p);o.ensure_ready();urllib.request.urlopen('http://127.0.0.1:8000/healthz')",
+          "import urllib.request;r=urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=5);assert r.status == 200",
         ]
       interval: 2m
       timeout: 10s
