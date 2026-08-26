@@ -2492,7 +2492,7 @@ def test_payment_request_refresh_clears_stale_points_when_the_exact_source_fails
     assert "DWS_HISTORY_FAILED" not in json.dumps(projection)
 
 
-def test_payment_request_refresh_reports_attachment_phase_without_provider_detail(
+def test_payment_request_refresh_reports_attachment_provider_phase_without_provider_detail(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2527,9 +2527,31 @@ def test_payment_request_refresh_reports_attachment_phase_without_provider_detai
     monkeypatch.setattr(runtime, "_dws_client", AttachmentFailureClient)
     result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
 
-    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_READ_FAILED"}
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PROVIDER_FAILED"}
     saved = (runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8")
     assert "ATTACHMENT_DOWNLOAD_FAILED" not in saved
+
+
+@pytest.mark.parametrize(("internal_code", "expected_code"), (
+    ("DWS_ATTACHMENT_PERMISSION_DENIED", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PERMISSION_DENIED"),
+    ("ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_ARGUMENT_INVALID"),
+    ("ATTACHMENT_DOWNLOAD_AMBIGUOUS", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_OUTPUT_INVALID"),
+    ("ATTACHMENT_DOWNLOAD_FAILED", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PROVIDER_FAILED"),
+    ("ATTACHMENT_DOWNLOAD_READ_FAILED", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_READ_FAILED"),
+    ("ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_TRANSPORT_UNAVAILABLE"),
+    ("ATTACHMENT_INDEX_INVALID", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_INDEX_INVALID"),
+    ("UNSUPPORTED_ATTACHMENT", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_UNSUPPORTED"),
+    ("CORRUPT_ATTACHMENT", "PAYMENT_REQUEST_REFRESH_ATTACHMENT_CONTENT_INVALID"),
+))
+def test_payment_request_refresh_preserves_values_free_attachment_outcome(
+    internal_code: str,
+    expected_code: str,
+) -> None:
+    """The schedule receipt retains a safe repair category, not provider text."""
+
+    assert DailyFundsRuntime._payment_request_refresh_failure_code(
+        IngestionError(internal_code),
+    ) == expected_code
 
 
 def test_cashflow_observation_admits_explicit_generic_source_labels_to_the_strict_chart_gate(tmp_path: Path) -> None:
