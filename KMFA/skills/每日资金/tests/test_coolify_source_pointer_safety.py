@@ -15,13 +15,15 @@ def test_source_advance_is_main_only_exact_target_and_values_free() -> None:
 
     assert "inputs.mode == 'daily-funds-source-advance'" in step
     assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
-    assert "EXPECTED_SOURCE_REVISION: ${{ github.sha }}" in step
+    assert 'EXPECTED_SOURCE_REVISION="${GITHUB_SHA:-}"' in step
+    assert "EXPECTED_SOURCE_REVISION: ${{ github.sha }}" not in step
     assert 'app.get("name") != "kmfa-kmos-p1"' in step
     assert 'app.get("build_pack") != "dockercompose"' in step
     assert 'app.get("git_branch") != "main"' in step
     assert "LinzeColin/KMOS" in step
     assert "KMFA/deploy/coolify/docker-compose.yml" in step
     assert "DEPLOYMENT_ALREADY_ACTIVE" in step
+    assert 'active = active.get("deployments", active.get("items"))' in step
     assert 'json.dumps({"git_commit_sha": os.environ["EXPECTED_SOURCE_REVISION"]})' in step
     assert 'str(payload.get("git_commit_sha") or "").strip().lower() != expected' in step
     assert "daily_funds_source_advance_pointer=ADVANCED" in step
