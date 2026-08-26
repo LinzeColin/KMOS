@@ -40,6 +40,9 @@ from daily_funds.access_bridge import (  # noqa: E402
     owned_bridge_resource_ids,
     policy_payload,
     projection_poll_state,
+    projection_legacy_allow_resource_ids,
+    projection_legacy_allow_resource_state,
+    projection_legacy_allow_run_tag,
     probe_poll_state,
     probe_start_poll_state,
     recovery_poll_state,
@@ -286,6 +289,22 @@ def main(argv: list[str] | None = None) -> int:
     legacy_tag.add_argument("--policies", required=True)
     legacy_tag.add_argument("--output", required=True)
 
+    projection_legacy_resources = subparsers.add_parser("write-projection-legacy-allow-resource-env")
+    projection_legacy_resources.add_argument("--service-tokens", required=True)
+    projection_legacy_resources.add_argument("--policies", required=True)
+    projection_legacy_resources.add_argument("--retired-run-tag", required=True)
+    projection_legacy_resources.add_argument("--output", required=True)
+
+    projection_legacy_tag = subparsers.add_parser("write-projection-legacy-allow-run-tag-env")
+    projection_legacy_tag.add_argument("--service-tokens", required=True)
+    projection_legacy_tag.add_argument("--policies", required=True)
+    projection_legacy_tag.add_argument("--output", required=True)
+
+    projection_legacy_state = subparsers.add_parser("projection-legacy-allow-resource-state")
+    projection_legacy_state.add_argument("--service-tokens", required=True)
+    projection_legacy_state.add_argument("--policies", required=True)
+    projection_legacy_state.add_argument("--retired-run-tag", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -456,6 +475,33 @@ def main(argv: list[str] | None = None) -> int:
                         args.policies,
                     ),
                 },
+            )
+        elif args.command == "write-projection-legacy-allow-resource-env":
+            _write_owned_resource_material(
+                _private_output(parser, args),
+                projection_legacy_allow_resource_ids(
+                    args.service_tokens,
+                    args.policies,
+                    retired_run_tag=args.retired_run_tag,
+                ),
+            )
+        elif args.command == "write-projection-legacy-allow-run-tag-env":
+            _write_shell_material(
+                _private_output(parser, args),
+                {
+                    "CF_ACCESS_ORPHANED_RUN_TAG": projection_legacy_allow_run_tag(
+                        args.service_tokens,
+                        args.policies,
+                    ),
+                },
+            )
+        elif args.command == "projection-legacy-allow-resource-state":
+            print(
+                projection_legacy_allow_resource_state(
+                    args.service_tokens,
+                    args.policies,
+                    retired_run_tag=args.retired_run_tag,
+                )
             )
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")

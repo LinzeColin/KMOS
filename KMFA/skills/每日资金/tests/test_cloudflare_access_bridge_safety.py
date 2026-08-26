@@ -36,6 +36,9 @@ from daily_funds.access_bridge import (  # noqa: E402
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
     policy_payload,
+    projection_legacy_allow_resource_ids,
+    projection_legacy_allow_resource_state,
+    projection_legacy_allow_run_tag,
     projection_poll_state,
     probe_poll_state,
     probe_start_poll_state,
@@ -642,6 +645,74 @@ def test_legacy_service_auth_reconcile_requires_a_completed_exact_bridge_token(t
         "diagnose-legacy-service-auth", "--service-tokens", str(service_tokens),
         "--policies", str(policies),
     ]) == 0
+
+
+def test_projection_legacy_allow_migration_requires_one_completed_bridge_token(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    resource_name = "kmfa-daily-funds-history-probe-312-1"
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{"id": SERVICE_TOKEN_ID, "name": resource_name, "duration": "60m"}],
+    })
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": "legacy-projection-control",
+            "decision": "allow",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+
+    assert projection_legacy_allow_run_tag(service_tokens, policies) == "312-1"
+    with pytest.raises(AccessBridgeInputError):
+        projection_legacy_allow_resource_ids(
+            service_tokens,
+            policies,
+            retired_run_tag="312-2",
+        )
+    assert projection_legacy_allow_resource_ids(
+        service_tokens,
+        policies,
+        retired_run_tag="312-1",
+    ) == {
+        "service_token_ids": (SERVICE_TOKEN_ID,),
+        "policy_ids": (POLICY_ID,),
+    }
+    assert projection_legacy_allow_resource_state(
+        service_tokens,
+        policies,
+        retired_run_tag="312-1",
+    ) == "PRESENT"
+
+    manager = _load_script()
+    tag_material = tmp_path / "projection-legacy-run-tag.env"
+    assert manager.main([
+        "write-projection-legacy-allow-run-tag-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--output", str(tag_material),
+    ]) == 0
+    assert stat.S_IMODE(tag_material.stat().st_mode) == 0o600
+    assert "312-1" in tag_material.read_text(encoding="utf-8")
+
+    resource_material = tmp_path / "projection-legacy-resources.env"
+    assert manager.main([
+        "write-projection-legacy-allow-resource-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--retired-run-tag", "312-1",
+        "--output", str(resource_material),
+    ]) == 0
+    assert stat.S_IMODE(resource_material.stat().st_mode) == 0o600
+    assert POLICY_ID in resource_material.read_text(encoding="utf-8")
+
+    _write(service_tokens, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    assert projection_legacy_allow_resource_state(
+        service_tokens,
+        policies,
+        retired_run_tag="312-1",
+    ) == "ABSENT"
 
 
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
