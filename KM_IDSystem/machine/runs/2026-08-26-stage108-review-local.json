@@ -109,8 +109,8 @@
     "stage108_phase2_preserved": true,
     "stage108_phase3_preserved": true,
     "stage108_phase4_preserved": true,
-    "stage108_review_completed": false,
-    "final_local_acceptance_recorded": false,
+    "stage108_review_completed": true,
+    "final_local_acceptance_recorded": true,
     "stage109_started": false,
     "formal_global_upload_performed": false,
     "push_allowed": false
@@ -132,11 +132,25 @@
     "github_upload_allowed": false,
     "push_allowed": false,
     "repository_wide_green_claimed": false,
-    "final_validation_recorded": false
+    "final_validation_recorded": true
   },
   "final_validation": {
-    "state": "IN_PROGRESS",
-    "scope": "初始收据只记录 Review 输入、零运行时边界和待执行的本地验收；所有完成计数与治理投影仅在完整机械验收真实结束后写入。"
+    "state": "PASS",
+    "completed_at": "2026-08-26T16:57:11+1000",
+    "scope": "完成态只证明冻结控制工件、失败关闭、治理兼容和零运行时边界；不声明完整仓库绿、真实报告、业务结论或生产运行。",
+    "focused_review_test_count": 7,
+    "stage108_phase1_to_review_compatibility_test_count": 38,
+    "stage088_to_stage108_precise_chain_test_count": 967,
+    "stage005_direct_validation_valid": true,
+    "batch041_050_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "batch051_060_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "human_rendered_file_count": 7,
+    "document_budget_valid": true,
+    "blocker_stop_valid": true,
+    "dual_plane_valid": true,
+    "lean_governance_semantic_check": "NOT_AVAILABLE",
+    "stage108_required_acceptance_validation_passed": true,
+    "all_executed_validation_passed": true
   },
   "rollback": {
     "return_to": "PASS_REPORT_SNAPSHOT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",

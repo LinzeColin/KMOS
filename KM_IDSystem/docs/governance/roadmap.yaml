@@ -4,8 +4,13 @@ project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE108"
 current_phase_id: "IDS-STAGE108-REVIEW"
 current_task_id: "IDS-V0_1-STAGE108-REVIEW"
-next_gate_id: "IDS-STAGE108-REVIEW-GATE"
+next_gate_id: "IDS-STAGE109-P1-GATE"
 current_transition_history:
+  stage108_review_state:
+    current_stage_id: "IDS-STAGE108"
+    current_phase_id: "IDS-STAGE108-REVIEW"
+    current_task_id: "IDS-V0_1-STAGE108-REVIEW"
+    next_gate_id: "IDS-STAGE109-P1-GATE"
   stage108_phase4_state:
     current_stage_id: "IDS-STAGE108"
     current_phase_id: "IDS-STAGE108-P4"
@@ -1915,13 +1920,13 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-108"
     objective: "依据冻结 Stage108 任务包完成报告快照的 P1 静态边界、后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审；报告证据绑定、外部增强来源语义、人工确认项、PDF 引用来源、data/index/evidence/model/generated_at 快照、报告状态影响、质量评分、导出审计、模板限制和重新生成／撤回保持受控。"
-    status: "phase4_completed_local_review_in_progress"
+    status: "completed_reviewed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE108-REVIEW-GATE"
+    next_gate_id: "IDS-STAGE109-P1-GATE"
     gate:
-      gate_id: "IDS-STAGE108-P4-GATE"
+      gate_id: "IDS-STAGE108-REVIEW-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE108-REVIEW-GATE"
+      next_gate_id: "IDS-STAGE109-P1-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage108 任务包与 Stage107 Review 已复审人工确认事项章节控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。"
@@ -2130,19 +2135,19 @@ stages:
       phase_id: "IDS-STAGE108-REVIEW"
       name: "Stage Review · 报告快照整阶段机械复审"
       objective: "在所有阶段工件完成后机械复审报告快照、证据绑定、来源语义、人工确认、影响、质量、审计与回滚边界。"
-      status: "in_progress"
+      status: "completed"
       entry_authorized: true
       next_gate_id: "IDS-STAGE109-P1-GATE"
       gate:
         gate_id: "IDS-STAGE108-REVIEW-GATE"
-        status: "in_progress"
+        status: "passed"
         next_gate_id: "IDS-STAGE109-P1-GATE"
         github_upload_allowed: false
       tasks:
         - task_id: "IDS-V0_1-STAGE108-REVIEW"
           name: "机械复审报告快照控制边界"
           objective: "在授权后聚合 P1--P4 控制工件并复审单一权威、报告快照、来源边界、白箱门禁、失败关闭与回滚。"
-          status: "in_progress"
+          status: "completed"
           dependencies:
             - "IDS-V0_1-STAGE108-P1"
             - "IDS-V0_1-STAGE108-P2"
@@ -2158,7 +2163,7 @@ stages:
             - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage108_report_snapshot_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage108_report_snapshot_control_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage108_report_snapshot_controlled_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage108_report_snapshot_delivery KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage108_report_snapshot_stage_review"
             - "Stage088--Stage108 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage108 Review receipt"
             - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
-          test_results: "Review 实现、最终治理投影与完整本地验收仍在进行；Stage108 Review receipt 处于 IN_PROGRESS，尚未形成阶段验收结论。"
+          test_results: "Stage108 Review 聚焦复审白箱用例、Stage108 P1/P2/P3/P4 兼容、Stage088--Stage108 精确历史白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage108 Review receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
           evidence_refs:
             - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-108_报告快照.md"
             - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE108_STAGE_REVIEW.md"

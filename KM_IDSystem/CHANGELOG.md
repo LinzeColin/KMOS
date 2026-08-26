@@ -2286,3 +2286,8 @@
 - 只在内存中机械复审冻结 P1--P4 合同、P2/P3/P4 控制报告、固定控制形状、失败关闭、候选隔离、旧活动版本连续服务、业务线白箱人工处理、未测量空间影响、重建／暂停／恢复说明与 P4→P3 回退边界；Review 不建立第二权威事实源，也不写入真实索引、manifest、日志、活动指针、Operations、报告或业务事实。
 - 本地验证通过：Review 聚焦 10/10、Stage079 P1/P2/P3/P4/Review 聚焦 43/43、Stage060--079 白箱 927/927、Stage005 直接治理 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器事实已指向 Review→Stage080 P1 门，机器平面已重渲染 7 个中文文件，文档预算、无登记阻塞与单项目双平面检查均通过。
 - 零运行时回执位于 KM_IDSystem/machine/runs/2026-08-22-stage079-review-local.json。未读取真实资料，未执行批量导入、数据库、后台构建、物理索引、实际冒烟、清单／日志／切换／回退写入、空间测量、活动指针读写、检索、Operations、报告、模型、Agent、OVH、生产、上传或推送；下一步仅可在新的独立 run 进入 IDS-STAGE080-P1-GATE。
+## 2026-08-26 · Stage108 报告快照 Review
+
+- 完成冻结 P1--P4 控制工件的纯内存机械复审：P1 固定 `24/5/23/4`，P2 固定 `5×26/4×82/410/22/4`，P3 固定 `5×39=195/5/5/2/15/4`，P4 固定 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17`；关键结论 `evidence_id/evidence_gap` 二选一、外部增强来源语义、报告状态影响、业务线白箱门禁和 P4→P3 回退保持一致。
+- 本地验收记录：Review 聚焦 `7/7`、Stage108 P1--Review 兼容 `38/38`、Stage088--Stage108 精确白箱链 `967/967`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`；本 Review 完成态没有新增远端推送，`main`、release、正式全局上传、OVH 与生产继续由后续门禁承接。下一步仅在新的独立 run 进入 `IDS-STAGE109-P1-GATE`。

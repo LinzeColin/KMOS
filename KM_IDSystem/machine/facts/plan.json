@@ -2,7 +2,7 @@
   "stage": "IDS-STAGE108",
   "phase": "IDS-STAGE108-REVIEW",
   "task": "IDS-V0_1-STAGE108-REVIEW",
-  "now": "IDS-V0_1-STAGE108-REVIEW 正在对 Stage108 报告快照 P1--P4 冻结控制工件执行纯内存机械复审；阶段验收与 Stage109 P1 Gate 尚未进入。",
+  "now": "IDS-V0_1-STAGE108-REVIEW 已完成 Stage108 报告快照 P1--P4 冻结控制工件的纯内存机械复审；本 run 已止于 Stage109 P1 Gate。",
   "owner": "KMOS 开发负责人；本阶段继续使用唯一既有开发 worktree、单一分支与本地验证节奏。",
   "objective": "以冻结 Stage108 任务包、Stage108 P1/P2/P3/P4 控制工件和 Stage107 Review 已复审人工确认事项章节控制工件为唯一控制上下文，机械复审报告证据绑定、来源语义、快照、报告状态影响、质量评分、导出审计、模板限制、人工确认、失败关闭和 P4→P3 回退边界。",
   "scope": [
@@ -14,5 +14,5 @@
     "人工确认执行、外部参考评估、模型推理、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、质量计算、导出审计、报告重新生成、报告撤回、模型调用、模型 Token、Agent、OVH 与生产继续由后续授权阶段管理。",
     "Stage109 P1 及以后阶段、合并 main、release、正式全局上传、OVH 部署与生产激活继续由后续阶段管理。"
   ],
-  "stop_condition": "Stage108 Review 的纯内存复审、聚焦验证、治理投影、中文视图和可恢复本地提交完成后，才可形成阶段验收结论；后续独立 run 才可进入 IDS-STAGE109-P1-GATE，继续使用同一既有开发 worktree。真实资料、外部参考、模型推理、真实证据账本、人工确认、报告、PDF、引用内容、快照、审计、数据库、模型、模型 Token、Agent、OVH、生产、正式上传及 Stage109 P1 以后阶段保持后续授权范围。"
+  "stop_condition": "本 run 在 Stage108 Review 纯内存复审、聚焦验证、治理投影、中文视图和可恢复本地提交完成后结束；后续独立 run 才可进入 IDS-STAGE109-P1-GATE，继续使用同一既有开发 worktree。真实资料、外部参考、模型推理、真实证据账本、人工确认、报告、PDF、引用内容、快照、审计、数据库、模型、模型 Token、Agent、OVH、生产、正式上传及 Stage109 P1 以后阶段保持后续授权范围。"
 }
