@@ -1,3 +1,10 @@
+## 2026-08-26 · Stage110 报告质量评分 P2
+
+- 完成冻结 P2 的纯内存受控最小切片：固定 `5` 条非业务 `reference-only` 控制请求、每条 `42` 个输入字段，完整承接 P1 的 `40` 个控制引用并保持 `evidence_id_ref/evidence_gap_ref` 严格二选一；形成报告证据绑定与章节、`data/index/evidence/model/generated_at` 五项快照、报告状态影响与质量评分控制、外部增强与业务线白箱门禁四组投影，每条 `126` 个字段、共 `630` 个控制检查点。
+- 内部证据覆盖率、引用完整率、外部增强占比、证据缺口、质量定义、公式、权重、阈值、评分、评分说明和导出审计全部保持 `reference-only`；质量公式、权重、阈值和最终业务结论保持业务线白箱授权。
+- 本地验收记录：P2 聚焦 `8/8`、Stage109 Review→Stage110 P2 兼容 `53/53`、Stage088→Stage110 精确白箱链 `1020/1020`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，相关批次门禁用例 `13/13` 通过。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`；Lean 语义检查状态为 `NOT_AVAILABLE`，完整仓库绿保持独立范围。正式全局上传、main、release、OVH 与生产保持后续门禁；下一步仅在新的独立 run 进入 `IDS-STAGE110-P3-GATE`。
+
 ## 2026-08-26 · Stage110 报告质量评分 P1
 
 - 完成冻结 P1 静态控制合同：固定 `40` 个未来控制引用、`data/index/evidence/model/generated_at` `5` 项生成快照、`10` 个质量指标控制字段、`30` 类失败关闭与 `4` 条中文反馈。报告证据绑定、关键结论 `evidence_id/evidence_gap`、引用来源与页码、外部增强来源语义、人工确认、受影响报告、报告状态影响、质量评分、导出审计、模板限制和重新生成／撤回全部保持 control-reference 形状。

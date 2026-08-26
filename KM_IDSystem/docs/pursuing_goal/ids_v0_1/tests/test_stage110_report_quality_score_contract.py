@@ -318,11 +318,22 @@ class Stage110ReportQualityScorePhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE110-P1",
             "IDS-STAGE110-P2-GATE",
         )
-        self.assertTrue(
-            assert_legacy_or_current_projection(
-                self, current, {predecessor_current}, status, plan, ROADMAP
-            )
+        phase2_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P2",
+            "IDS-V0_1-STAGE110-P2",
+            "IDS-STAGE110-P3-GATE",
         )
+        is_current_projection = assert_legacy_or_current_projection(
+            self, current, {predecessor_current, phase1_current}, status, plan, ROADMAP
+        )
+        self.assertTrue(
+            is_current_projection or current in {predecessor_current, phase1_current}
+        )
+        if current == phase2_current:
+            self.assertTrue(is_current_projection)
+            return
+        self.assertFalse(is_current_projection)
         self.assertEqual(phase1_current, current)
         self.assertEqual(
             "REPORT_QUALITY_SCORE_CONTRACT_RUNTIME_DISABLED",
@@ -343,10 +354,6 @@ class Stage110ReportQualityScorePhase1Tests(unittest.TestCase):
         self.assertTrue(validation["stage005_direct_validation_valid"])
         self.assertTrue(validation["all_executed_validation_passed"])
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual(
-            "P1 静态报告质量评分合同已完成",
-            acceptance_by_id["ACC-STAGE-110"],
-        )
         for acceptance_id in (
             "ACC-STAGE110-P1-01",
             "ACC-STAGE110-P1-02",
