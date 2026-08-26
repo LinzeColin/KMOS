@@ -5287,6 +5287,10 @@ def test_raw_archive_audit_projects_safe_failure_classes_without_receipt(
     ("RAW_ARCHIVE_METADATA_CHECKOUT_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_CHECKOUT_NEEDS_REVIEW"),
     ("RAW_ARCHIVE_METADATA_OCCURRENCE_METADATA_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_OCCURRENCE_METADATA_NEEDS_REVIEW"),
     ("RAW_ARCHIVE_METADATA_SOURCE_ENVELOPE_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_SOURCE_ENVELOPE_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_SOURCE_SCOPE_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_SOURCE_SCOPE_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_SOURCE_MESSAGE_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_SOURCE_ATTACHMENT_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_SOURCE_ATTACHMENT_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_SOURCE_OCCURRENCE_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_SOURCE_OCCURRENCE_NEEDS_REVIEW"),
     ("RAW_ARCHIVE_METADATA_BATCH_BINDING_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_BATCH_BINDING_NEEDS_REVIEW"),
 ))
 def test_raw_archive_metadata_audit_projects_fixed_stage_without_private_context(
@@ -5314,6 +5318,56 @@ def test_raw_archive_metadata_audit_projects_fixed_stage_without_private_context
         "code": expected_code,
     }
     assert not (runtime.config.publication_dir / "current.json").exists()
+
+
+@pytest.mark.parametrize(("overrides", "expected_code"), (
+    ({"openConversationId": "other-group"}, "RAW_ARCHIVE_METADATA_SOURCE_SCOPE_NEEDS_REVIEW"),
+    ({"openMessageId": ""}, "RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW"),
+    ({"createTime": "not-a-timestamp"}, "RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW"),
+    ({"content": "attachment reference omitted"}, "RAW_ARCHIVE_METADATA_SOURCE_ATTACHMENT_NEEDS_REVIEW"),
+    ({"openMessageId": "different-message"}, "RAW_ARCHIVE_METADATA_SOURCE_OCCURRENCE_NEEDS_REVIEW"),
+))
+def test_archive_metadata_projects_fixed_source_envelope_repair_class(
+    tmp_path: Path,
+    overrides: dict[str, str],
+    expected_code: str,
+) -> None:
+    """Archive-envelope diagnostics expose a repair class without source data."""
+
+    import daily_funds.ingestion as ingestion_module
+
+    config = _config(tmp_path)
+    received_at = datetime(2026, 8, 1, 8, tzinfo=UTC)
+    message_id = "archived-envelope-fixture"
+    message_id_hash = sha256(message_id.encode("utf-8")).hexdigest()
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": message_id,
+        "createTime": received_at.isoformat(),
+        "content": "document mediaId=fixture-resource",
+    }
+    message.update(overrides)
+    message_path, occurrence_path = RawMaterializer._message_and_occurrence_paths(
+        received_at,
+        message_id_hash,
+        0,
+    )
+    root = tmp_path / "private-raw"
+    stored_message = root / message_path
+    stored_message.parent.mkdir(parents=True)
+    stored_message.write_text(json.dumps(message), encoding="utf-8")
+    occurrence = ingestion_module._RawArchiveOccurrence(
+        occurrence_path=str(occurrence_path),
+        message_path=str(message_path),
+        message_at=received_at,
+        message_id_hash=message_id_hash,
+        index=0,
+        sha256="a" * 64,
+    )
+
+    with pytest.raises(IngestionError, match=f"^{expected_code}$"):
+        GitSparseWriter(config)._archive_persisted_references(root, (occurrence,))
 
 
 def test_raw_archive_audit_process_lock_prevents_an_expired_lease_from_starting_a_second_audit(
