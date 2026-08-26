@@ -162,6 +162,21 @@ def test_config_allows_only_the_daily_funds_private_repository(tmp_path: Path) -
         replace(config, restore_drill_d1_database_id=config.d1_database_id).validate()
 
 
+def test_live_payment_request_source_validation_is_independent_from_archive_and_storage_credentials(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    source_only = replace(
+        config,
+        git_ssh_key_b64="",
+        private_repo="git@github.com:example/Private-Database.git",
+        r2_endpoint_url="",
+        r2_bucket="",
+        r2_access_key_id="",
+        r2_secret_access_key="",
+    )
+
+    source_only.validate_live_payment_request_source()
+
+
 def test_r2_periodic_budget_is_pessimistic_and_capped_below_free_tier_40_percent(tmp_path: Path) -> None:
     config = _config(tmp_path)
     class_a, class_b, storage = r2_worst_case_monthly_usage(
@@ -2385,6 +2400,96 @@ def test_runtime_payment_request_observation_exposes_verified_latest_request_onl
     needs_review = runtime._write_payment_request_observation((first, second))
     assert needs_review["status"] == "NEEDS_REVIEW"
     assert needs_review["rejection_categories"] == {"GRAND_TOTAL": 2}
+
+
+def test_payment_request_refresh_reads_the_exact_dws_source_without_waiting_for_raw_audit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The live view stays independent from historical raw-archive progress."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    moment = datetime(2026, 8, 26, 1, tzinfo=UTC)
+    message = {"fixture": "exact-source-message"}
+    payload = b"\x89PNG\r\n\x1a\nrefresh"
+    downloaded = DownloadedAttachment(
+        message=message,
+        message_id="refresh-message",
+        message_id_hash="c" * 64,
+        message_at=moment,
+        index=0,
+        filename="refresh.png",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+    windows: list[tuple[datetime, datetime]] = []
+
+    class ExactSourceClient:
+        def collect_group_history_v2(self, start: datetime, end: datetime) -> DwsPage:
+            windows.append((start, end))
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page: DwsPage):
+            return ()
+
+        @staticmethod
+        def quarantine_messages(_page: DwsPage):
+            return (message,)
+
+        @staticmethod
+        def message_id_hash(_message: dict[str, object]) -> str:
+            return "c" * 64
+
+        @staticmethod
+        def attachment_count(_message: dict[str, object]) -> int:
+            return 1
+
+        @staticmethod
+        def download(_message: dict[str, object], index: int) -> DownloadedAttachment:
+            assert index == 0
+            return downloaded
+
+    monkeypatch.setattr(runtime, "_dws_client", ExactSourceClient)
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", lambda *_args, **_kwargs: pytest.fail("live snapshot must not wait for raw archive"))
+    received: list[tuple[DownloadedAttachment, ...]] = []
+
+    def write_observation(attachments):
+        received.append(tuple(attachments))
+        return {"status": "VERIFIED", "points": [{"business_date": "2026-08-25"}]}
+
+    monkeypatch.setattr(runtime, "_write_payment_request_observation", write_observation)
+    result = runtime.payment_request_refresh(now=moment)
+
+    assert result == {"ok": True, "code": "PAYMENT_REQUEST_REFRESH_VERIFIED"}
+    assert received == [(downloaded,)]
+    assert windows == [(moment - timedelta(days=31), moment)]
+
+
+def test_payment_request_refresh_clears_stale_points_when_the_exact_source_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+
+    class FailingClient:
+        @staticmethod
+        def collect_group_history_v2(_start: datetime, _end: datetime) -> DwsPage:
+            raise IngestionError("DWS_HISTORY_FAILED")
+
+    monkeypatch.setattr(runtime, "_dws_client", FailingClient)
+    result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
+
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_FAILED"}
+    projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
+    assert projection["status"] == "NEEDS_REVIEW"
+    assert projection["machine_code"] == "PAYMENT_REQUEST_OBSERVATION_REFRESH_UNAVAILABLE"
+    assert projection["points"] == []
+    assert "DWS_HISTORY_FAILED" not in json.dumps(projection)
 
 
 def test_cashflow_observation_admits_explicit_generic_source_labels_to_the_strict_chart_gate(tmp_path: Path) -> None:
@@ -4962,6 +5067,7 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     wrapper = "/opt/daily-funds/scripts/run_cron_job.sh"
     cron = (ROOT / "crontab.txt").read_text(encoding="utf-8")
     assert f"*/15 * * * * root {wrapper} poll" in cron
+    assert f"2,17,32,47 * * * * root {wrapper} payment-request-refresh" in cron
     assert f"* * * * * root {wrapper} auth-probe" in cron
     assert f"0 * * * * root {wrapper} keepalive" in cron
     assert f"5,20,35,50 * * * * root {wrapper} backfill --max-days 7" in cron
@@ -4981,6 +5087,8 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert "AUTH_BROKER_PID" in entrypoint
     assert "run_history_probe_broker.py >/dev/null 2>&1" in entrypoint
     assert "HISTORY_PROBE_BROKER_PID" in entrypoint
+    assert "run_daily_funds.py payment-request-refresh >> /var/log/daily-funds/cron.log 2>&1" in entrypoint
+    assert "PAYMENT_REQUEST_REFRESH_PID" in entrypoint
     assert "STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS=800" in entrypoint
     assert "startup_raw_archive_audit_required.py >/dev/null 2>&1" in entrypoint
     assert "run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1" in entrypoint
@@ -5061,6 +5169,7 @@ def test_successful_maintenance_probe_is_not_failed_before_first_publication(
     ("raw-coverage-repair", "raw_coverage_repair", "RAW_COVERAGE_REPAIR_GIT_WRITER_LOCK_HELD"),
     ("raw-fact-replay", "raw_fact_replay", "RAW_FACT_REPLAY_LOCK_HELD"),
     ("raw-fact-replay", "raw_fact_replay", "RAW_FACT_REPLAY_GIT_WRITER_LOCK_HELD"),
+    ("payment-request-refresh", "payment_request_refresh", "PAYMENT_REQUEST_REFRESH_LOCK_HELD"),
     ("observer", "observer", "OBSERVER_LOCK_HELD"),
     ("cold-backup", "cold_backup", "PUBLISHER_LOCK_HELD"),
 ))
