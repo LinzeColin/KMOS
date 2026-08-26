@@ -2990,31 +2990,46 @@ class GitSparseWriter:
 
         source_gate = DwsHistoryClient(self.config)
         references: list[PersistedRawAttachment] = []
-        try:
-            for occurrence in occurrences:
+        for occurrence in occurrences:
+            try:
                 message = json.loads(
                     RawMaterializer._safe_path(root, Path(occurrence.message_path)).read_text(encoding="utf-8")
                 )
-                if not isinstance(message, Mapping):
-                    raise IngestionError("GIT_READBACK_FAILED")
+            except (OSError, TypeError, ValueError, json.JSONDecodeError, IngestionError) as exc:
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW") from exc
+            if not isinstance(message, Mapping):
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW")
+            try:
                 candidate = source_gate.reopen_candidate(
                     dict(message),
                     occurrence.index,
                     occurrence.sha256,
                 )
-                if (
-                    candidate is None
-                    or candidate.message_id_hash != occurrence.message_id_hash
-                    or candidate.message_at.astimezone(UTC) != occurrence.message_at
-                ):
-                    raise IngestionError("GIT_READBACK_FAILED")
-                references.append(candidate)
+            except IngestionError as exc:
+                if exc.code == "AMBIGUOUS_SOURCE":
+                    raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_SCOPE_NEEDS_REVIEW") from exc
+                if exc.code in {
+                    "MESSAGE_ID_MISSING",
+                    "MESSAGE_TIMESTAMP_MISSING",
+                    "MESSAGE_TIMESTAMP_INVALID",
+                }:
+                    raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW") from exc
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_ENVELOPE_NEEDS_REVIEW") from exc
+            if candidate is None:
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_ATTACHMENT_NEEDS_REVIEW")
+            if (
+                candidate.message_id_hash != occurrence.message_id_hash
+                or candidate.message_at.astimezone(UTC) != occurrence.message_at
+            ):
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_OCCURRENCE_NEEDS_REVIEW")
+            references.append(candidate)
+        try:
             frozen = self._canonical_persisted_raw_attachments(references)
-            if len(frozen) != len(references):
-                raise IngestionError("GIT_READBACK_FAILED")
-            return frozen
         except (OSError, KeyError, TypeError, ValueError, IngestionError) as exc:
-            raise IngestionError("GIT_READBACK_FAILED") from exc
+            raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_OCCURRENCE_NEEDS_REVIEW") from exc
+        if len(frozen) != len(references):
+            raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_OCCURRENCE_NEEDS_REVIEW")
+        return frozen
 
     @staticmethod
     def _raw_archive_sparse_patterns(
