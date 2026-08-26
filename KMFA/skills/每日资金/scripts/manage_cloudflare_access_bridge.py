@@ -28,6 +28,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token_id,
     control_application_payload,
     control_application_policy_state,
+    diagnose_projection_legacy_allow_resources,
     diagnose_legacy_service_auth_resources,
     diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
@@ -305,6 +306,10 @@ def main(argv: list[str] | None = None) -> int:
     projection_legacy_state.add_argument("--policies", required=True)
     projection_legacy_state.add_argument("--retired-run-tag", required=True)
 
+    projection_legacy_diagnostic = subparsers.add_parser("diagnose-projection-legacy-allow")
+    projection_legacy_diagnostic.add_argument("--service-tokens", required=True)
+    projection_legacy_diagnostic.add_argument("--policies", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -503,6 +508,8 @@ def main(argv: list[str] | None = None) -> int:
                     retired_run_tag=args.retired_run_tag,
                 )
             )
+        elif args.command == "diagnose-projection-legacy-allow":
+            print(diagnose_projection_legacy_allow_resources(args.service_tokens, args.policies))
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
     except (AccessBridgeInputError, KeyError, OSError, ValueError):

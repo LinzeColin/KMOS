@@ -739,6 +739,67 @@ def legacy_service_auth_resource_ids(
     }
 
 
+def _projection_legacy_allow_state(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> tuple[str, tuple[str, str, str] | None]:
+    """Classify one candidate without copying any provider field to output."""
+
+    try:
+        policies = _cloudflare_single_page_result(policies_path)
+    except AccessBridgeInputError:
+        return "POLICY_LIST_INVALID", None
+    if len(policies) != 1:
+        return "POLICY_NOT_UNIQUE", None
+    policy = policies[0]
+    policy_id = policy.get("id")
+    if not isinstance(policy_id, str) or _UUID_RE.fullmatch(policy_id.lower()) is None:
+        return "POLICY_ID_INVALID", None
+    if policy.get("decision") != "allow":
+        return "POLICY_DECISION_NOT_ALLOW", None
+    include = policy.get("include")
+    if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
+        return "POLICY_SELECTOR_INVALID", None
+    selector = include[0]
+    service_token = selector.get("service_token")
+    if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
+        return "POLICY_SELECTOR_INVALID", None
+    token_id = service_token.get("token_id")
+    if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
+        return "POLICY_TOKEN_INVALID", None
+    try:
+        tokens = _cloudflare_single_page_result(service_tokens_path)
+    except AccessBridgeInputError:
+        return "SERVICE_TOKEN_LIST_INVALID", None
+    matched_tokens = [
+        token
+        for token in tokens
+        if isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
+    ]
+    if len(matched_tokens) != 1:
+        return "SERVICE_TOKEN_NOT_UNIQUE", None
+    token = matched_tokens[0]
+    token_name = token.get("name")
+    if not isinstance(token_name, str) or not token_name.startswith(_BRIDGE_RESOURCE_PREFIX):
+        return "SERVICE_TOKEN_NAME_INVALID", None
+    run_tag = token_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
+    if bridge_resource_name(run_tag) != token_name or _COMPLETED_RUN_TAG_RE.fullmatch(run_tag) is None:
+        return "SERVICE_TOKEN_RUN_TAG_INVALID", None
+    if token.get("duration") != SERVICE_TOKEN_DURATION:
+        return "SERVICE_TOKEN_DURATION_UNEXPECTED", None
+    return "EXACT", (policy_id.lower(), token_id.lower(), run_tag)
+
+
+def diagnose_projection_legacy_allow_resources(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> str:
+    """Return a finite, values-free migration eligibility category."""
+
+    state, _ = _projection_legacy_allow_state(service_tokens_path, policies_path)
+    return state
+
+
 def _projection_legacy_allow_material(
     service_tokens_path: str | Path,
     policies_path: str | Path,
@@ -753,48 +814,10 @@ def _projection_legacy_allow_material(
     the fixed 60-minute token duration before it exposes opaque cleanup IDs.
     """
 
-    policies = _cloudflare_single_page_result(policies_path)
-    if len(policies) != 1:
-        raise AccessBridgeInputError("projection legacy allow policy is not unique")
-    policy = policies[0]
-    policy_id = policy.get("id")
-    if (
-        not isinstance(policy_id, str)
-        or _UUID_RE.fullmatch(policy_id.lower()) is None
-        or policy.get("decision") != "allow"
-    ):
-        raise AccessBridgeInputError("projection legacy allow policy is invalid")
-    include = policy.get("include")
-    if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
-        raise AccessBridgeInputError("projection legacy allow selector is invalid")
-    selector = include[0]
-    service_token = selector.get("service_token")
-    if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
-        raise AccessBridgeInputError("projection legacy allow selector is invalid")
-    token_id = service_token.get("token_id")
-    if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
-        raise AccessBridgeInputError("projection legacy allow token is invalid")
-
-    tokens = _cloudflare_single_page_result(service_tokens_path)
-    matched_tokens = [
-        token
-        for token in tokens
-        if isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
-    ]
-    if len(matched_tokens) != 1:
-        raise AccessBridgeInputError("projection legacy allow token is not unique")
-    token = matched_tokens[0]
-    token_name = token.get("name")
-    if not isinstance(token_name, str) or not token_name.startswith(_BRIDGE_RESOURCE_PREFIX):
-        raise AccessBridgeInputError("projection legacy allow token name is invalid")
-    run_tag = token_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
-    if (
-        bridge_resource_name(run_tag) != token_name
-        or _COMPLETED_RUN_TAG_RE.fullmatch(run_tag) is None
-        or token.get("duration") != SERVICE_TOKEN_DURATION
-    ):
-        raise AccessBridgeInputError("projection legacy allow token is invalid")
-    return policy_id.lower(), token_id.lower(), run_tag
+    state, material = _projection_legacy_allow_state(service_tokens_path, policies_path)
+    if material is None:
+        raise AccessBridgeInputError(f"projection legacy allow {state.lower()}")
+    return material
 
 
 def projection_legacy_allow_run_tag(

@@ -25,6 +25,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token,
     control_application_payload,
     control_application_policy_state,
+    diagnose_projection_legacy_allow_resources,
     diagnose_legacy_service_auth_resources,
     diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
@@ -668,6 +669,7 @@ def test_projection_legacy_allow_migration_requires_one_completed_bridge_token(t
     })
 
     assert projection_legacy_allow_run_tag(service_tokens, policies) == "312-1"
+    assert diagnose_projection_legacy_allow_resources(service_tokens, policies) == "EXACT"
     with pytest.raises(AccessBridgeInputError):
         projection_legacy_allow_resource_ids(
             service_tokens,
@@ -687,6 +689,25 @@ def test_projection_legacy_allow_migration_requires_one_completed_bridge_token(t
         policies,
         retired_run_tag="312-1",
     ) == "PRESENT"
+
+    policy_payload = json.loads(policies.read_text(encoding="utf-8"))
+    policy_payload["result"][0]["decision"] = "non_identity"
+    _write(policies, policy_payload)
+    assert diagnose_projection_legacy_allow_resources(
+        service_tokens,
+        policies,
+    ) == "POLICY_DECISION_NOT_ALLOW"
+    policy_payload["result"][0]["decision"] = "allow"
+    _write(policies, policy_payload)
+    token_payload = json.loads(service_tokens.read_text(encoding="utf-8"))
+    token_payload["result"][0]["duration"] = "24h"
+    _write(service_tokens, token_payload)
+    assert diagnose_projection_legacy_allow_resources(
+        service_tokens,
+        policies,
+    ) == "SERVICE_TOKEN_DURATION_UNEXPECTED"
+    token_payload["result"][0]["duration"] = "60m"
+    _write(service_tokens, token_payload)
 
     manager = _load_script()
     tag_material = tmp_path / "projection-legacy-run-tag.env"

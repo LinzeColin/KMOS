@@ -1205,7 +1205,14 @@ jobs:
             if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-projection-legacy-allow-run-tag-env \
               --service-tokens "$bridge_dir/projection-legacy-service-token-list.json" \
               --policies "$bridge_dir/control-app-policies-before.json" \
-              --output "$bridge_dir/projection-legacy-run-tag.env"; then return 1; fi
+              --output "$bridge_dir/projection-legacy-run-tag.env"; then
+              local legacy_diagnostic
+              legacy_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-projection-legacy-allow \
+                --service-tokens "$bridge_dir/projection-legacy-service-token-list.json" \
+                --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
+              echo "${CONTROL_LABEL}_legacy_policy=${legacy_diagnostic}"
+              return 1
+            fi
             unset CF_ACCESS_ORPHANED_RUN_TAG
             . "$bridge_dir/projection-legacy-run-tag.env"
             if [[ ! "${CF_ACCESS_ORPHANED_RUN_TAG:-}" =~ ^[1-9][0-9]{0,31}-[1-9][0-9]{0,15}$ ]]; then return 1; fi
