@@ -26,6 +26,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     control_application_payload,
     control_application_policy_state,
     diagnose_bridge_target,
+    orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
     policy_payload,
@@ -433,6 +434,57 @@ def test_orphaned_resource_reconcile_requires_one_exact_expired_policy(tmp_path:
     assert POLICY_ID in material.read_text(encoding="utf-8")
 
 
+def test_orphaned_resource_reconcile_retires_one_completed_exact_short_lived_pair(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    resource_name = "kmfa-daily-funds-history-probe-312-1"
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": SERVICE_TOKEN_ID,
+            "name": resource_name,
+            "duration": "60m",
+        }],
+    })
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": resource_name,
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+
+    assert orphaned_bridge_run_tag(policies) == "312-1"
+    assert orphaned_bridge_resource_ids(
+        service_tokens,
+        policies,
+        retired_run_tag="312-1",
+    ) == {
+        "service_token_ids": (SERVICE_TOKEN_ID,),
+        "policy_ids": (POLICY_ID,),
+    }
+
+    manager = _load_script()
+    tag_material = tmp_path / "orphaned-run-tag.env"
+    assert manager.main([
+        "write-orphaned-run-tag-env", "--policies", str(policies), "--output", str(tag_material),
+    ]) == 0
+    assert stat.S_IMODE(tag_material.stat().st_mode) == 0o600
+    assert "CF_ACCESS_ORPHANED_RUN_TAG" in tag_material.read_text(encoding="utf-8")
+
+    material = tmp_path / "retired-orphaned.env"
+    assert manager.main([
+        "write-orphaned-resource-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--retired-run-tag", "312-1", "--output", str(material),
+    ]) == 0
+    text = material.read_text(encoding="utf-8")
+    assert SERVICE_TOKEN_ID in text and POLICY_ID in text
+
+
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
     service_tokens = tmp_path / "service-tokens.json"
     policies = tmp_path / "policies.json"
@@ -454,6 +506,14 @@ def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(t
 
     with pytest.raises(AccessBridgeInputError):
         orphaned_bridge_resource_ids(service_tokens, policies)
+    with pytest.raises(AccessBridgeInputError):
+        orphaned_bridge_resource_ids(service_tokens, policies, retired_run_tag="312-2")
+
+    payload = json.loads(service_tokens.read_text(encoding="utf-8"))
+    payload["result"][0]["duration"] = "24h"
+    _write(service_tokens, payload)
+    with pytest.raises(AccessBridgeInputError):
+        orphaned_bridge_resource_ids(service_tokens, policies, retired_run_tag="312-1")
 
 
 @pytest.mark.parametrize("policy", (
@@ -1036,6 +1096,7 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "write-control-app-payload" in step
     assert "control-app-policy-state" in step
     assert "CONTROL_ACCESS_POLICY_NOT_EMPTY" in step
+    assert "GH_TOKEN: ${{ github.token }}" in step
     assert "capture-service-token-id" in step
     assert "capture-policy" in step
     assert "summarize-probe-start" in step
@@ -1062,6 +1123,9 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "reconcile_orphaned_control_policy()" in step
     assert "write-owned-resource-env" in step
     assert "write-orphaned-resource-env" in step
+    assert "write-orphaned-run-tag-env" in step
+    assert "--retired-run-tag" in step
+    assert "/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" in step
     assert "owned-resource-state" in step
     assert "orphaned_bridge=RECONCILED" in step
     assert "request_cf DELETE" in step
@@ -1069,6 +1133,8 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "inputs.command" not in step
     assert "--data @\"$payload\"" in step
     assert "rm -rf" not in step
+
+    assert "permissions:\n  actions: read\n  contents: read" in workflow
 
     assert "daily-funds-history-probe-cleanup" in workflow
     assert "daily-funds-recovery-cleanup" in workflow
