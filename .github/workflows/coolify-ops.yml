@@ -1068,6 +1068,14 @@ jobs:
             local orphaned_run_tag=""
             request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/orphaned-service-token-list.json"
             if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+            local orphaned_diagnostic
+            orphaned_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-orphaned-bridge \
+              --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+              --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
+            case "$orphaned_diagnostic" in
+              TOKEN_ABSENT|TOKEN_COMPLETED_RUN_CANDIDATE) ;;
+              *) echo "${CONTROL_LABEL}_orphaned_bridge=UNRECONCILABLE_${orphaned_diagnostic}"; return 1 ;;
+            esac
             if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
               --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
               --policies "$bridge_dir/control-app-policies-before.json" \
@@ -1082,16 +1090,17 @@ jobs:
               local orphaned_run_id="${orphaned_run_tag%-*}"
               local orphaned_run_attempt="${orphaned_run_tag##*-}"
               local orphaned_run_state
-              if ! orphaned_run_state="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" --jq '[.status, .run_attempt, .path, .head_branch, .event] | @tsv' 2>/dev/null)"; then return 1; fi
+              if ! orphaned_run_state="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" --jq '[.status, .run_attempt, .path, .head_branch, .event] | @tsv' 2>/dev/null)"; then echo "${CONTROL_LABEL}_orphaned_bridge=RUN_LOOKUP_UNAVAILABLE"; return 1; fi
               local orphaned_status observed_attempt orphaned_workflow_path orphaned_branch orphaned_event
               IFS=$'\t' read -r orphaned_status observed_attempt orphaned_workflow_path orphaned_branch orphaned_event <<< "$orphaned_run_state"
-              if [ "$orphaned_status" != "completed" ] || [ "$observed_attempt" != "$orphaned_run_attempt" ] || [ "$orphaned_workflow_path" != ".github/workflows/coolify-ops.yml@main" ] || [ "$orphaned_branch" != "main" ] || [ "$orphaned_event" != "workflow_dispatch" ]; then return 1; fi
+              if [ "$orphaned_status" != "completed" ]; then echo "${CONTROL_LABEL}_orphaned_bridge=RUN_NOT_COMPLETED"; return 1; fi
+              if [ "$observed_attempt" != "$orphaned_run_attempt" ] || [ "$orphaned_workflow_path" != ".github/workflows/coolify-ops.yml@main" ] || [ "$orphaned_branch" != "main" ] || [ "$orphaned_event" != "workflow_dispatch" ]; then echo "${CONTROL_LABEL}_orphaned_bridge=RUN_IDENTITY_INVALID"; return 1; fi
               unset CF_ACCESS_ORPHANED_RUN_TAG
               if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
                 --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
                 --policies "$bridge_dir/control-app-policies-before.json" \
                 --retired-run-tag "$orphaned_run_tag" \
-                --output "$bridge_dir/orphaned-resources.env"; then return 1; fi
+                --output "$bridge_dir/orphaned-resources.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=TOKEN_RECONCILIATION_REJECTED"; return 1; fi
             fi
             unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
             . "$bridge_dir/orphaned-resources.env"

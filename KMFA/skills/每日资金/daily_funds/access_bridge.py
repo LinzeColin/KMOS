@@ -474,6 +474,43 @@ def orphaned_bridge_run_tag(policies_path: str | Path) -> str:
     return run_tag
 
 
+def diagnose_orphaned_bridge_resources(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> str:
+    """Classify one orphan cleanup candidate without returning provider data."""
+
+    try:
+        _, policy_name, token_id = _orphaned_bridge_policy_material(policies_path)
+    except AccessBridgeInputError:
+        return "POLICY_INVALID"
+    try:
+        tokens = _cloudflare_single_page_result(service_tokens_path)
+    except AccessBridgeInputError:
+        return "SERVICE_TOKEN_LIST_INVALID"
+
+    matched_tokens = [
+        token
+        for token in tokens
+        if isinstance(token.get("id"), str) and token["id"].lower() == token_id
+    ]
+    if not matched_tokens:
+        return "TOKEN_ABSENT"
+    if len(matched_tokens) != 1:
+        return "TOKEN_AMBIGUOUS"
+
+    token = matched_tokens[0]
+    if token.get("name") != policy_name:
+        return "TOKEN_NAME_INVALID"
+    if token.get("duration") != SERVICE_TOKEN_DURATION:
+        return "TOKEN_DURATION_UNEXPECTED"
+    try:
+        orphaned_bridge_run_tag(policies_path)
+    except AccessBridgeInputError:
+        return "RUN_TAG_INVALID"
+    return "TOKEN_COMPLETED_RUN_CANDIDATE"
+
+
 def orphaned_bridge_resource_ids(
     service_tokens_path: str | Path,
     policies_path: str | Path,

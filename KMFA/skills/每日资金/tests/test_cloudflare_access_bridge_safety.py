@@ -25,6 +25,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token,
     control_application_payload,
     control_application_policy_state,
+    diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
     orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
@@ -483,6 +484,43 @@ def test_orphaned_resource_reconcile_retires_one_completed_exact_short_lived_pai
     ]) == 0
     text = material.read_text(encoding="utf-8")
     assert SERVICE_TOKEN_ID in text and POLICY_ID in text
+
+
+def test_orphaned_resource_diagnostic_is_finite_and_values_free(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    resource_name = "kmfa-daily-funds-history-probe-312-1"
+    _write(service_tokens, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": resource_name,
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+
+    assert diagnose_orphaned_bridge_resources(service_tokens, policies) == "TOKEN_ABSENT"
+
+    payload = json.loads(service_tokens.read_text(encoding="utf-8"))
+    payload["result"] = [{
+        "id": SERVICE_TOKEN_ID,
+        "name": resource_name,
+        "duration": "60m",
+    }]
+    _write(service_tokens, payload)
+    assert diagnose_orphaned_bridge_resources(service_tokens, policies) == "TOKEN_COMPLETED_RUN_CANDIDATE"
+
+    payload["result"][0]["duration"] = "24h"
+    _write(service_tokens, payload)
+    assert diagnose_orphaned_bridge_resources(service_tokens, policies) == "TOKEN_DURATION_UNEXPECTED"
+
+    manager = _load_script()
+    assert manager.main([
+        "diagnose-orphaned-bridge", "--service-tokens", str(service_tokens), "--policies", str(policies),
+    ]) == 0
 
 
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
@@ -1124,8 +1162,13 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "write-owned-resource-env" in step
     assert "write-orphaned-resource-env" in step
     assert "write-orphaned-run-tag-env" in step
+    assert "diagnose-orphaned-bridge" in step
     assert "--retired-run-tag" in step
     assert "/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" in step
+    assert "UNRECONCILABLE_${orphaned_diagnostic}" in step
+    assert "RUN_LOOKUP_UNAVAILABLE" in step
+    assert "RUN_NOT_COMPLETED" in step
+    assert "RUN_IDENTITY_INVALID" in step
     assert "owned-resource-state" in step
     assert "orphaned_bridge=RECONCILED" in step
     assert "request_cf DELETE" in step
