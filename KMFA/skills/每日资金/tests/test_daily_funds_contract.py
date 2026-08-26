@@ -2291,6 +2291,8 @@ def test_payment_request_observation_requires_fixed_title_date_label_and_total_c
             "grand_total": "80397.63",
         }[region]
         assert psm in {"6", "11", "12"}
+        assert command[command.index("--oem") + 1] == "1"
+        assert command[command.index("--dpi") + 1] == "300"
         return SimpleNamespace(returncode=0, stdout=output, stderr="")
 
     observation = parse_payment_request_observation(
@@ -2354,6 +2356,8 @@ def test_payment_request_message_strip_uses_the_exact_message_day() -> None:
     def runner(command, **_kwargs):
         region = Path(command[1]).stem.removeprefix("payment-")
         assert region in {"strip_grand_total_label", "strip_grand_total"}
+        assert command[command.index("--oem") + 1] == "1"
+        assert command[command.index("--dpi") + 1] == "300"
         output = {
             "strip_grand_total_label": {
                 "6": "合 计",
@@ -2393,6 +2397,41 @@ def test_payment_request_message_strip_uses_the_exact_message_day() -> None:
             mime="image/png",
             runner=unrecognized_footer_label,
         )
+
+    def ocr_label_failure(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        return SimpleNamespace(returncode=1 if region == "strip_grand_total_label" else 0, stdout="", stderr="")
+
+    with pytest.raises(ParseError, match="PAYMENT_REQUEST_GRAND_TOTAL_LABEL_OCR_FAILED"):
+        parse_payment_request_observation(
+            filename="payment-request-strip.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 21, 1, tzinfo=UTC),
+            mime="image/png",
+            runner=ocr_label_failure,
+        )
+
+    def ocr_total_failure(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        return SimpleNamespace(returncode=1 if region == "strip_grand_total" else 0, stdout="", stderr="")
+
+    with pytest.raises(ParseError, match="PAYMENT_REQUEST_TOTAL_OCR_FAILED"):
+        parse_payment_request_observation(
+            filename="payment-request-strip.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 21, 1, tzinfo=UTC),
+            mime="image/png",
+            runner=ocr_total_failure,
+        )
+
+    assert DailyFundsRuntime._payment_request_rejection_category(
+        ParseError("PAYMENT_REQUEST_GRAND_TOTAL_LABEL_OCR_FAILED"),
+    ) == "GRAND_TOTAL_LABEL"
+    assert DailyFundsRuntime._payment_request_rejection_category(
+        ParseError("PAYMENT_REQUEST_TOTAL_OCR_FAILED"),
+    ) == "GRAND_TOTAL"
 
 
 def test_payment_request_observation_renders_a_single_page_scanned_pdf() -> None:

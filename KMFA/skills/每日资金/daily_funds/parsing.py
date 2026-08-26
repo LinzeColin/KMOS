@@ -92,11 +92,12 @@ CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11
 # segmentations agree on the fixed fields required by its visual profile.  v2
 # adds the approved horizontal message-summary profile.  v3 normalizes the
 # whitespace that deterministic Chinese OCR can place between label glyphs.
-# v4 accepts the two fixed footer-label forms emitted by that profile, while
-# retaining three-read OCR and amount consensus.  It records the exact message
-# day as its date basis because that compact profile has no visible
-# document-date cell.
-PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v4"
+# v5 accepts the two fixed footer-label forms emitted by that profile, while
+# retaining three-read OCR and amount consensus.  It fixes the Tesseract engine
+# and DPI used for its rendered cells, so the production image is interpreted
+# independently of the package default.  It records the exact message day as
+# its date basis because that compact profile has no visible document-date cell.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v5"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2559,18 +2560,24 @@ def _payment_request_crop_texts(
         output: dict[str, tuple[str, ...]] = {}
         for name, path in regions.items():
             language = "eng" if name.endswith("grand_total") else OCR_LANGUAGE
+            if name.endswith("grand_total_label"):
+                failure_code = "PAYMENT_REQUEST_GRAND_TOTAL_LABEL_OCR_FAILED"
+            elif name.endswith("grand_total"):
+                failure_code = "PAYMENT_REQUEST_TOTAL_OCR_FAILED"
+            else:
+                failure_code = "PAYMENT_REQUEST_OCR_ENGINE_FAILED"
             values: list[str] = []
             for psm in _PAYMENT_REQUEST_OCR_PSMS:
                 command = [
                     "tesseract", str(path), "stdout", "-l", language,
-                    "--psm", str(psm),
+                    "--oem", "1", "--dpi", "300", "--psm", str(psm),
                 ]
                 if name.endswith("grand_total"):
                     command.extend(("-c", "tessedit_char_whitelist=0123456789.,"))
                 values.append(_run_ocr_command(
                     command,
                     runner=runner,
-                    failure_code="PAYMENT_REQUEST_OCR_ENGINE_FAILED",
+                    failure_code=failure_code,
                 ).strip())
             output[name] = tuple(values)
         return layout, output
@@ -2643,7 +2650,7 @@ def _payment_request_layout_fingerprint(
 ) -> str:
     return sha256(
         "\x1f".join((
-            "payment_request_observation.v4",
+            "payment_request_observation.v5",
             layout,
             evidence.format,
             evidence.magic,

@@ -2591,8 +2591,8 @@ DAILY_FUNDS_CASHFLOW_OBSERVATION_FIELDS = frozenset({
     "schema_version", "generated_at", "parser_version", "source_coverage",
     "rejection_categories", "evidence_version", "points", "status", "machine_code",
 })
-DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v4"
-DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v4"
+DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v5"
+DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v5"
 DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_STATUSES = {"VERIFIED", "NEEDS_REVIEW", "NOT_AVAILABLE"}
 DAILY_FUNDS_PAYMENT_REQUEST_DATE_BASIS_LABELS = {
     "DOCUMENT_DAY": "表内业务日期",

@@ -89,7 +89,7 @@ _RAW_COVERAGE_RECEIPT_SCHEMA = "kmfa.daily_funds.raw_coverage_receipt.v1"
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
-_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v4"
+_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v5"
 # The pending-payment view is an operational DWS snapshot, not a formal
 # account-balance publication.  A 31-day range makes the default page window
 # complete while keeping the exact source read bounded and independent from a
