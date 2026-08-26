@@ -26,6 +26,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     control_application_payload,
     control_application_policy_state,
     diagnose_bridge_target,
+    orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
     policy_payload,
     projection_poll_state,
@@ -399,6 +400,78 @@ def test_owned_resource_reconcile_rejects_a_paginated_provider_list(tmp_path: Pa
 
     with pytest.raises(AccessBridgeInputError):
         owned_bridge_resource_ids(service_tokens, policies, "312-1")
+
+
+def test_orphaned_resource_reconcile_requires_one_exact_expired_policy(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    resource_name = "kmfa-daily-funds-history-probe-312-1"
+    _write(service_tokens, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": resource_name,
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+
+    assert orphaned_bridge_resource_ids(service_tokens, policies) == {
+        "service_token_ids": (),
+        "policy_ids": (POLICY_ID,),
+    }
+
+    manager = _load_script()
+    material = tmp_path / "orphaned.env"
+    assert manager.main([
+        "write-orphaned-resource-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--output", str(material),
+    ]) == 0
+    assert stat.S_IMODE(material.stat().st_mode) == 0o600
+    assert POLICY_ID in material.read_text(encoding="utf-8")
+
+
+def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{"id": SERVICE_TOKEN_ID, "name": "kmfa-daily-funds-history-probe-312-1"}],
+    })
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": "kmfa-daily-funds-history-probe-312-1",
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+
+    with pytest.raises(AccessBridgeInputError):
+        orphaned_bridge_resource_ids(service_tokens, policies)
+
+
+@pytest.mark.parametrize("policy", (
+    {"id": POLICY_ID, "name": "operator-policy", "decision": "non_identity", "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}]},
+    {"id": POLICY_ID, "name": "kmfa-daily-funds-history-probe-312-1", "decision": "allow", "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}]},
+    {"id": POLICY_ID, "name": "kmfa-daily-funds-history-probe-312-1", "decision": "non_identity", "include": [{"email": {"email": "owner@example.com"}}]},
+))
+def test_orphaned_resource_reconcile_preserves_any_non_ephemeral_policy(
+    tmp_path: Path,
+    policy: dict[str, object],
+) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    _write(service_tokens, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": [policy]})
+
+    with pytest.raises(AccessBridgeInputError):
+        orphaned_bridge_resource_ids(service_tokens, policies)
 
 
 def test_capture_and_summary_never_expose_service_secret_or_source_value(tmp_path: Path) -> None:
@@ -986,8 +1059,11 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     status_post_guard = step.index('if [ "$CONTROL_KIND" = "HISTORY" ] || [ "$CONTROL_KIND" = "RECOVERY" ]; then')
     assert policy_ready < access_settle < status_post_guard
     assert "reconcile_owned_resources()" in step
+    assert "reconcile_orphaned_control_policy()" in step
     assert "write-owned-resource-env" in step
+    assert "write-orphaned-resource-env" in step
     assert "owned-resource-state" in step
+    assert "orphaned_bridge=RECONCILED" in step
     assert "request_cf DELETE" in step
     assert "duration" not in step  # duration is fixed in the Python allowlist, not workflow input.
     assert "inputs.command" not in step
