@@ -2644,6 +2644,14 @@ class GitSparseWriter:
     # Keep a complete metadata census, then hydrate this many immutable raw
     # occurrences at a time from the same pinned Git tree.
     _RAW_ARCHIVE_READBACK_BATCH_SIZE = 16
+    # A metadata recovery can safely identify the validation stage that
+    # requires repair without returning a source identity, filename, path,
+    # payload digest, or any financial value.  The broker maps these fixed
+    # classes to its values-free session receipt.
+    _METADATA_AUDIT_INTEGRITY_CODES = frozenset({
+        "GIT_READBACK_FAILED",
+        "GIT_SPARSE_SCOPE_VIOLATION",
+    })
 
     # KMFile group manifests are metadata-only receipts.  The daily-funds
     # worker reads at most one compact manifest per registered group and uses
@@ -3300,6 +3308,20 @@ class GitSparseWriter:
             commit_sha=commit_sha,
         )
 
+    @classmethod
+    def _raise_metadata_audit_stage_failure(cls, stage: str, exc: IngestionError) -> None:
+        """Project a metadata-audit integrity failure to one fixed safe stage.
+
+        The underlying exception can contain private Git or source context.
+        This boundary retains only the stage needed to select a repair action;
+        it never exposes an archive path, source identifier, payload metadata,
+        hash, or exception text.
+        """
+
+        if exc.code in cls._METADATA_AUDIT_INTEGRITY_CODES:
+            raise IngestionError(f"RAW_ARCHIVE_METADATA_{stage}_NEEDS_REVIEW") from exc
+        raise exc
+
     def _audit_raw_archive_once(
         self,
         *,
@@ -3323,44 +3345,49 @@ class GitSparseWriter:
             # creates no working tree: ``ls-tree`` can prove the bounded path
             # census directly from the shallow commit, and the exact metadata
             # paths are checked out once below after their names are known.
-            self._clone_sparse(
-                tree_repo,
-                env=env,
-                ref=self.config.private_branch,
-                audit_read=True,
-                commit_sha=commit_sha,
-                checkout=False,
-            )
-            if commit_sha is None:
-                commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True)
-            occurrence_paths = self._raw_archive_tree_paths(
-                tree_repo,
-                env=env,
-                commit_sha=commit_sha,
-                relative_root=Path("raw/occurrences"),
-                audit_read=True,
-            )
-            batch_paths = self._raw_archive_tree_paths(
-                tree_repo,
-                env=env,
-                commit_sha=commit_sha,
-                relative_root=Path("raw/batches"),
-                audit_read=True,
-            )
-            if (
-                not occurrence_paths
-                or not batch_paths
-                or len(occurrence_paths) > self._RAW_ARCHIVE_MAX_OCCURRENCES
-                or len(batch_paths) > self._RAW_ARCHIVE_MAX_BATCHES
-            ):
-                raise IngestionError("RAW_ARCHIVE_CENSUS_LIMIT_EXCEEDED" if (
-                    len(occurrence_paths) > self._RAW_ARCHIVE_MAX_OCCURRENCES
+            try:
+                self._clone_sparse(
+                    tree_repo,
+                    env=env,
+                    ref=self.config.private_branch,
+                    audit_read=True,
+                    commit_sha=commit_sha,
+                    checkout=False,
+                )
+                if commit_sha is None:
+                    commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True)
+                occurrence_paths = self._raw_archive_tree_paths(
+                    tree_repo,
+                    env=env,
+                    commit_sha=commit_sha,
+                    relative_root=Path("raw/occurrences"),
+                    audit_read=True,
+                )
+                batch_paths = self._raw_archive_tree_paths(
+                    tree_repo,
+                    env=env,
+                    commit_sha=commit_sha,
+                    relative_root=Path("raw/batches"),
+                    audit_read=True,
+                )
+                if (
+                    not occurrence_paths
+                    or not batch_paths
+                    or len(occurrence_paths) > self._RAW_ARCHIVE_MAX_OCCURRENCES
                     or len(batch_paths) > self._RAW_ARCHIVE_MAX_BATCHES
-                ) else "SOURCE_MISSING")
-            for path in occurrence_paths:
-                self._raw_archive_occurrence_path(path)
-            for path in batch_paths:
-                self._raw_archive_batch_path(path)
+                ):
+                    raise IngestionError("RAW_ARCHIVE_CENSUS_LIMIT_EXCEEDED" if (
+                        len(occurrence_paths) > self._RAW_ARCHIVE_MAX_OCCURRENCES
+                        or len(batch_paths) > self._RAW_ARCHIVE_MAX_BATCHES
+                    ) else "SOURCE_MISSING")
+                for path in occurrence_paths:
+                    self._raw_archive_occurrence_path(path)
+                for path in batch_paths:
+                    self._raw_archive_batch_path(path)
+            except IngestionError as exc:
+                if metadata_only:
+                    self._raise_metadata_audit_stage_failure("TREE_CENSUS", exc)
+                raise
 
             metadata_message_paths = []
             for occurrence_path in occurrence_paths:
@@ -3379,37 +3406,56 @@ class GitSparseWriter:
             # making a second clone and fetching the same pinned commit again.
             # This preserves the snapshot proof while removing the slowest
             # redundant transport sequence from a recovery audit.
-            selected_metadata_patterns = self._validated_sparse_patterns(
-                metadata_patterns,
-                allowed_roots=(SPARSE_PATH,),
-            )
-            self._git(
-                ["sparse-checkout", "set", "--no-cone", *selected_metadata_patterns],
-                cwd=tree_repo,
-                env=env,
-                audit_read=True,
-            )
-            self._git(
-                ["checkout", "--detach", commit_sha],
-                cwd=tree_repo,
-                env=env,
-                audit_read=True,
-            )
-            if self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True) != commit_sha:
-                raise IngestionError("GIT_READBACK_FAILED")
-            self._assert_sparse_checkout_scope(tree_repo, allowed_roots=(SPARSE_PATH,))
+            try:
+                selected_metadata_patterns = self._validated_sparse_patterns(
+                    metadata_patterns,
+                    allowed_roots=(SPARSE_PATH,),
+                )
+                self._git(
+                    ["sparse-checkout", "set", "--no-cone", *selected_metadata_patterns],
+                    cwd=tree_repo,
+                    env=env,
+                    audit_read=True,
+                )
+                self._git(
+                    ["checkout", "--detach", commit_sha],
+                    cwd=tree_repo,
+                    env=env,
+                    audit_read=True,
+                )
+                if self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True) != commit_sha:
+                    raise IngestionError("GIT_READBACK_FAILED")
+                self._assert_sparse_checkout_scope(tree_repo, allowed_roots=(SPARSE_PATH,))
+            except IngestionError as exc:
+                if metadata_only:
+                    self._raise_metadata_audit_stage_failure("CHECKOUT", exc)
+                raise
             metadata_root = tree_repo / SPARSE_PATH
-            occurrences = tuple(
-                self._archive_occurrence_metadata(metadata_root, path)
-                for path in occurrence_paths
-            )
-
-            references = self._archive_persisted_references(metadata_root, occurrences)
-            batch_references = self._verify_persisted_raw_batches(
-                metadata_root,
-                batch_paths=batch_paths,
-                attachments=references,
-            )
+            try:
+                occurrences = tuple(
+                    self._archive_occurrence_metadata(metadata_root, path)
+                    for path in occurrence_paths
+                )
+            except IngestionError as exc:
+                if metadata_only:
+                    self._raise_metadata_audit_stage_failure("OCCURRENCE_METADATA", exc)
+                raise
+            try:
+                references = self._archive_persisted_references(metadata_root, occurrences)
+            except IngestionError as exc:
+                if metadata_only:
+                    self._raise_metadata_audit_stage_failure("SOURCE_ENVELOPE", exc)
+                raise
+            try:
+                batch_references = self._verify_persisted_raw_batches(
+                    metadata_root,
+                    batch_paths=batch_paths,
+                    attachments=references,
+                )
+            except IngestionError as exc:
+                if metadata_only:
+                    self._raise_metadata_audit_stage_failure("BATCH_BINDING", exc)
+                raise
 
             if metadata_only:
                 if on_attachment is not None:

@@ -5282,6 +5282,40 @@ def test_raw_archive_audit_projects_safe_failure_classes_without_receipt(
         assert connection.execute("SELECT count(*) FROM capability_evidence").fetchone()[0] == 0
 
 
+@pytest.mark.parametrize(("internal_code", "expected_code"), (
+    ("RAW_ARCHIVE_METADATA_TREE_CENSUS_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_TREE_CENSUS_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_CHECKOUT_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_CHECKOUT_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_OCCURRENCE_METADATA_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_OCCURRENCE_METADATA_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_SOURCE_ENVELOPE_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_SOURCE_ENVELOPE_NEEDS_REVIEW"),
+    ("RAW_ARCHIVE_METADATA_BATCH_BINDING_NEEDS_REVIEW", "RAW_ARCHIVE_AUDIT_BATCH_BINDING_NEEDS_REVIEW"),
+))
+def test_raw_archive_metadata_audit_projects_fixed_stage_without_private_context(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    internal_code: str,
+    expected_code: str,
+) -> None:
+    """Metadata recovery surfaces only its fixed repair stage."""
+
+    import daily_funds.runtime as runtime_module
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            return None
+
+        def audit_raw_archive_metadata(self):
+            raise IngestionError(internal_code)
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+
+    assert runtime.raw_archive_metadata_audit() == {
+        "ok": False,
+        "code": expected_code,
+    }
+    assert not (runtime.config.publication_dir / "current.json").exists()
+
+
 def test_raw_archive_audit_process_lock_prevents_an_expired_lease_from_starting_a_second_audit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -6331,6 +6365,13 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     }
     assert isinstance(cross_batch_reopen.staged, ReopenedRawEvidence)
     assert len(cross_batch_reopen.staged.source_batch_paths) == 2
+
+    def reject_occurrence_metadata(*_args):
+        raise IngestionError("GIT_READBACK_FAILED")
+
+    monkeypatch.setattr(writer, "_archive_occurrence_metadata", reject_occurrence_metadata)
+    with pytest.raises(IngestionError, match="RAW_ARCHIVE_METADATA_OCCURRENCE_METADATA_NEEDS_REVIEW"):
+        writer.audit_raw_archive_metadata()
 
 
 def test_sparse_writer_uses_shallow_clone_for_narrow_raw_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
