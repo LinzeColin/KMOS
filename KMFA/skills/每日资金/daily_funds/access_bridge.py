@@ -39,6 +39,7 @@ _HOST_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 _RUN_TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 _CREDENTIAL_RE = re.compile(r"^[A-Za-z0-9._-]{1,256}$")
 _BRIDGE_RESOURCE_PREFIX = "kmfa-daily-funds-history-probe-"
+_COMPLETED_RUN_TAG_RE = re.compile(r"^[1-9][0-9]{0,31}-[1-9][0-9]{0,15}$")
 
 _PROBE_STATES = frozenset({"NOT_REQUESTED", "REQUESTED", "RUNNING", "COMPLETED", "FAILED", "EXPIRED"})
 _CONTINUATION_STATES = frozenset({
@@ -429,20 +430,8 @@ def owned_bridge_resource_ids(
     }
 
 
-def orphaned_bridge_resource_ids(
-    service_tokens_path: str | Path,
-    policies_path: str | Path,
-) -> dict[str, tuple[str, ...]]:
-    """Identify one abandoned, exact-shape bridge policy for controlled cleanup.
-
-    Each control application is expected to have no persistent policy.  A
-    normal bridge removes its short-lived service-auth policy before exit; a
-    cancelled run can leave one behind.  This recognises precisely one policy
-    with the bridge-generated name, decision, and service-token selector, and
-    only after its short-lived credential has disappeared from the provider
-    list.  A different shape, multiple policies, or a still-present token
-    remains ineligible for automatic cleanup.
-    """
+def _orphaned_bridge_policy_material(policies_path: str | Path) -> tuple[str, str, str]:
+    """Validate one exact bridge policy without exposing its identifiers."""
 
     policies = _cloudflare_single_page_result(policies_path)
     if len(policies) != 1:
@@ -472,6 +461,35 @@ def orphaned_bridge_resource_ids(
     token_id = service_token.get("token_id")
     if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
         raise AccessBridgeInputError("orphaned bridge token is invalid")
+    return policy_id.lower(), policy_name, token_id.lower()
+
+
+def orphaned_bridge_run_tag(policies_path: str | Path) -> str:
+    """Return the completed-run-compatible tag from one exact bridge policy."""
+
+    _, policy_name, _ = _orphaned_bridge_policy_material(policies_path)
+    run_tag = policy_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
+    if _COMPLETED_RUN_TAG_RE.fullmatch(run_tag) is None:
+        raise AccessBridgeInputError("orphaned bridge run tag is invalid")
+    return run_tag
+
+
+def orphaned_bridge_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+    *,
+    retired_run_tag: str | None = None,
+) -> dict[str, tuple[str, ...]]:
+    """Identify one exact bridge pair that an ended workflow may retire.
+
+    The policy alone is removable once its credential is absent.  A matching
+    credential remains removable only when its name, duration, and policy tag
+    prove it was created by this bridge and the caller independently verified
+    that its exact GitHub Actions run attempt has completed.
+    """
+
+    policy_id, policy_name, token_id = _orphaned_bridge_policy_material(policies_path)
+    run_tag = policy_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
 
     tokens = _cloudflare_single_page_result(service_tokens_path)
     matched_tokens = [
@@ -479,11 +497,25 @@ def orphaned_bridge_resource_ids(
         for token in tokens
         if isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
     ]
-    if matched_tokens:
-        raise AccessBridgeInputError("orphaned bridge credential still exists")
+    if not matched_tokens:
+        return {
+            "service_token_ids": (),
+            "policy_ids": (policy_id,),
+        }
+    if len(matched_tokens) != 1:
+        raise AccessBridgeInputError("orphaned bridge credential is not unique")
+
+    token = matched_tokens[0]
+    if (
+        retired_run_tag != run_tag
+        or _COMPLETED_RUN_TAG_RE.fullmatch(run_tag) is None
+        or token.get("name") != policy_name
+        or token.get("duration") != SERVICE_TOKEN_DURATION
+    ):
+        raise AccessBridgeInputError("orphaned bridge credential is not retired")
     return {
-        "service_token_ids": (),
-        "policy_ids": (policy_id.lower(),),
+        "service_token_ids": (token_id,),
+        "policy_ids": (policy_id,),
     }
 
 

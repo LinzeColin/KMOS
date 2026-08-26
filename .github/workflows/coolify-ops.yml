@@ -43,6 +43,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -898,6 +899,7 @@ jobs:
           CONTROL_MODE: ${{ inputs.mode }}
           CF_ACCOUNT_ID: ${{ secrets.DAILY_FUNDS_CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.DAILY_FUNDS_CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           case "${CONTROL_MODE:-}" in
@@ -1059,16 +1061,38 @@ jobs:
           }
 
           reconcile_orphaned_control_policy() {
-            # A completed bridge must leave this child application empty.  An
-            # interrupted earlier run may leave one expired service-auth
-            # policy behind; accept cleanup only when its full shape matches
-            # the bridge-generated policy and service-token pair.
+            # A completed bridge leaves this child application empty.  An
+            # interrupted run may leave a short-lived policy and credential
+            # pair. Retire that pair only after the exact originating Actions
+            # attempt completed and its Cloudflare shape matches the bridge.
+            local orphaned_run_tag=""
             request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/orphaned-service-token-list.json"
             if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
             if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
               --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
               --policies "$bridge_dir/control-app-policies-before.json" \
-              --output "$bridge_dir/orphaned-resources.env"; then return 1; fi
+              --output "$bridge_dir/orphaned-resources.env"; then
+              if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-run-tag-env \
+                --policies "$bridge_dir/control-app-policies-before.json" \
+                --output "$bridge_dir/orphaned-run-tag.env"; then return 1; fi
+              unset CF_ACCESS_ORPHANED_RUN_TAG
+              . "$bridge_dir/orphaned-run-tag.env"
+              if [[ ! "${CF_ACCESS_ORPHANED_RUN_TAG:-}" =~ ^[1-9][0-9]{0,31}-[1-9][0-9]{0,15}$ ]]; then return 1; fi
+              orphaned_run_tag="$CF_ACCESS_ORPHANED_RUN_TAG"
+              local orphaned_run_id="${orphaned_run_tag%-*}"
+              local orphaned_run_attempt="${orphaned_run_tag##*-}"
+              local orphaned_run_state
+              if ! orphaned_run_state="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" --jq '[.status, .run_attempt, .path, .head_branch, .event] | @tsv' 2>/dev/null)"; then return 1; fi
+              local orphaned_status observed_attempt orphaned_workflow_path orphaned_branch orphaned_event
+              IFS=$'\t' read -r orphaned_status observed_attempt orphaned_workflow_path orphaned_branch orphaned_event <<< "$orphaned_run_state"
+              if [ "$orphaned_status" != "completed" ] || [ "$observed_attempt" != "$orphaned_run_attempt" ] || [ "$orphaned_workflow_path" != ".github/workflows/coolify-ops.yml@main" ] || [ "$orphaned_branch" != "main" ] || [ "$orphaned_event" != "workflow_dispatch" ]; then return 1; fi
+              unset CF_ACCESS_ORPHANED_RUN_TAG
+              if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
+                --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+                --policies "$bridge_dir/control-app-policies-before.json" \
+                --retired-run-tag "$orphaned_run_tag" \
+                --output "$bridge_dir/orphaned-resources.env"; then return 1; fi
+            fi
             unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
             . "$bridge_dir/orphaned-resources.env"
             for orphaned_policy_id in $CF_ACCESS_OWNED_POLICY_IDS; do
@@ -1085,6 +1109,14 @@ jobs:
             final_policy_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" control-app-policy-state \
               --policies "$bridge_dir/orphaned-policy-list-after.json" 2>/dev/null || printf '%s' 'INVALID')"
             test "$final_policy_state" = "EMPTY"
+            if [ -n "$orphaned_run_tag" ]; then
+              request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/orphaned-service-token-list-after.json"
+              if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+              final_resource_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" owned-resource-state \
+                --service-tokens "$bridge_dir/orphaned-service-token-list-after.json" \
+                --policies "$bridge_dir/orphaned-policy-list-after.json" --run-tag "$orphaned_run_tag")"
+              test "$final_resource_state" = "ABSENT"
+            fi
           }
 
           cleanup() {
@@ -1122,8 +1154,9 @@ jobs:
               "$bridge_dir/policy-list-before.json" "$bridge_dir/owned-resources.env" \
               "$bridge_dir/policy-reconcile-delete.json" "$bridge_dir/service-token-reconcile-delete.json" \
               "$bridge_dir/service-token-list-after.json" "$bridge_dir/policy-list-after.json" \
-              "$bridge_dir/orphaned-service-token-list.json" "$bridge_dir/orphaned-resources.env" \
-              "$bridge_dir/orphaned-policy-delete.json" "$bridge_dir/orphaned-service-token-delete.json" \
+              "$bridge_dir/orphaned-service-token-list.json" "$bridge_dir/orphaned-run-tag.env" \
+              "$bridge_dir/orphaned-resources.env" "$bridge_dir/orphaned-policy-delete.json" \
+              "$bridge_dir/orphaned-service-token-delete.json" "$bridge_dir/orphaned-service-token-list-after.json" \
               "$bridge_dir/orphaned-policy-list-after.json"
             if ! rmdir "$bridge_dir" 2>/dev/null; then
               cleanup_result=NEEDS_ATTENTION

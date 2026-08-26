@@ -29,6 +29,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     control_application_payload,
     control_application_policy_state,
     diagnose_bridge_target,
+    orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
     policy_payload,
@@ -63,6 +64,7 @@ def _write_shell_material(path: Path, values: dict[str, str]) -> None:
     allowed_keys = {
         "CF_ACCESS_APP_ID", "CONTROL_ORIGIN", "CF_ACCESS_CLIENT_ID",
         "CF_ACCESS_CLIENT_SECRET", "CF_ACCESS_SERVICE_TOKEN_ID", "CF_ACCESS_POLICY_ID",
+        "CF_ACCESS_ORPHANED_RUN_TAG",
     }
     if (
         not values
@@ -244,7 +246,12 @@ def main(argv: list[str] | None = None) -> int:
     orphaned = subparsers.add_parser("write-orphaned-resource-env")
     orphaned.add_argument("--service-tokens", required=True)
     orphaned.add_argument("--policies", required=True)
+    orphaned.add_argument("--retired-run-tag")
     orphaned.add_argument("--output", required=True)
+
+    orphaned_tag = subparsers.add_parser("write-orphaned-run-tag-env")
+    orphaned_tag.add_argument("--policies", required=True)
+    orphaned_tag.add_argument("--output", required=True)
 
     args = parser.parse_args(argv)
     try:
@@ -379,7 +386,13 @@ def main(argv: list[str] | None = None) -> int:
                 orphaned_bridge_resource_ids(
                     args.service_tokens,
                     args.policies,
+                    retired_run_tag=args.retired_run_tag,
                 ),
+            )
+        elif args.command == "write-orphaned-run-tag-env":
+            _write_shell_material(
+                _private_output(parser, args),
+                {"CF_ACCESS_ORPHANED_RUN_TAG": orphaned_bridge_run_tag(args.policies)},
             )
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
