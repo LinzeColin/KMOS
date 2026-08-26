@@ -1,6 +1,15 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage110 P2 accepted locally - 2026-08-26
+## Current Gate - Stage110 P3 accepted locally - 2026-08-26
+
+- `IDS-V0_1-STAGE110-P3` 已完成本地机械验收；当前治理状态为 `IDS-STAGE110 / IDS-STAGE110-P3 / IDS-V0_1-STAGE110-P3 / IDS-STAGE110-P4-GATE`。P4 只由新的独立 run 在冻结任务包门禁下承接。
+- P3 机械重放 P2 的 `5` 条非业务、`reference-only` 控制请求、每条 `42` 个输入字段、P1 的 `40` 个控制引用、`4` 组投影与 `630` 个前序控制检查点，形成 `5` 条、每条 `52` 个字段、共 `260` 个专项控制检查点、`5` 个控制视图、`5` 条业务线白箱处理记录、`2` 条人工确认门禁、`1` 条质量白箱确认门禁、`21` 类失败关闭与 `4` 条中文反馈。关键结论严格二选一关联 `evidence_id_ref` 或 `evidence_gap_ref`。
+- 已验证：P3 聚焦 `8/8`、Stage109 Review 至 Stage110 P3 兼容 `61/61`、Stage088 至 Stage110 精确白箱链 `1028/1028`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 直连门禁均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`，相关批次门禁用例 `13/13` 通过。机器平面已重渲染 `7` 个中文文件，文档预算、登记停止点与双平面门禁通过。
+- 回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`；真实资料、外部资料、报告、PDF、质量指标或分数、人工确认、审计、数据库、OVH 与生产保持后续白箱授权，正式全局上传保持关闭。
+- 回滚只撤回 Stage110 P3 的范围说明、纯内存场景模块、静态合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_IN_MEMORY_REPORT_QUALITY_SCORE_CONTROL_SLICE_RUNTIME_DISABLED`；Stage110 P1/P2、Stage109 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。既有开发分支的用户授权恢复检查点保持可用。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE110-P4-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage110 P2 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE110-P2` 已完成本地机械验收；当前治理状态为 `IDS-STAGE110 / IDS-STAGE110-P2 / IDS-V0_1-STAGE110-P2 / IDS-STAGE110-P3-GATE`。P3 仅由新的独立 run 在冻结任务包门禁下承接。
 - P2 固定 `5` 条非业务、`reference-only` 控制请求、每条 `42` 个输入字段，完整承接 P1 的 `40` 个控制引用；每条关键结论严格二选一关联 `evidence_id_ref` 或 `evidence_gap_ref`。四组纯内存投影覆盖报告证据绑定与章节、五项生成快照、报告状态影响及质量评分控制、外部增强与业务线白箱门禁，每条 `126` 个字段、共 `630` 个检查点、`42` 类失败关闭与 `4` 条中文反馈。

@@ -1,8 +1,8 @@
-"""Stage109 报告影响分析 Phase 3 纯内存专项场景的聚焦验证。"""
+"""Stage110 P3 报告质量评分专项控制场景的聚焦验证。"""
 
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import json
 from pathlib import Path
 import unittest
@@ -14,16 +14,11 @@ from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
-SCOPE = BASE / "STAGE109_PHASE3_REPORT_IMPACT_ANALYSIS_CONTROLLED_SCENARIOS.md"
+SCOPE = BASE / "STAGE110_PHASE3_REPORT_QUALITY_SCORE_CONTROLLED_SCENARIOS.md"
 CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage109_report_impact_analysis_controlled_scenarios_contract.json"
-)
-MODULE = (
-    BASE
-    / "index_version_schema"
-    / "stage109_report_impact_analysis_controlled_scenarios.py"
+    / "stage110_report_quality_score_controlled_scenarios_contract.json"
 )
 TASKPACK = (
     ROOT
@@ -31,33 +26,31 @@ TASKPACK = (
     / "taskpacks"
     / "IDS_v0_1_Final_Chinese_Revised"
     / "stages"
-    / "STAGE-109_报告影响分析.md"
+    / "STAGE-110_报告质量评分.md"
 )
-PHASE1_SCOPE = BASE / "STAGE109_PHASE1_REPORT_IMPACT_ANALYSIS_SCOPE_BOUNDARY.md"
+PHASE1_SCOPE = BASE / "STAGE110_PHASE1_REPORT_QUALITY_SCORE_SCOPE_BOUNDARY.md"
 PHASE1_CONTRACT = (
-    BASE / "index_version_schema" / "stage109_report_impact_analysis_contract.json"
+    BASE / "index_version_schema" / "stage110_report_quality_score_contract.json"
 )
-PHASE1_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage109-p1-local.json"
-PHASE2_SCOPE = BASE / "STAGE109_PHASE2_REPORT_IMPACT_ANALYSIS_CONTROL_SLICE.md"
+PHASE1_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage110-p1-local.json"
+PHASE2_SCOPE = BASE / "STAGE110_PHASE2_REPORT_QUALITY_SCORE_CONTROL_SLICE.md"
 PHASE2_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage109_report_impact_analysis_control_slice_contract.json"
+    / "stage110_report_quality_score_control_slice_contract.json"
 )
 PHASE2_MODULE = (
-    BASE / "index_version_schema" / "stage109_report_impact_analysis_control_slice.py"
+    BASE / "index_version_schema" / "stage110_report_quality_score_control_slice.py"
 )
-PHASE2_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage109-p2-local.json"
-PREDECESSOR_REVIEW = BASE / "STAGE108_STAGE_REVIEW.md"
+PHASE2_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage110-p2-local.json"
+PREDECESSOR_REVIEW = BASE / "STAGE109_STAGE_REVIEW.md"
 PREDECESSOR_CONTRACT = (
     BASE
     / "index_version_schema"
-    / "stage108_report_snapshot_stage_review_contract.json"
+    / "stage109_report_impact_analysis_stage_review_contract.json"
 )
-PREDECESSOR_RECEIPT = (
-    ROOT / "machine" / "runs" / "2026-08-26-stage108-review-local.json"
-)
-RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage109-p3-local.json"
+PREDECESSOR_RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage109-review-local.json"
+RECEIPT = ROOT / "machine" / "runs" / "2026-08-26-stage110-p3-local.json"
 STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
@@ -65,30 +58,20 @@ EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
 ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 
-def _load_module():
-    spec = importlib.util.spec_from_file_location(
-        "stage109_report_impact_analysis_controlled_scenarios", MODULE
-    )
-    if spec is None or spec.loader is None:
-        raise RuntimeError("无法加载 Stage109 P3 报告影响分析专项场景模块")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
+class Stage110ReportQualityScorePhase3Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.module = _load_module()
+        cls.module = importlib.import_module(
+            "KM_IDSystem.docs.pursuing_goal.ids_v0_1.index_version_schema."
+            "stage110_report_quality_score_controlled_scenarios"
+        )
         cls.contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-        cls.report = cls.module.build_report_impact_analysis_phase3_report()
+        cls.report = cls.module.build_report_quality_score_phase3_report()
 
     def _mutated_phase2_executor(self, mutation):
         def executor(control_input):
             phase2_module = self.module._load_phase2_module()
-            result = phase2_module.execute_report_impact_analysis_control_slice(
-                control_input
-            )
+            result = phase2_module.execute_report_quality_score_control_slice(control_input)
             mutation(result)
             return result
 
@@ -98,7 +81,6 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
         for artifact in (
             SCOPE,
             CONTRACT,
-            MODULE,
             TASKPACK,
             PHASE1_SCOPE,
             PHASE1_CONTRACT,
@@ -123,28 +105,29 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
     def test_identity_authority_predecessors_and_phase_boundary_are_exact(self) -> None:
         contract = self.contract
         self.assertEqual(
-            "ids.stage109.report_impact_analysis.phase3.v1",
+            "ids.stage110.report_quality_score.phase3.v1",
             contract["schema_version"],
         )
-        self.assertEqual("STAGE-109", contract["stage"])
-        self.assertEqual("IDS-STAGE109-P3", contract["phase"])
-        self.assertEqual("IDS-V0_1-STAGE109-P3", contract["task_id"])
-        self.assertEqual("ACC-STAGE-109", contract["acceptance_id"])
+        self.assertEqual("STAGE-110", contract["stage"])
+        self.assertEqual("IDS-STAGE110-P3", contract["phase"])
+        self.assertEqual("IDS-V0_1-STAGE110-P3", contract["task_id"])
+        self.assertEqual("ACC-STAGE-110", contract["acceptance_id"])
         self.assertEqual(
-            "REPORT_IMPACT_ANALYSIS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            "REPORT_QUALITY_SCORE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             contract["contract_state"],
         )
-        self.assertEqual("IDS-STAGE109-P3-GATE", contract["entry_gate"])
-        self.assertEqual("IDS-STAGE109-P4-GATE", contract["next_gate"])
+        self.assertEqual("IDS-STAGE110-P3-GATE", contract["entry_gate"])
+        self.assertEqual("IDS-STAGE110-P4-GATE", contract["next_gate"])
         authority = contract["source_authority"]
         self.assertEqual(
-            "FROZEN_STAGE109_TASKPACK_STAGE109_PHASE1_PHASE2_AND_STAGE108_"
-            "REVIEWED_REPORT_SNAPSHOT_CONTROL_ARTIFACTS_ONLY",
+            "FROZEN_STAGE110_TASKPACK_STAGE110_PHASE1_PHASE2_AND_STAGE109_"
+            "REVIEWED_REPORT_IMPACT_ANALYSIS_CONTROL_ARTIFACTS_ONLY",
             authority["authority"],
         )
         for field in (
             "source_document_remains_authoritative",
             "evidence_ledger_remains_authoritative",
+            "delivered_report_remains_authoritative",
             "business_line_whitebox_human_review_remains_authoritative",
         ):
             with self.subTest(field=field):
@@ -155,29 +138,29 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
                     self.assertFalse(value)
         predecessor = contract["predecessor_contract"]
         for field in (
-            "stage108_review_required",
-            "stage109_phase1_required",
-            "stage109_phase2_required",
+            "stage109_review_required",
+            "stage110_phase1_required",
+            "stage110_phase2_required",
         ):
             with self.subTest(field=field):
                 self.assertTrue(predecessor[field])
         self.assertEqual(
-            "PASS_REVIEWED_REPORT_SNAPSHOT_RUNTIME_DISABLED",
-            predecessor["stage108_review_result"],
+            "PASS_REVIEWED_REPORT_IMPACT_ANALYSIS_RUNTIME_DISABLED",
+            predecessor["stage109_review_result"],
         )
         self.assertEqual(
-            "PASS_REPORT_IMPACT_ANALYSIS_CONTRACT_RUNTIME_DISABLED",
-            predecessor["stage109_phase1_result"],
+            "PASS_REPORT_QUALITY_SCORE_CONTRACT_RUNTIME_DISABLED",
+            predecessor["stage110_phase1_result"],
         )
         self.assertEqual(
-            "PASS_IN_MEMORY_REPORT_IMPACT_ANALYSIS_CONTROL_SLICE_RUNTIME_DISABLED",
-            predecessor["stage109_phase2_result"],
+            "PASS_IN_MEMORY_REPORT_QUALITY_SCORE_CONTROL_SLICE_RUNTIME_DISABLED",
+            predecessor["stage110_phase2_result"],
         )
         boundary = contract["stage_and_phase_boundary"]
         for field in (
-            "stage108_review_preserved",
-            "stage109_phase1_completed",
-            "stage109_phase2_completed",
+            "stage109_review_preserved",
+            "stage110_phase1_completed",
+            "stage110_phase2_completed",
             "phase3_started",
             "phase3_completed",
         ):
@@ -186,7 +169,7 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
         for field in (
             "phase4_started",
             "whole_stage_review_performed",
-            "stage110_started",
+            "stage111_started",
             "github_upload_allowed",
             "push_allowed",
         ):
@@ -196,44 +179,47 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
     def test_phase2_replay_and_scenario_contract_have_exact_shape(self) -> None:
         replay = self.contract["phase2_replay_contract"]
         self.assertEqual(
-            "ids.stage109.report_impact_analysis.phase2.v1",
+            "ids.stage110.report_quality_score.phase2.v1",
             replay["phase2_schema_version"],
         )
         self.assertEqual(
-            "CONTROL_ONLY_IN_MEMORY_REPORT_IMPACT_ANALYSIS",
+            "CONTROL_ONLY_IN_MEMORY_REPORT_QUALITY_SCORE",
             replay["phase2_record_kind"],
         )
         self.assertEqual(5, replay["phase2_control_request_count"])
-        self.assertEqual(35, replay["phase2_input_field_count"])
-        self.assertEqual(33, replay["phase2_phase1_reference_field_count"])
+        self.assertEqual(42, replay["phase2_input_field_count"])
+        self.assertEqual(40, replay["phase2_phase1_reference_field_count"])
         self.assertEqual(4, replay["phase2_projection_group_count"])
-        self.assertEqual(101, replay["phase2_projection_field_count_per_request"])
-        self.assertEqual(505, replay["phase2_projection_field_count_total"])
+        self.assertEqual(126, replay["phase2_projection_field_count_per_request"])
+        self.assertEqual(630, replay["phase2_projection_field_count_total"])
         self.assertTrue(replay["replay_is_control_only"])
         self.assertFalse(replay["actual_phase2_runtime_replay_performed"])
         scenarios = self.contract["controlled_scenario_contract"]
         self.assertEqual(5, scenarios["scenario_count"])
-        self.assertEqual(42, scenarios["scenario_field_count"])
-        self.assertEqual(210, scenarios["scenario_field_check_count"])
+        self.assertEqual(52, scenarios["scenario_field_count"])
+        self.assertEqual(260, scenarios["scenario_field_check_count"])
         self.assertEqual(5, scenarios["control_view_count"])
         self.assertEqual(5, scenarios["human_handling_count"])
         self.assertEqual(2, scenarios["whitebox_confirmation_required_scenario_count"])
+        self.assertEqual(
+            1, scenarios["quality_whitebox_confirmation_required_scenario_count"]
+        )
         self.assertEqual(list(self.module.SCENARIO_FIELDS), scenarios["scenario_fields"])
         self.assertEqual(
             {name: len(fields) for name, fields in self.module.CONTROL_VIEW_FIELDS.items()},
             scenarios["control_views"],
         )
         failure = self.contract["failure_and_stop_contract"]
-        self.assertEqual(20, failure["failure_state_count"])
-        self.assertEqual(20, len(failure["failure_states"]))
+        self.assertEqual(21, failure["failure_state_count"])
+        self.assertEqual(21, len(failure["failure_states"]))
 
     def test_report_projects_five_closed_control_scenarios(self) -> None:
         report = self.report
         self.assertTrue(report["valid"])
         self.assertEqual(self.module.PASS_RESULT, report["result"])
         self.assertIsNone(report["failure_state"])
-        self.assertEqual("IDS-STAGE109-P3-GATE", report["current_gate"])
-        self.assertEqual("IDS-STAGE109-P4-GATE", report["next_gate"])
+        self.assertEqual("IDS-STAGE110-P3-GATE", report["current_gate"])
+        self.assertEqual("IDS-STAGE110-P4-GATE", report["next_gate"])
         for field in (
             "phase2_control_shape_preserved",
             "phase2_side_effect_free",
@@ -242,13 +228,13 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertTrue(report[field])
         self.assertEqual(5, report["phase2_control_request_count"])
-        self.assertEqual(35, report["phase2_input_field_count"])
+        self.assertEqual(42, report["phase2_input_field_count"])
         self.assertEqual(4, report["phase2_projection_group_count"])
-        self.assertEqual(101, report["phase2_projection_field_count_per_request"])
-        self.assertEqual(505, report["phase2_projection_field_count_total"])
+        self.assertEqual(126, report["phase2_projection_field_count_per_request"])
+        self.assertEqual(630, report["phase2_projection_field_count_total"])
         self.assertEqual(5, report["scenario_count"])
-        self.assertEqual(42, report["scenario_field_count"])
-        self.assertEqual(210, report["scenario_field_check_count"])
+        self.assertEqual(52, report["scenario_field_count"])
+        self.assertEqual(260, report["scenario_field_check_count"])
         self.assertEqual(5, report["control_view_count"])
         self.assertEqual(5, report["human_handling_count"])
         self.assertFalse(report["second_authoritative_source_created"])
@@ -273,18 +259,27 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
                     "source_withdrawal_ref",
                     "evidence_downgrade_ref",
                     "index_version_change_ref",
-                    "impact_trigger_ref",
                     "impact_scope_ref",
                     "affected_report_ref",
-                    "affected_critical_conclusion_ref",
                     "report_status_impact_ref",
+                    "internal_evidence_coverage_rate_ref",
+                    "citation_completeness_rate_ref",
+                    "external_augmentation_ratio_ref",
+                    "evidence_gap_count_ref",
+                    "quality_metric_definition_ref",
+                    "quality_formula_ref",
+                    "quality_weight_ref",
+                    "quality_threshold_ref",
+                    "report_quality_score_ref",
+                    "quality_score_explanation_ref",
+                    "report_export_audit_ref",
                 ):
                     self.assertTrue(
-                        scenario[field].startswith(":control:stage109-p2:"), field
+                        scenario[field].startswith(":control:stage110-p2:"), field
                     )
                 for field in (
                     "automatic_final_conclusion_allowed",
-                    "actual_report_impact_analysis_performed",
+                    "actual_report_quality_scored",
                     "actual_report_status_impact_updated",
                     "actual_external_augmentation_displayed",
                     "actual_human_confirmation_recorded",
@@ -318,17 +313,16 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
             "CONTROL_INDEX_VERSION_CHANGE_FUTURE_REPORT_STATUS_REVIEW_REQUIRED",
             index_change["index_version_change_report_status_impact_state"],
         )
-        lifecycle = scenarios[
-            "AFFECTED_REPORT_EXTERNAL_AUGMENTATION_WHITEBOX_CONTROL"
-        ]
+        quality = scenarios["QUALITY_SCORE_EXPORT_EXTERNAL_AUGMENTATION_WHITEBOX_CONTROL"]
         self.assertEqual(
-            "CONTROL_AFFECTED_REPORT_AND_CRITICAL_CONCLUSION_FUTURE_REVIEW_REQUIRED",
-            lifecycle["affected_report_control_state"],
+            "CONTROL_QUALITY_SCORE_BUSINESS_LINE_WHITEBOX_CONFIRMATION_REQUIRED_"
+            "NOT_RECORDED",
+            quality["quality_score_boundary_state"],
         )
         self.assertEqual(
             "CONTROL_EXTERNAL_AUGMENTATION_RETAINS_UNDERLYING_SOURCE_TYPE_"
             "SEPARATE_FROM_INTERNAL_EVIDENCE",
-            lifecycle["external_augmentation_source_separation_state"],
+            quality["external_augmentation_source_separation_state"],
         )
         for field in (
             "external_augmentation_may_not_be_internal_project_evidence",
@@ -336,7 +330,7 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
             "external_augmentation_may_not_close_evidence_gap",
         ):
             with self.subTest(field=field):
-                self.assertTrue(lifecycle[field])
+                self.assertTrue(quality[field])
         requiring_confirmation = [
             item
             for item in self.report["scenario_results"]
@@ -347,6 +341,13 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
         handlings = self.report["human_handlings"]
         self.assertEqual(5, len(handlings))
         self.assertEqual(2, sum(item["whitebox_confirmation_required"] for item in handlings))
+        self.assertEqual(
+            1,
+            sum(
+                item["quality_whitebox_confirmation_required"]
+                for item in handlings
+            ),
+        )
         for handling in handlings:
             with self.subTest(scenario=handling["scenario_id"]):
                 self.assertFalse(handling["human_confirmation_recorded"])
@@ -365,7 +366,7 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
                     self.assertEqual(set(fields), set(record))
 
     def test_projection_drift_fails_closed(self) -> None:
-        shape_mismatch = self.module.build_report_impact_analysis_phase3_report(
+        shape_mismatch = self.module.build_report_quality_score_phase3_report(
             phase2_executor=lambda _control_input: {}
         )
         self.assertFalse(shape_mismatch["valid"])
@@ -376,9 +377,9 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
         def break_binding(result):
             result["report_evidence_binding_and_section_control_projections"][0][
                 "evidence_id_ref"
-            ] = ":control:stage109-p2:unexpected-evidence-id:reference-only"
+            ] = ":control:stage110-p2:unexpected-evidence-id:reference-only"
 
-        binding_drift = self.module.build_report_impact_analysis_phase3_report(
+        binding_drift = self.module.build_report_quality_score_phase3_report(
             self._mutated_phase2_executor(break_binding)
         )
         self.assertFalse(binding_drift["valid"])
@@ -387,18 +388,31 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
             binding_drift["failure_state"],
         )
 
-        def allow_automatic_status_update(result):
-            result["report_impact_analysis_and_lifecycle_control_projections"][1][
-                "automatic_report_impact_update_allowed"
+        def remove_source_withdrawal_control(result):
+            result["report_quality_score_and_lifecycle_control_projections"][1][
+                "source_withdrawal_control_state"
+            ] = "CONTROL_UNEXPECTED"
+
+        withdrawal_drift = self.module.build_report_quality_score_phase3_report(
+            self._mutated_phase2_executor(remove_source_withdrawal_control)
+        )
+        self.assertFalse(withdrawal_drift["valid"])
+        self.assertEqual(
+            "SOURCE_WITHDRAWAL_IMPACT_CONTROL_MISSING",
+            withdrawal_drift["failure_state"],
+        )
+
+        def allow_quality_scoring(result):
+            result["report_quality_score_and_lifecycle_control_projections"][4][
+                "actual_report_quality_scored"
             ] = True
 
-        lifecycle_drift = self.module.build_report_impact_analysis_phase3_report(
-            self._mutated_phase2_executor(allow_automatic_status_update)
+        quality_drift = self.module.build_report_quality_score_phase3_report(
+            self._mutated_phase2_executor(allow_quality_scoring)
         )
-        self.assertFalse(lifecycle_drift["valid"])
+        self.assertFalse(quality_drift["valid"])
         self.assertEqual(
-            "REPORT_STATUS_AUTOMATIC_UPDATE_BOUNDARY_BREACH",
-            lifecycle_drift["failure_state"],
+            "QUALITY_SCORING_BOUNDARY_BREACH", quality_drift["failure_state"]
         )
 
         def represent_external_as_internal(result):
@@ -406,7 +420,7 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
                 "external_augmentation_may_not_be_internal_project_evidence"
             ] = False
 
-        external_drift = self.module.build_report_impact_analysis_phase3_report(
+        external_drift = self.module.build_report_quality_score_phase3_report(
             self._mutated_phase2_executor(represent_external_as_internal)
         )
         self.assertFalse(external_drift["valid"])
@@ -418,7 +432,7 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
         def break_runtime_boundary(result):
             result["runtime_boundary"]["model_call_performed"] = True
 
-        runtime_drift = self.module.build_report_impact_analysis_phase3_report(
+        runtime_drift = self.module.build_report_quality_score_phase3_report(
             self._mutated_phase2_executor(break_runtime_boundary)
         )
         self.assertFalse(runtime_drift["valid"])
@@ -429,7 +443,8 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
         for failed_report in (
             shape_mismatch,
             binding_drift,
-            lifecycle_drift,
+            withdrawal_drift,
+            quality_drift,
             external_drift,
             runtime_drift,
         ):
@@ -454,10 +469,10 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
     def test_runtime_receipt_and_current_governance_are_exact(self) -> None:
         scope_text = SCOPE.read_text(encoding="utf-8")
         for phrase in (
-            "五条固定、非业务、reference-only",
+            "五条固定、非业务、`reference-only`",
             "资料撤回、证据降级和索引版本变化",
             "不能成为内部项目依据",
-            "IDS-STAGE109-P4-GATE",
+            "IDS-STAGE110-P4-GATE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, scope_text)
@@ -476,75 +491,81 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
                 with self.subTest(section=section, field=field):
                     self.assertFalse(value)
 
+        receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+        if receipt.get("final_validation", {}).get("state") == "IN_PROGRESS":
+            self.skipTest("P3 最终治理投影将在冻结本地验收完成后启用")
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         current = (status["stage"], status["phase"], status["task"], status["next_gate"])
         phase2_current = (
-            "IDS-STAGE109",
-            "IDS-STAGE109-P2",
-            "IDS-V0_1-STAGE109-P2",
-            "IDS-STAGE109-P3-GATE",
-        )
-        phase3_current = (
-            "IDS-STAGE109",
-            "IDS-STAGE109-P3",
-            "IDS-V0_1-STAGE109-P3",
-            "IDS-STAGE109-P4-GATE",
-        )
-        phase4_current = (
-            "IDS-STAGE109",
-            "IDS-STAGE109-P4",
-            "IDS-V0_1-STAGE109-P4",
-            "IDS-STAGE109-REVIEW-GATE",
-        )
-        review_current = (
-            "IDS-STAGE109",
-            "IDS-STAGE109-REVIEW",
-            "IDS-V0_1-STAGE109-REVIEW",
-            "IDS-STAGE110-P1-GATE",
-        )
-        stage110_phase1_current = (
-            "IDS-STAGE110",
-            "IDS-STAGE110-P1",
-            "IDS-V0_1-STAGE110-P1",
-            "IDS-STAGE110-P2-GATE",
-        )
-        stage110_phase2_current = (
             "IDS-STAGE110",
             "IDS-STAGE110-P2",
             "IDS-V0_1-STAGE110-P2",
             "IDS-STAGE110-P3-GATE",
         )
-        stage110_phase3_current = (
+        phase3_current = (
             "IDS-STAGE110",
             "IDS-STAGE110-P3",
             "IDS-V0_1-STAGE110-P3",
             "IDS-STAGE110-P4-GATE",
         )
+        phase4_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P4",
+            "IDS-V0_1-STAGE110-P4",
+            "IDS-STAGE110-REVIEW-GATE",
+        )
+        review_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-REVIEW",
+            "IDS-V0_1-STAGE110-REVIEW",
+            "IDS-STAGE111-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
-            self,
-            current,
-            {phase2_current, phase3_current},
-            status,
-            plan,
-            ROADMAP,
+            self, current, {phase2_current}, status, plan, ROADMAP
         )
-        self.assertEqual(status["task"], plan["task"])
-        if current in {phase2_current, phase3_current}:
-            self.assertFalse(is_current_projection)
-            return
+        self.assertEqual(phase3_current, current)
         self.assertTrue(is_current_projection)
-        self.assertIn(
-            current,
-            {
-                phase4_current,
-                review_current,
-                stage110_phase1_current,
-                stage110_phase2_current,
-                stage110_phase3_current,
-            },
+        self.assertEqual(
+            "REPORT_QUALITY_SCORE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            status["evidence_status"],
         )
+        self.assertEqual(
+            "PASS_REPORT_QUALITY_SCORE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+            receipt["result"],
+        )
+        self.assertEqual("IDS-STAGE110-P3-GATE", receipt["entry_gate"])
+        self.assertEqual("IDS-STAGE110-P4-GATE", receipt["next_gate"])
+        self.assertEqual(52, receipt["scenario_shape"]["scenario_field_count"])
+        self.assertEqual(260, receipt["scenario_shape"]["scenario_field_check_count"])
+        self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
+        self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
+        validation = receipt["final_validation"]
+        self.assertEqual(8, validation["focused_controlled_scenarios_test_count"])
+        self.assertTrue(validation["stage005_direct_validation_valid"])
+        self.assertTrue(validation["all_executed_validation_passed"])
+        acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
+        self.assertEqual(
+            "P3 报告质量评分专项控制场景已完成",
+            acceptance_by_id["ACC-STAGE-110"],
+        )
+        for acceptance_id in (
+            "ACC-STAGE110-P3-01",
+            "ACC-STAGE110-P3-02",
+            "ACC-STAGE110-P3-03",
+        ):
+            with self.subTest(acceptance_id=acceptance_id):
+                self.assertEqual("已通过", acceptance_by_id[acceptance_id])
+        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE110-P3-04"])
+        event_ids = {
+            json.loads(line)["event_id"]
+            for line in EVENTS.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        }
+        self.assertIn("EVT-IDS-V0_1-STAGE110-P3-20260826-001", event_ids)
+        self.assertNotIn(phase4_current, {current})
+        self.assertNotIn(review_current, {current})
 
 
 if __name__ == "__main__":

@@ -367,12 +367,22 @@ class Stage109ReportImpactAnalysisStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE110-P2",
             "IDS-STAGE110-P3-GATE",
         )
+        stage110_phase3_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P3",
+            "IDS-V0_1-STAGE110-P3",
+            "IDS-STAGE110-P4-GATE",
+        )
         self.assertTrue(
             assert_legacy_or_current_projection(
                 self, current, {phase4_current}, status, plan, ROADMAP
             )
         )
-        if current in {stage110_phase1_current, stage110_phase2_current}:
+        if current in {
+            stage110_phase1_current,
+            stage110_phase2_current,
+            stage110_phase3_current,
+        }:
             return
         self.assertEqual(review_current, current)
         self.assertEqual(

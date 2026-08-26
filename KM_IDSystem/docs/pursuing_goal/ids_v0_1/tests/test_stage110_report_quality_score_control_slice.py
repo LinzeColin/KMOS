@@ -378,11 +378,18 @@ class Stage110ReportQualityScorePhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE110-P2",
             "IDS-STAGE110-P3-GATE",
         )
-        self.assertTrue(
-            assert_legacy_or_current_projection(
-                self, current, {phase1_current}, status, plan, ROADMAP
-            )
+        phase3_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P3",
+            "IDS-V0_1-STAGE110-P3",
+            "IDS-STAGE110-P4-GATE",
         )
+        is_current_projection = assert_legacy_or_current_projection(
+            self, current, {phase1_current}, status, plan, ROADMAP
+        )
+        self.assertTrue(is_current_projection)
+        if current == phase3_current:
+            return
         self.assertEqual(phase2_current, current)
         self.assertEqual(
             "REPORT_QUALITY_SCORE_CONTROL_SLICE_RUNTIME_DISABLED",
