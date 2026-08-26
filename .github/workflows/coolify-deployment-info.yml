@@ -102,6 +102,7 @@ jobs:
                   ("COMPOSE_SCHEMA", r"compose.*(invalid|unsupported|must be)|services\..*(invalid|must be)|validating .*compose"),
                   ("REGISTRY_OR_NETWORK", r"failed to resolve source metadata|tls handshake timeout|network is unreachable|connection refused|i/o timeout|too many requests"),
                   ("IMAGE_BUILD_COMMAND", r"failed to solve|error building|process .* did not complete successfully|executor failed running"),
+                  ("CONTAINER_NAME_CONFLICT", r"container name .* is already in use|conflict.*container name|name is already in use"),
                   ("CONTAINER_START_OR_HEALTH", r"unhealthy|healthcheck|container .* exited|exit code [1-9]|could not start container"),
                   ("PLATFORM_ORCHESTRATION", r"deployment failed|internal server error|could not deploy|deployment error"),
               )
@@ -319,6 +320,7 @@ jobs:
                   ("EXITED", r"container .* exited|exited .*code|exit code [1-9]"),
                   ("IMPORT", r"modulenotfounderror|importerror|failed to import|could not import"),
                   ("PORT", r"address already in use|bind.*port|connection refused"),
+                  ("CONTAINER_NAME_CONFLICT", r"container name .* is already in use|conflict.*container name|name is already in use"),
                   ("STATE", r"schema.*(version|mismatch)|structured.*store|object.*storage"),
                   ("PERMISSION", r"permission denied|read-only file system"),
               )
