@@ -297,7 +297,7 @@ def _write_projection(root: Path) -> None:
     payment_request_observation = {
         "schema_version": "kmfa.daily_funds.payment_request_observation.v5",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.payment_request_observation.v6",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v7",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
@@ -402,7 +402,7 @@ def test_payment_request_observation_is_read_only_and_never_becomes_a_balance(tm
     observation_path.write_text(json.dumps(strip_projection), encoding="utf-8")
     strip = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
     assert strip.status_code == 200
-    assert strip.json()["message"].startswith("已按群消息当天、固定总合计标签")
+    assert strip.json()["message"].startswith("已按群消息当天、固定版式或申请明细")
     assert strip.json()["points"][-1]["date_basis"] == "群消息当天"
 
     filename_projection = json.loads(observation_path.read_text(encoding="utf-8"))

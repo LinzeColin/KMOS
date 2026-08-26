@@ -114,10 +114,10 @@ class PaymentRequestObservation:
 
     business_date: date
     # ``DOCUMENT_DAY`` comes from a visible document date. ``MESSAGE_DAY``
-    # comes from the exact DWS message day when the approved horizontal
-    # summary profile has no visible date cell. ``FILENAME_DAY`` comes from
-    # the frozen structured payment-plan filename date after detail/total
-    # reconciliation.
+    # comes from the exact DWS message day when an approved horizontal summary
+    # or reconciled structured plan has no business-date field. ``FILENAME_DAY``
+    # comes from the frozen structured payment-plan filename date after
+    # detail/total reconciliation.
     date_basis: str
     request_total_fen: int
     source: SourceRef

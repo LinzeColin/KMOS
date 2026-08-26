@@ -2254,7 +2254,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         <div className="daily-funds-chart-head">
           <div>
             <b>待付款请示（非账户余额）</b>
-            <div className="muted">整页日表按表内或文件名业务日期复核；横向群消息汇总按群消息当天标注。所有金额均需明细支付与总合计一致。</div>
+            <div className="muted">整页日表按表内或文件名业务日期复核；无日期的已核对计划按群消息当天标注。金额需经固定版式复读或明细与总合计勾稽。</div>
           </div>
           <span className={`chip ${付款请示已验证 ? 'ok' : 付款请示状态 === 'NEEDS_REVIEW' ? 'bad' : 'muted'}`}>
             {付款请示已验证 ? '已验证走势' : 付款请示状态 === 'NEEDS_REVIEW' ? '待复核' : '暂无日表'}

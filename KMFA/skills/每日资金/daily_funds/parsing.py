@@ -100,8 +100,12 @@ CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11
 # request identifier column, one payee column, one payment column, a filename
 # business day, and one matching grand-total row are all required.  It records
 # the filename day explicitly instead of treating a plan as an account balance
-# or a completed payment.
-PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v6"
+# or a completed payment.  v7 accepts the exact DWS message day when the
+# registered workbook has no business date in its filename; the same strict
+# detail and grand-total reconciliation remains mandatory.  It also admits
+# compact renditions of the already-approved image layouts, while retaining
+# the existing fixed crops and independent OCR agreement.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v7"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2439,12 +2443,12 @@ def parse_cashflow_observation(
 _PAYMENT_REQUEST_OCR_PSMS = (6, 11, 12)
 _PAYMENT_REQUEST_SHEET_LAYOUT = "SHEET"
 _PAYMENT_REQUEST_MESSAGE_STRIP_LAYOUT = "MESSAGE_STRIP"
-_PAYMENT_REQUEST_SHEET_MIN_WIDTH = 640
-_PAYMENT_REQUEST_SHEET_MIN_HEIGHT = 900
-_PAYMENT_REQUEST_STRIP_MIN_WIDTH = 960
-_PAYMENT_REQUEST_STRIP_MIN_HEIGHT = 200
-_PAYMENT_REQUEST_STRIP_MIN_ASPECT_RATIO = 4.0
-_PAYMENT_REQUEST_STRIP_MAX_ASPECT_RATIO = 6.0
+_PAYMENT_REQUEST_SHEET_MIN_WIDTH = 320
+_PAYMENT_REQUEST_SHEET_MIN_HEIGHT = 450
+_PAYMENT_REQUEST_STRIP_MIN_WIDTH = 480
+_PAYMENT_REQUEST_STRIP_MIN_HEIGHT = 100
+_PAYMENT_REQUEST_STRIP_MIN_ASPECT_RATIO = 3.0
+_PAYMENT_REQUEST_STRIP_MAX_ASPECT_RATIO = 8.0
 _PAYMENT_REQUEST_MAX_PIXELS = 16_000_000
 _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS = 7
 _PAYMENT_REQUEST_SHEET_CROPS = {
@@ -2662,7 +2666,7 @@ def _payment_request_layout_fingerprint(
 ) -> str:
     return sha256(
         "\x1f".join((
-            "payment_request_observation.v6",
+            "payment_request_observation.v7",
             layout,
             evidence.format,
             evidence.magic,
@@ -2774,16 +2778,19 @@ def parse_payment_request_workbook_observation(
         aliases=_PAYMENT_REQUEST_WORKBOOK_HEADER_ALIASES["payment"],
         code="PAYMENT_REQUEST_WORKBOOK_PAYMENT_COLUMN_INVALID",
     )
-    business_date = _date_from_filename(filename)
-    if business_date is None:
-        raise ParseError("PAYMENT_REQUEST_DATE_INVALID")
-
     from zoneinfo import ZoneInfo
 
     received_day = received_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
-    lag_days = (received_day - business_date).days
-    if lag_days < 0 or lag_days > _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS:
-        raise ParseError("PAYMENT_REQUEST_DATE_OUT_OF_RANGE")
+    filename_day = _date_from_filename(filename)
+    if filename_day is None:
+        business_date = received_day
+        date_basis = "MESSAGE_DAY"
+    else:
+        lag_days = (received_day - filename_day).days
+        if lag_days < 0 or lag_days > _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS:
+            raise ParseError("PAYMENT_REQUEST_DATE_OUT_OF_RANGE")
+        business_date = filename_day
+        date_basis = "FILENAME_DAY"
 
     detail_total_fen = 0
     detail_count = 0
@@ -2827,7 +2834,7 @@ def parse_payment_request_workbook_observation(
     )
     return PaymentRequestObservation(
         business_date=business_date,
-        date_basis="FILENAME_DAY",
+        date_basis=date_basis,
         request_total_fen=grand_totals[0],
         source=source,
         parser_evidence=evidence,
