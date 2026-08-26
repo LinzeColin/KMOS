@@ -1,6 +1,15 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage111 Review accepted locally - 2026-08-27
+## Current Gate - Stage112 P1 accepted locally - 2026-08-27
+
+- IDS-V0_1-STAGE112-P1 已完成本地静态控制验收；当前治理状态为 IDS-STAGE112 / IDS-STAGE112-P1 / IDS-V0_1-STAGE112-P1 / IDS-STAGE112-P2-GATE。P2 只由新的独立 run 在冻结任务包门禁下承接。
+- P1 固定 32 个未来控制引用、data/index/evidence/model/generated_at 五项生成快照、20 类失败关闭与四条中文反馈。每次未来报告导出保持 actor、time、report_id、evidence_snapshot 控制引用，并保持报告证据绑定、PDF 引用来源、外部增强来源分离、人工确认、报告快照、影响分析、质量评分、审计状态和保留控制。
+- 单一工程控制上下文保持冻结 Stage112 任务包与 Stage111 Review 控制工件；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 P1 只形成静态合同与本地治理证据。
+- 已验证：Stage112 P1 聚焦合同、前向治理、Stage005 直接治理校验、两组 Batch 门禁、批次门禁用例与机器平面中文视图的实际结果记录于本地 receipt；所有运行计数为 0、运行标志为 false，模型 Token 与 Agent 执行均为 0。
+- 回滚仅撤回 Stage112 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 PASS_REVIEWED_REPORT_REGENERATION_QUEUE_RUNTIME_DISABLED；Stage111 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub main/release、OVH 与应用状态保持原有边界。
+- 下一步：仅在新的独立 run 进入 IDS-STAGE112-P2-GATE，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage111 Review accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE111-REVIEW` 已完成本地机械复审；当前治理状态为 `IDS-STAGE111 / IDS-STAGE111-REVIEW / IDS-V0_1-STAGE111-REVIEW / IDS-STAGE112-P1-GATE`。Stage112 P1 由新的独立 run 在冻结任务包门禁下承接。
 - Review 复审 P1 的 `30/5/17/4`、P2 的 `5×32/4×88/440`、P3 的 `5×44=220/5/5/5/15/4` 与 P4 的 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17` 固定控制形状；关键结论保持 `evidence_id_ref/evidence_gap_ref` 严格二选一，资料撤回、证据降级、证据冲突和索引版本变化保持未来报告状态与队列复核控制，外部增强保持外部参考身份，五条业务线白箱确认保持前置。
@@ -8,8 +17,6 @@
 - 已验证：Review 聚焦 `7/7`、P1--P4 与 Review 选择的前向治理套件 `65/65`、Stage005 直接治理校验 `valid=true`、两组 Batch 门禁均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁用例 `13/13`，机器平面生成 `7` 个中文文件；运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。
 - 回滚仅撤回 Stage111 Review 的范围说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REPORT_REGENERATION_QUEUE_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage111 P1--P4、Stage110 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。远端恢复检查点仍为 P3 提交 `881999f8f90de05f22090fc8bf0201ef8bc02c8a`；P4 与 Review 只保留在本地开发分支。
 - 下一步：仅在新的独立 run 进入 `IDS-STAGE112-P1-GATE`，继续使用同一既有 scratch worktree 与开发分支。
-
-## Superseded Gate - Stage111 P4 accepted locally - 2026-08-27
 
 ## Current Gate - Stage111 P3 accepted locally - 2026-08-27
 

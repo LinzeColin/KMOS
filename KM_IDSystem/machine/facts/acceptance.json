@@ -1,8 +1,8 @@
 {
-  "stage": "IDS-STAGE111",
-  "phase": "IDS-STAGE111-P4",
-  "task": "IDS-V0_1-STAGE111-P4",
-  "next_gate": "IDS-STAGE111-REVIEW-GATE",
+  "stage": "IDS-STAGE112",
+  "phase": "IDS-STAGE112-P1",
+  "task": "IDS-V0_1-STAGE112-P1",
+  "next_gate": "IDS-STAGE112-P2-GATE",
   "items": [
     {
       "id": "ACC-STAGE-110",
@@ -212,6 +212,31 @@
     {
       "id": "ACC-STAGE111-REVIEW-04",
       "criteria": "Review 保持真实资料、外部参考、模型推理、证据账本、人工确认、报告、PDF、引用、快照、报告状态、影响分析、质量评分、模板、重新生成、撤回、审计、数据库、模型、模型 Token、Agent、OVH、生产与正式全局上传的后续授权边界；下一独立 run 才可进入 Stage112 P1。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE-112",
+      "criteria": "Stage112 报告导出审计 P1 静态合同已形成可执行、可测试、可回滚的工程控制结构：每次未来导出的 actor、time、report_id、evidence_snapshot、报告证据绑定、外部增强来源分离、人工确认、报告快照、五项生成快照、影响分析、质量评分、PDF 引用来源、导出状态、保留、重新生成、撤回和失败关闭保持可审阅。",
+      "status": "P1 静态合同已完成"
+    },
+    {
+      "id": "ACC-STAGE112-P1-01",
+      "criteria": "冻结 Stage112 任务包与 Stage111 Review 控制工件保持为唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE112-P1-02",
+      "criteria": "actor、time、report_id、evidence_snapshot、报告证据绑定、外部增强章节、人工确认项、报告快照、影响分析、质量评分、PDF 引用来源与 data/index/evidence/model/generated_at 五项快照已固定为未来控制引用。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE112-P1-03",
+      "criteria": "关键结论保持 evidence_id 或 evidence_gap 严格二选一；外部增强保持外部来源身份，导出目的地、格式、审计状态、失败原因、保留、重新生成和撤回保持未来控制引用，业务线白箱确认承担未来真实决策入口。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE112-P1-04",
+      "criteria": "真实报告导出、报告、PDF、快照、审计、数据库、人工确认、模型、模型 Token、Agent、OVH、生产和正式全局上传保持后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage112 P2。",
       "status": "已遵守"
     },
     {
