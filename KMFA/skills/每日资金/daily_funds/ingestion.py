@@ -323,6 +323,23 @@ def _attachment_resource(attachment: Mapping[str, Any]) -> tuple[str, str] | Non
     return None
 
 
+def _attachment_download_context(attachment: Mapping[str, Any]) -> tuple[str | None, str | None]:
+    """Return the resource-owning message context retained from DWS refs.
+
+    ``+chat-messages`` can expose a resource from a quoted, replied-to, or
+    forwarded child message. Its ``resourceRefs`` entry contains the child
+    message ID required to resolve that media URL. The outer history row is
+    still the occurrence and source-gate authority, while this context is used
+    only for the one bounded DWS download command. Direct legacy attachments
+    have no retained context and correctly fall back to the outer row.
+    """
+
+    return (
+        _message_field(attachment, ("_dws_message_id",)),
+        _message_field(attachment, ("_dws_open_conversation_id",)),
+    )
+
+
 def _dws_download_target_name(*, index: int, declared_filename: str | None, declared_mime: str | None) -> str:
     """Return one private, explicit relative target for a DWS resource download.
 
@@ -1212,7 +1229,51 @@ class DwsHistoryClient:
                         # files and media are retained below.
                         continue
                     resource_type, resource_id = source
-                    attachments.append({"type": resource_type, "resourceId": resource_id})
+                    normalized_attachment = {
+                        "type": resource_type,
+                        "resourceId": resource_id,
+                    }
+                    # DWS resource refs own their media download context. A
+                    # quoted/replied/forwarded child cannot reuse the outer
+                    # row's message ID when resolving a temporary media URL.
+                    # Keep only the two exact shortcut arguments and reject a
+                    # context that points outside the configured group.
+                    if resource_type == "mediaId":
+                        download = resource.get("download")
+                        arguments = (
+                            download.get("arguments")
+                            if isinstance(download, Mapping)
+                            else None
+                        )
+                        if isinstance(arguments, Mapping):
+                            resource_message_id = _message_field(
+                                arguments,
+                                ("message-id", "messageId", "openMessageId"),
+                            )
+                            resource_conversation_id = _message_field(
+                                arguments,
+                                (
+                                    "open-conversation-id",
+                                    "openConversationId",
+                                    "conversationId",
+                                ),
+                            )
+                            if (
+                                resource_conversation_id is not None
+                                and resource_conversation_id != self.config.group_id
+                            ):
+                                self._record_network_event(
+                                    "HISTORY_GROUP_V2_COLLECT",
+                                    "SOURCE_INVALID",
+                                )
+                                raise IngestionError("AMBIGUOUS_SOURCE")
+                            if resource_message_id:
+                                normalized_attachment["_dws_message_id"] = resource_message_id
+                            if resource_conversation_id:
+                                normalized_attachment[
+                                    "_dws_open_conversation_id"
+                                ] = resource_conversation_id
+                    attachments.append(normalized_attachment)
                 if attachments:
                     canonical["attachments"] = attachments
             normalized.append(canonical)
@@ -1503,6 +1564,7 @@ class DwsHistoryClient:
         resource_type, resource_id = source
         declared_filename = _message_field(attachment, ("fileName", "name", "title"))
         declared_mime = _message_field(attachment, ("mimeType", "mime", "contentType"))
+        resource_message_id, resource_conversation_id = _attachment_download_context(attachment)
         # The dedicated cloud volume is normally made by entrypoint, but a
         # restarted/sparse runtime must not translate a missing empty state
         # directory into an attachment-download failure before DWS is called.
@@ -1529,8 +1591,8 @@ class DwsHistoryClient:
             ]
             if resource_type == "mediaId":
                 command.extend([
-                    "--message-id", message_id,
-                    "--open-conversation-id", self.config.group_id,
+                    "--message-id", resource_message_id or message_id,
+                    "--open-conversation-id", resource_conversation_id or self.config.group_id,
                 ])
             try:
                 completed = self._run_dws(

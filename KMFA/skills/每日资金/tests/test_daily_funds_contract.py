@@ -6877,6 +6877,46 @@ def test_dws_attachment_download_uses_an_isolated_relative_output_directory(
     assert downloaded.payload == b"fixture-media"
 
 
+def test_dws_attachment_download_uses_resource_owned_media_context(tmp_path: Path) -> None:
+    """A nested DWS resource resolves with its own message ID, not its parent."""
+
+    config = _config(tmp_path)
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["auth", "status"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                json.dumps({"authenticated": True, "refresh_token_valid": True}),
+                "",
+            )
+        if command[1:3] == ["chat", "+messages-resource-download"]:
+            assert command[command.index("--message-id") + 1] == "resource-message-1"
+            assert command[command.index("--open-conversation-id") + 1] == config.group_id
+            output_dir = Path(kwargs["cwd"])
+            (output_dir / "attachment-0.png").write_bytes(b"fixture-media")
+            return subprocess.CompletedProcess(command, 0, "", "")
+        raise AssertionError(f"unexpected DWS command: {command}")
+
+    message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": "outer-message-1",
+        "createTime": "2026-08-01T00:00:00Z",
+        "attachments": [{
+            "type": "mediaId",
+            "resourceId": "resource-media-1",
+            "_dws_message_id": "resource-message-1",
+            "_dws_open_conversation_id": config.group_id,
+            "mimeType": "image/png",
+        }],
+    }
+
+    downloaded = DwsHistoryClient(config, runner=runner).download(message, 0)
+
+    assert downloaded.payload == b"fixture-media"
+
+
 def test_dws_attachment_transport_timeout_has_a_fixed_safe_stage_code(tmp_path: Path) -> None:
     config = _config(tmp_path)
     events: list[tuple[str, str, str]] = []
@@ -7050,7 +7090,16 @@ def test_history_poller_falls_back_to_complete_exact_group_ledger_after_recordle
                 "createTime": "2026-08-01T00:05:00Z",
                 "text": f"资金明细 {source_sentinel}",
                 "resourceRefs": [
-                    {"type": "mediaId", "resourceId": "media-1"},
+                    {
+                        "type": "mediaId",
+                        "resourceId": "media-1",
+                        "download": {
+                            "arguments": {
+                                "message-id": "resource-message-1",
+                                "open-conversation-id": config.group_id,
+                            },
+                        },
+                    },
                     {"type": "fileId", "resourceId": "file-1"},
                 ],
             }],
@@ -7086,7 +7135,12 @@ def test_history_poller_falls_back_to_complete_exact_group_ledger_after_recordle
     assert message["senderOpenDingTalkId"] == config.sender_id
     assert message["openMessageId"] == "message-1"
     assert message["attachments"] == [
-        {"type": "mediaId", "resourceId": "media-1"},
+        {
+            "type": "mediaId",
+            "resourceId": "media-1",
+            "_dws_message_id": "resource-message-1",
+            "_dws_open_conversation_id": config.group_id,
+        },
         {"type": "fileId", "resourceId": "file-1"},
     ]
     assert client.selected_messages(page) == (message,)
