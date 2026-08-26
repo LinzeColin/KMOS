@@ -416,15 +416,15 @@ class _PaymentRequestObservationAccumulator:
         self.ocr_ready: bool | None = None
 
     @property
-    def latest_parsed_received_at(self) -> datetime | None:
-        """Return the newest exact-source report that passed the title gate.
+    def has_candidate(self) -> bool:
+        """Whether this source-time group identified a payment-request report.
 
-        The worker uses this only to decide whether an older, unavailable
-        attachment can affect the newest published operational observation.
-        It is never persisted or exposed by the public page.
+        A strict title match is enough to make the group current: a complete
+        observation can be published, while any later field failure must keep
+        the page in review.  Plain non-payment images remain non-candidates.
         """
 
-        return max((received_at for received_at, _observation in self.observations), default=None)
+        return bool(self.eligible_shas)
 
     def add(self, attachment: DownloadedAttachment) -> None:
         if (
@@ -2037,24 +2037,16 @@ class DailyFundsRuntime:
             accumulator.add(attachment)
         return accumulator.write()
 
-    def _latest_parsed_payment_request_received_at(
+    def _payment_request_has_candidate(
         self,
         attachments: Iterable[DownloadedAttachment],
-    ) -> datetime | None:
-        """Identify the newest verified candidate before tolerating an old failure.
-
-        A successfully downloaded non-financial attachment cannot prove that
-        a payment-request report is current.  Run the same strict parser gate
-        used by the projection and compare only a parsed report's receipt time
-        with failed attachment occurrences.  The caller writes the projection
-        separately, so this preflight retains no source payload and creates no
-        publication side effect.
-        """
+    ) -> bool:
+        """Apply the strict title gate without publishing an interim snapshot."""
 
         accumulator = _PaymentRequestObservationAccumulator(self)
         for attachment in attachments:
             accumulator.add(attachment)
-        return accumulator.latest_parsed_received_at
+        return accumulator.has_candidate
 
     def _clear_payment_request_observation(self) -> None:
         """Make an interrupted live refresh visible instead of serving stale money.
@@ -2152,36 +2144,48 @@ class DailyFundsRuntime:
         # quarantined exact-source messages, then let the title gate decide
         # whether each downloaded image is a real payment-request report.
         messages = (*client.selected_messages(page), *client.quarantine_messages(page))
+        # The live page is a current operational observation.  Resolve newest
+        # source-time groups first, and resolve every attachment at the same
+        # time before accepting the group.  This lets a newer verified report
+        # publish without waiting on inaccessible historical attachments,
+        # while a same-time or newer provider failure still stops publication.
+        ordered_messages = tuple(sorted(
+            ((_message_timestamp(message), message) for message in messages),
+            key=lambda item: item[0],
+            reverse=True,
+        ))
         attachments: list[DownloadedAttachment] = []
-        failed_attachments: list[tuple[datetime, IngestionError]] = []
         seen_occurrences: set[tuple[str, int]] = set()
         attempted_attachments = 0
-        for message in messages:
-            message_id_hash = client.message_id_hash(message)
-            for index in range(client.attachment_count(message)):
-                occurrence = (message_id_hash, index)
-                if occurrence in seen_occurrences:
-                    raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_AMBIGUOUS")
-                seen_occurrences.add(occurrence)
-                if attempted_attachments >= _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS:
-                    raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_LIMIT")
-                attempted_attachments += 1
-                try:
-                    attachments.append(client.download(message, index))
-                except IngestionError as exc:
-                    # A provider can retain an inaccessible, old attachment
-                    # beside a newer confirmed payment-request screenshot.
-                    # The old occurrence cannot invalidate that newer source,
-                    # while a failure at the same or a later time must still
-                    # stop publication so the page never presents stale money
-                    # as current.
-                    failed_attachments.append((_message_timestamp(message), exc))
+        position = 0
+        while position < len(ordered_messages):
+            received_at = ordered_messages[position][0]
+            group: list[Mapping[str, object]] = []
+            while position < len(ordered_messages) and ordered_messages[position][0] == received_at:
+                group.append(ordered_messages[position][1])
+                position += 1
 
-        if failed_attachments:
-            latest_parsed_received_at = self._latest_parsed_payment_request_received_at(attachments)
-            latest_failed_at, latest_failure = max(failed_attachments, key=lambda item: item[0])
-            if latest_parsed_received_at is None or latest_failed_at >= latest_parsed_received_at:
-                raise latest_failure
+            group_attachments: list[DownloadedAttachment] = []
+            for message in group:
+                message_id_hash = client.message_id_hash(message)
+                for index in range(client.attachment_count(message)):
+                    occurrence = (message_id_hash, index)
+                    if occurrence in seen_occurrences:
+                        raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_AMBIGUOUS")
+                    seen_occurrences.add(occurrence)
+                    if attempted_attachments >= _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS:
+                        raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_LIMIT")
+                    attempted_attachments += 1
+                    attachment = client.download(message, index)
+                    attachments.append(attachment)
+                    group_attachments.append(attachment)
+
+            if self._payment_request_has_candidate(group_attachments):
+                projection = self._write_payment_request_observation(group_attachments)
+                status = projection.get("status")
+                if status == "VERIFIED":
+                    return {"ok": True, "code": "PAYMENT_REQUEST_REFRESH_VERIFIED"}
+                return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"}
 
         projection = self._write_payment_request_observation(attachments)
         status = projection.get("status")
