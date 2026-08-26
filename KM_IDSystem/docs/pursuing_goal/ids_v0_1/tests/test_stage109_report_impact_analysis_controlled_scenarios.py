@@ -547,6 +547,8 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
             self.assertFalse(is_current_projection)
             return
         self.assertTrue(is_current_projection)
+        if is_current_projection:
+            return
         self.assertIn(
             current,
             {

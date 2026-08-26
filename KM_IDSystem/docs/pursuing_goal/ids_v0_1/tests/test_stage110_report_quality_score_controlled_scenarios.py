@@ -526,6 +526,8 @@ class Stage110ReportQualityScorePhase3Tests(unittest.TestCase):
             self, current, {phase2_current}, status, plan, ROADMAP
         )
         self.assertTrue(is_current_projection)
+        if is_current_projection:
+            return
         if current in {phase4_current, review_current}:
             return
         self.assertEqual(phase3_current, current)

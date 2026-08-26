@@ -1,0 +1,67 @@
+{
+  "schema_version": "ids.stage111.report_regeneration_queue.phase1.run.v1",
+  "run_id": "RUN-IDS-V0_1-STAGE111-P1-20260827-001",
+  "project_id": "KM_IDSystem",
+  "stage": "IDS-STAGE111",
+  "phase": "IDS-STAGE111-P1",
+  "task_id": "IDS-V0_1-STAGE111-P1",
+  "action": "完成 Stage111 P1 报告重新生成队列的静态控制合同、治理投影与本地零运行时验收。",
+  "acceptance_ids": [
+    "ACC-STAGE-111",
+    "ACC-STAGE111-P1-01",
+    "ACC-STAGE111-P1-02",
+    "ACC-STAGE111-P1-03",
+    "ACC-STAGE111-P1-04"
+  ],
+  "entry_gate": "IDS-STAGE111-P1-GATE",
+  "next_gate": "IDS-STAGE111-P2-GATE",
+  "result": "PASS_REPORT_REGENERATION_QUEUE_CONTRACT_RUNTIME_DISABLED",
+  "control_shape": {
+    "future_control_reference_field_count": 30,
+    "snapshot_component_count": 5,
+    "failure_state_count": 17,
+    "chinese_feedback_count": 4
+  },
+  "runtime_counts": {
+    "actual_queue_entry_count": 0,
+    "actual_report_generation_count": 0,
+    "actual_snapshot_persistence_count": 0,
+    "actual_report_regeneration_count": 0,
+    "actual_model_token_count": 0,
+    "actual_agent_execution_count": 0,
+    "actual_ovh_deployment_count": 0
+  },
+  "runtime_flags": {
+    "report_regeneration_queue_execution_performed": false,
+    "report_or_pdf_generation_performed": false,
+    "snapshot_persistence_performed": false,
+    "report_status_impact_analysis_performed": false,
+    "report_quality_score_calculation_performed": false,
+    "model_call_performed": false,
+    "model_token_consumption_performed": false,
+    "agent_execution_performed": false,
+    "ovh_deployment_performed": false,
+    "production_runtime_activation_performed": false,
+    "github_upload_performed": false,
+    "push_performed": false
+  },
+  "final_validation": {
+    "state": "PASS",
+    "completed_at": "2026-08-27T00:54:09+1000",
+    "scope": "完成态证明冻结 Stage111 P1 静态控制合同、前序投影兼容、治理、批次门禁、中文视图与零运行时边界；完整历史发现保留为独立高成本基线。",
+    "focused_contract_test_count": 7,
+    "stage110_review_to_stage111_phase1_compatibility_test_count": 38,
+    "stage109_review_to_stage111_phase1_compatibility_test_count": 38,
+    "stage088_to_stage111_precise_chain_test_count": 0,
+    "stage088_to_stage111_precise_chain_status": "NOT_EXECUTED_RESOURCE_BOUNDED",
+    "stage005_direct_validation_valid": true,
+    "batch041_050_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "batch051_060_result": "PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED",
+    "batch_review_gate_test_count": 13,
+    "human_rendered_file_count": 7,
+    "document_budget_valid": true,
+    "blocker_stop_valid": true,
+    "dual_plane_valid": true,
+    "all_executed_validation_passed": true
+  }
+}

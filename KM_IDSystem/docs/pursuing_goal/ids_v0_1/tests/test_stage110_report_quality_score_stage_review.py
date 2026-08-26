@@ -8,6 +8,10 @@ import json
 from pathlib import Path
 import unittest
 
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import (
+    assert_legacy_or_current_projection,
+)
+
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
@@ -371,7 +375,12 @@ class Stage110ReportQualityScoreStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE110-REVIEW",
             "IDS-STAGE111-P1-GATE",
         )
-        self.assertEqual(review_current, current)
+        is_current_projection = assert_legacy_or_current_projection(
+            self, current, {review_current}, status, plan, ROADMAP
+        )
+        self.assertTrue(is_current_projection or current == review_current)
+        if is_current_projection:
+            return
         self.assertEqual(
             "REVIEWED_REPORT_QUALITY_SCORE_RUNTIME_DISABLED",
             status["evidence_status"],

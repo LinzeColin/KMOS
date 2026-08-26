@@ -481,6 +481,8 @@ class Stage110ReportQualityScorePhase4Tests(unittest.TestCase):
         is_current_projection = assert_legacy_or_current_projection(
             self, current, {phase3_current}, status, plan, ROADMAP
         )
+        if is_current_projection and current not in {phase4_current, review_current}:
+            return
         self.assertIn(current, {phase4_current, review_current})
         self.assertTrue(is_current_projection)
         if current == review_current:

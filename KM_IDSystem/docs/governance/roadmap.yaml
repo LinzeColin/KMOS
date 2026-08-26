@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE110"
-current_phase_id: "IDS-STAGE110-REVIEW"
-current_task_id: "IDS-V0_1-STAGE110-REVIEW"
-next_gate_id: "IDS-STAGE111-P1-GATE"
+current_stage_id: "IDS-STAGE111"
+current_phase_id: "IDS-STAGE111-P1"
+current_task_id: "IDS-V0_1-STAGE111-P1"
+next_gate_id: "IDS-STAGE111-P2-GATE"
 current_transition_history:
+  stage111_phase1_state:
+    current_stage_id: "IDS-STAGE111"
+    current_phase_id: "IDS-STAGE111-P1"
+    current_task_id: "IDS-V0_1-STAGE111-P1"
+    next_gate_id: "IDS-STAGE111-P2-GATE"
   stage110_review_state:
     current_stage_id: "IDS-STAGE110"
     current_phase_id: "IDS-STAGE110-REVIEW"
@@ -1964,6 +1969,180 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE111"
+    name: "报告重新生成队列"
+    task_id: "IDS-V0_1-STAGE111"
+    acceptance_ids:
+      - "ACC-STAGE-111"
+    objective: "依据冻结 Stage111 任务包与 Stage110 Review 控制工件，完成报告重新生成队列的 P1 静态控制合同，固定报告证据绑定、外部增强章节、人工确认、报告快照、影响分析、质量评分、PDF 引用来源和队列进入／状态的未来控制形状。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE111-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE111-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE111-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage111 任务包与 Stage110 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。"
+      - "P1 固定报告证据绑定、关键结论 evidence_id/evidence_gap、证据等级、PDF 引用来源、外部增强章节与底层来源类型、人工确认、报告快照、data/index/evidence/model/generated_at 五项快照、影响分析、质量评分、受影响报告、报告状态影响、队列进入原因和队列状态的未来控制引用。"
+      - "资料撤回、证据降级、证据冲突与索引版本变化保持未来报告状态影响与队列进入原因控制；业务线白箱确认承担未来真实队列、重新生成、撤回和最终结论的授权入口。"
+      - "真实资料、外部参考、报告、PDF、快照、影响结果、质量分数、人工确认、审计、数据库、模型 Token、Agent、OVH、生产与正式上传保持零运行时边界。"
+    stop_conditions:
+      - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、引用内容、快照、真实证据账本、审计日志、数据库、报告状态、质量分数或业务结论。"
+      - "执行真实队列创建、报告重新生成、报告撤回、报告状态更新、快照保存、影响分析、质量评分、人工确认、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage111 P2 及以后阶段。"
+    phases:
+      - phase_id: "IDS-STAGE111-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "定义报告证据绑定、外部增强章节、人工确认项、报告快照、影响分析、质量评分、PDF 引用来源与 data/index/evidence/model 生成快照，并固定队列进入与状态的未来控制边界。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE111-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE111-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE111-P2-GATE"
+          github_upload_allowed: false
+        pass_conditions:
+          - "静态合同固定 30 个未来控制引用、五项生成快照、17 类失败关闭与四条中文反馈。"
+          - "PDF 报告的未来交付显示引用来源；外部增强保持外部来源身份，报告证据绑定、人工确认、影响分析、质量评分和队列状态保持独立控制引用。"
+          - "真实队列、报告、PDF、快照、审计、数据库、模型、Agent、OVH、生产与上传保持未执行。"
+        stop_conditions:
+          - "任何真实资料、外部参考、报告、PDF、引用、快照、影响结果、质量分数、人工确认、审计或持久化被读取、创建、修改、生成或写入。"
+          - "任何 Stage111 P2、P3、P4、整阶段复审、Stage112、OVH、生产或正式全局上传被启动。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE111-P1"
+            name: "固定报告重新生成队列范围与未来控制引用"
+            objective: "将冻结 Stage111 任务包与 Stage110 Review 控制证据投影为零运行时静态合同，固定队列进入原因、报告状态影响、证据绑定、来源分离、快照、影响、质量与白箱确认边界。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE110-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-111"
+              - "ACC-STAGE111-P1-01"
+              - "ACC-STAGE111-P1-02"
+              - "ACC-STAGE111-P1-03"
+              - "ACC-STAGE111-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage111_report_regeneration_queue_contract"
+              - "Stage110 Review 至 Stage111 P1 兼容、Stage088 至 Stage111 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage111 P1 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage111 P1 聚焦静态报告重新生成队列合同、Stage110 Review 前向兼容、Stage088 至 Stage111 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage111 P1 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-111_报告重新生成队列.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE111_PHASE1_REPORT_REGENERATION_QUEUE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage111_report_regeneration_queue_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage111_report_regeneration_queue_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage111-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE110_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage110_report_quality_score_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage110_report_quality_score_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage110-review-local.json"
+            risk: "将静态队列控制引用、聚焦用例、路线或机器事实误作真实报告、队列、业务事实、审计或生产动作，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage110 Review 的本地零运行时状态；不改变 Stage110 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE111-P2"
+        name: "Phase 2 · 实现、接入与最小可运行切片"
+        objective: "以 Stage111 P1 静态合同为前序，实现报告证据绑定、章节输出、快照保存、影响分析或报告质量评分的受控最小切片，并写入 evidence_id、证据等级、引用页码、人工确认项与导出审计。"
+        status: "not_started"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE111-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE111-P2-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE111-P3-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE111-P2"
+            name: "实现报告重新生成队列受控最小切片"
+            objective: "在独立授权 run 中承接 P1 静态合同。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE111-P1"
+            acceptance_ids:
+              - "ACC-STAGE-111"
+              - "ACC-STAGE111-P2-01"
+              - "ACC-STAGE111-P2-02"
+              - "ACC-STAGE111-P2-03"
+              - "ACC-STAGE111-P2-04"
+      - phase_id: "IDS-STAGE111-P3"
+        name: "Phase 3 · 报告重新生成队列专项验证与异常场景"
+        objective: "验证关键结论 evidence_id/evidence_gap、资料撤回、证据降级、索引版本变化的报告状态影响，以及外部增强来源分离。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE111-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE111-P3-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE111-P4-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE111-P3"
+            name: "验证报告重新生成队列异常场景与白箱门禁"
+            objective: "在独立授权 run 中承接 P1/P2 控制工件。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE111-P1"
+              - "IDS-V0_1-STAGE111-P2"
+            acceptance_ids:
+              - "ACC-STAGE-111"
+              - "ACC-STAGE111-P3-01"
+              - "ACC-STAGE111-P3-02"
+              - "ACC-STAGE111-P3-03"
+              - "ACC-STAGE111-P3-04"
+      - phase_id: "IDS-STAGE111-P4"
+        name: "Phase 4 · 报告重新生成队列交付证据、回滚与中文反馈"
+        objective: "交付报告样例、报告快照、报告质量评分和影响分析结果，记录模板限制、人工确认与重新生成／撤回说明。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE111-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE111-P4-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE111-REVIEW-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE111-P4"
+            name: "交付报告重新生成队列控制证据与回滚说明"
+            objective: "在独立授权 run 中承接 P1/P2/P3 控制工件。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE111-P1"
+              - "IDS-V0_1-STAGE111-P2"
+              - "IDS-V0_1-STAGE111-P3"
+            acceptance_ids:
+              - "ACC-STAGE-111"
+              - "ACC-STAGE111-P4-01"
+              - "ACC-STAGE111-P4-02"
+              - "ACC-STAGE111-P4-03"
+              - "ACC-STAGE111-P4-04"
+    review:
+      phase_id: "IDS-STAGE111-REVIEW"
+      name: "Stage Review · 报告重新生成队列整阶段机械复审"
+      objective: "复审 Stage111 P1--P4 的控制工件、来源边界、队列状态影响、失败关闭和回滚路径。"
+      status: "not_started"
+      entry_authorized: false
+      next_gate_id: "IDS-STAGE112-P1-GATE"
+      gate:
+        gate_id: "IDS-STAGE111-REVIEW-GATE"
+        status: "pending"
+        next_gate_id: "IDS-STAGE112-P1-GATE"
+        github_upload_allowed: false
+      tasks:
+        - task_id: "IDS-V0_1-STAGE111-REVIEW"
+          name: "机械复审报告重新生成队列整阶段控制工件"
+          objective: "在独立授权 run 中承接 Stage111 P1--P4 控制工件。"
+          status: "not_started"
+          dependencies:
+            - "IDS-V0_1-STAGE111-P1"
+            - "IDS-V0_1-STAGE111-P2"
+            - "IDS-V0_1-STAGE111-P3"
+            - "IDS-V0_1-STAGE111-P4"
+          acceptance_ids:
+            - "ACC-STAGE-111"
+            - "ACC-STAGE111-REVIEW-01"
+            - "ACC-STAGE111-REVIEW-02"
+            - "ACC-STAGE111-REVIEW-03"
+            - "ACC-STAGE111-REVIEW-04"
   - stage_id: "IDS-STAGE110"
     name: "报告质量评分"
     task_id: "IDS-V0_1-STAGE110"

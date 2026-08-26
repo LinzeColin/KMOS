@@ -1,5 +1,14 @@
 # IDS / Industrial Data System Handoff
 
+## Current Gate - Stage111 P1 accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE111-P1` 已完成本地机械验收；当前治理状态为 `IDS-STAGE111 / IDS-STAGE111-P1 / IDS-V0_1-STAGE111-P1 / IDS-STAGE111-P2-GATE`。Stage111 P2 只由新的独立 run 在冻结任务包门禁下承接。
+- P1 固定 `30` 个未来控制引用、`data/index/evidence/model/generated_at` `5` 项生成快照、`17` 类失败关闭与 `4` 条中文反馈。控制引用覆盖报告证据绑定、关键结论 `evidence_id/evidence_gap`、证据等级、PDF 引用来源、外部增强章节与来源类型、人工确认、报告快照、影响分析、质量评分、资料撤回、证据降级、证据冲突、索引版本变化、受影响报告、报告状态影响、队列进入原因与队列状态。
+- 单一权威保持冻结任务包与 Stage110 Review 控制工件的工程控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。真实队列、报告、PDF、快照、影响分析、质量评分、人工确认、审计、数据库、OVH 与生产保持后续白箱授权。
+- 已验证：Stage111 P1 聚焦 `7/7`、Stage110 前向兼容 `38/38`、Stage109 前向兼容 `38/38`、Stage005 直接治理校验 `valid=true`、两组 Batch 门禁用例 `13/13` 及机器平面 `7` 个中文文件均通过。完整历史发现保留为独立高成本基线，不作为本 P1 的完成态断言。回执记录运行计数为 `0`、运行标志为 `false`，模型 Token 与 Agent 执行均为 `0`。
+- 回滚只撤回 Stage111 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REVIEWED_REPORT_QUALITY_SCORE_RUNTIME_DISABLED`；Stage110 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。既有开发分支的用户授权恢复检查点保持可用。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE111-P2-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
 ## Current Gate - Stage110 Review accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE110-REVIEW` 已完成本地机械验收；当前治理状态为 `IDS-STAGE110 / IDS-STAGE110-REVIEW / IDS-V0_1-STAGE110-REVIEW / IDS-STAGE111-P1-GATE`。Stage111 P1 只由新的独立 run 在冻结任务包门禁下承接。
