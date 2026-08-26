@@ -1,14 +1,14 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage108 P2 accepted locally - 2026-08-26
+## Current Gate - Stage108 P3 accepted locally - 2026-08-26
 
-- `IDS-V0_1-STAGE108-P2` 已完成本地验收；当前治理状态为 `IDS-STAGE108 / IDS-STAGE108-P2 / IDS-V0_1-STAGE108-P2 / IDS-STAGE108-P3-GATE`。P3 由新的独立 run 在冻结任务包门禁下承接。
-- P2 固定 `5` 条非业务 `reference-only` 控制请求、每条 `26` 个输入字段，严格二选一关联 `evidence_id_ref` 或 `evidence_gap_ref`；四组纯内存投影覆盖报告证据绑定与章节、五项生成快照、报告生命周期、外部增强与业务线白箱门禁，每条 `82` 字段、共 `410` 个检查点。报告、PDF、快照、审计、人工确认与业务结论均保持为控制引用。
-- 已验证：P2 聚焦 `8/8`、Stage108 P1--P2 兼容 `15/15`、Stage088--Stage108 精确白箱链 `944/944`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已重渲染 `7` 个中文文件，文档预算、登记阻塞与双平面检查通过。
-- 本 checkout 的 `scripts/lean_governance.py` 状态为 `NOT_AVAILABLE`；阶段验收采用冻结任务包、聚焦白箱链、Stage005、两组批次门禁和机器平面检查形成直接证据，完整仓库绿保持为独立范围。
-- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。用户已授权将本验收提交同步至同一开发分支 `codex/kmids-stage071-p1` 作为恢复检查点；`main`、release、OVH 与生产继续由后续门禁承接。
-- 回滚只撤回 Stage108 P2 的范围说明、纯内存模块、合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REPORT_SNAPSHOT_CONTRACT_RUNTIME_DISABLED`；Stage108 P1、Stage107 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
-- 下一步：仅在新的独立 run 进入 `IDS-STAGE108-P3-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+- `IDS-V0_1-STAGE108-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE108 / IDS-STAGE108-P3 / IDS-V0_1-STAGE108-P3 / IDS-STAGE108-P4-GATE`。P4 由新的独立 run 在冻结任务包门禁下承接。
+- P3 机械重放 P2 的 `5` 条非业务 `reference-only` 控制请求、每条 `26` 个输入字段、P1 的 `24` 个控制引用、四组每条 `82` 字段投影，共 `410` 个前序检查点；形成 `5` 条、每条 `39` 字段、共 `195` 个专项场景检查点、`5` 个控制视图、`5` 条业务线白箱处理记录、`2` 条人工确认前置场景、`15` 类失败关闭和 `4` 条中文反馈。
+- 已验证：P3 聚焦 `8/8`、Stage108 P1--P3 兼容 `23/23`、Stage088--Stage108 精确白箱链 `952/952`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面已重渲染 `7` 个中文文件，文档预算、登记阻塞与双平面检查通过。
+- 本 checkout 的 `python` 命令与 `scripts/lean_governance.py` 组合状态为 `NOT_AVAILABLE`；阶段验收采用冻结任务包、聚焦白箱链、Stage005、两组批次门禁和机器平面检查形成直接证据，完整仓库绿保持为独立范围。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。P2 的既有远端恢复检查点保留在同一开发分支；P3 仅形成可恢复的本地提交，`main`、release、OVH 与生产继续由后续门禁承接。
+- 回滚只撤回 Stage108 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_IN_MEMORY_REPORT_SNAPSHOT_CONTROL_SLICE_RUNTIME_DISABLED`；Stage108 P1/P2、Stage107 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE108-P4-GATE`，继续使用同一既有 scratch worktree 与开发分支。
 
 ## Superseded Gate - Stage107 Review accepted locally - 2026-08-26
 

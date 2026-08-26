@@ -1,13 +1,13 @@
 {
   "stage": "IDS-STAGE108",
-  "phase": "IDS-STAGE108-P2",
-  "task": "IDS-V0_1-STAGE108-P2",
-  "next_gate": "IDS-STAGE108-P3-GATE",
+  "phase": "IDS-STAGE108-P3",
+  "task": "IDS-V0_1-STAGE108-P3",
+  "next_gate": "IDS-STAGE108-P4-GATE",
   "items": [
     {
       "id": "ACC-STAGE-108",
-      "criteria": "Stage108 报告快照 P2 已形成可执行、可测试、可回滚的纯内存受控最小切片：报告证据绑定与章节输出、关键结论 evidence_id/evidence_gap、证据等级、PDF 引用来源与页码、data/index/evidence/model/generated_at 五项快照、报告快照、报告状态影响、质量评分、导出审计、模板限制和重新生成／撤回说明均保持固定控制投影。",
-      "status": "P2 报告快照受控最小切片已完成"
+      "criteria": "Stage108 报告快照 P3 已形成可执行、可测试、可回滚的纯内存专项场景：关键结论 evidence_id/evidence_gap、资料撤回/证据降级/索引版本变化的报告状态影响、外部增强来源边界和业务线白箱人工确认均保持固定控制投影。",
+      "status": "P3 报告快照专项异常场景已完成"
     },
     {
       "id": "ACC-STAGE108-P1-01",
@@ -47,6 +47,26 @@
     {
       "id": "ACC-STAGE108-P2-04",
       "criteria": "P2 保持真实资料、外部参考、证据账本、人工确认、报告、PDF、引用、快照、报告状态、影响分析、质量评分、导出审计、模板、重新生成、撤回、数据库、模型、模型 Token、Agent、OVH、生产与正式全局上传的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage108 P3。",
+      "status": "已遵守"
+    },
+    {
+      "id": "ACC-STAGE108-P3-01",
+      "criteria": "冻结 Stage108 任务包、Stage108 P1/P2 控制工件与 Stage107 Review 已复审人工确认事项章节控制工件保持为唯一控制上下文；P3 仅重放五条固定、非业务、reference-only 控制投影，来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE108-P3-02",
+      "criteria": "P3 精确重放 P2 的五条、二十六字段、P1 的二十四个控制引用、四组、每条八十二字段、共四百一十个前序控制检查点，形成五条、每条三十九字段、共一百九十五个场景检查点、五个控制视图与五条业务线白箱处理记录。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE108-P3-03",
+      "criteria": "关键结论严格关联 evidence_id 或 evidence_gap；资料撤回、证据降级与索引版本变化保持未来报告状态影响控制；外部增强保留外部来源身份，不能成为内部项目依据、不能替代证据绑定或关闭 evidence_gap；人工确认与最终结论保持业务线白箱前置。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE108-P3-04",
+      "criteria": "P3 保持真实资料、外部参考、证据账本、人工确认、报告、PDF、引用、快照、报告状态、影响分析、质量评分、导出审计、模板、重新生成、撤回、数据库、模型、模型 Token、Agent、OVH、生产与正式全局上传的后续授权边界；本轮本地验收完成后才可在新 run 进入 Stage108 P4。",
       "status": "已遵守"
     },
     {

@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE108",
-  "phase": "IDS-STAGE108-P2",
-  "task": "IDS-V0_1-STAGE108-P2",
-  "real_progress": "Stage108 报告快照 P2 已将 P1 的 24 个未来控制引用投影为 5 条固定、非业务、reference-only 控制请求、4 组纯内存记录、每条 82 个投影字段、共 410 个控制检查点。",
+  "phase": "IDS-STAGE108-P3",
+  "task": "IDS-V0_1-STAGE108-P3",
+  "real_progress": "Stage108 报告快照 P3 已机械重放 P2 的 5 条固定、非业务、reference-only 控制请求及每条 82 字段、共 410 个前序检查点，形成 5 条、每条 39 字段、共 195 个专项场景检查点、5 个控制视图与 5 条业务线白箱处理记录。",
   "report_grade": "冻结 Stage108 任务包、Stage108 P1 静态合同与 Stage107 Review 已复审人工确认事项章节控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P2 仅机械投影报告证据绑定与章节输出、五项生成快照、报告生命周期、外部增强来源语义和业务线白箱门禁。关键结论严格保留 evidence_id 或 evidence_gap；真实资料、报告、PDF、快照、审计、人工确认、模型 Token、Agent、OVH 与生产保持零执行。",
-  "evidence_status": "REPORT_SNAPSHOT_CONTROL_SLICE_RUNTIME_DISABLED",
+  "business_verdict": "本 P3 仅验证关键结论严格关联 evidence_id 或 evidence_gap、资料撤回/证据降级/索引版本变化的未来报告状态影响与外部增强来源边界。外部增强保持外部参考身份，人工确认与最终结论保持业务线白箱前置；真实资料、报告、PDF、快照、审计、人工确认、模型 Token、Agent、OVH 与生产保持零执行。",
+  "evidence_status": "REPORT_SNAPSHOT_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "rendered_at": "2026-08-26",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE108-P3-GATE",
+  "next_gate": "IDS-STAGE108-P4-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
