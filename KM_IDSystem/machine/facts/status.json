@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE108",
-  "phase": "IDS-STAGE108-P3",
-  "task": "IDS-V0_1-STAGE108-P3",
-  "real_progress": "Stage108 报告快照 P3 已机械重放 P2 的 5 条固定、非业务、reference-only 控制请求及每条 82 字段、共 410 个前序检查点，形成 5 条、每条 39 字段、共 195 个专项场景检查点、5 个控制视图与 5 条业务线白箱处理记录。",
-  "report_grade": "冻结 Stage108 任务包、Stage108 P1 静态合同与 Stage107 Review 已复审人工确认事项章节控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P3 仅验证关键结论严格关联 evidence_id 或 evidence_gap、资料撤回/证据降级/索引版本变化的未来报告状态影响与外部增强来源边界。外部增强保持外部参考身份，人工确认与最终结论保持业务线白箱前置；真实资料、报告、PDF、快照、审计、人工确认、模型 Token、Agent、OVH 与生产保持零执行。",
-  "evidence_status": "REPORT_SNAPSHOT_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE108-P4",
+  "task": "IDS-V0_1-STAGE108-P4",
+  "real_progress": "Stage108 报告快照 P4 已从 P3 的 5 条、每条 39 字段、共 195 个纯内存场景检查点派生报告样例、报告快照、报告质量评分、报告影响分析、模板限制与业务线白箱人工确认各 5 条，以及重新生成与撤回说明 2 条，形成 388 个 metadata-only 交付字段检查点。",
+  "report_grade": "冻结 Stage108 任务包、Stage108 P1/P2/P3 控制工件与 Stage107 Review 已复审人工确认事项章节控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "本 P4 仅交付报告样例、快照、质量评分、影响分析、模板限制、人工确认与重新生成/撤回的控制记录。关键结论保持 evidence_id 或 evidence_gap 二选一，外部增强保持外部参考身份，人工确认与最终结论保持业务线白箱前置；真实资料、报告、PDF、快照、审计、人工确认、模型 Token、Agent、OVH 与生产保持零执行。",
+  "evidence_status": "REPORT_SNAPSHOT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-26",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE108-P4-GATE",
+  "next_gate": "IDS-STAGE108-REVIEW-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

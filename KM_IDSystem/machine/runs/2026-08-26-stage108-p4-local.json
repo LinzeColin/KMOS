@@ -7,7 +7,7 @@
   "acceptance_id": "ACC-STAGE-108",
   "entry_gate": "IDS-STAGE108-P4-GATE",
   "next_gate": "IDS-STAGE108-REVIEW-GATE",
-  "executed_at": "2026-08-26T15:49:41+1000",
+  "executed_at": "2026-08-26T16:08:43+1000",
   "result": "PASS_REPORT_SNAPSHOT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
   "delivery_evidence": {
     "phase2_control_request_count": 5,
@@ -134,7 +134,7 @@
     "repository_wide_green_claimed": false,
     "final_validation_recorded": true,
     "final_validation": {
-      "completed_at": "2026-08-26T15:49:41+1000",
+      "completed_at": "2026-08-26T16:08:43+1000",
       "focused_delivery_test_count": 8,
       "stage108_phase1_to_phase4_compatibility_test_count": 31,
       "historical_whitebox_chain_test_count": 960,
