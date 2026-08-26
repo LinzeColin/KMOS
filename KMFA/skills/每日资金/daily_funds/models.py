@@ -103,6 +103,22 @@ class CashflowObservation:
     layout_fingerprint: str
 
 
+@dataclass(frozen=True)
+class PaymentRequestObservation:
+    """A daily payment-request total, separate from cash and bank balances.
+
+    This evidence reports the verified total on a payment-request sheet.  It
+    is neither a completed payment nor an available-balance fact, so it never
+    enters the account/transaction reconciliation or publication pointer.
+    """
+
+    business_date: date
+    request_total_fen: int
+    source: SourceRef
+    parser_evidence: ParserEvidence
+    layout_fingerprint: str
+
+
 def jsonable(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
         return value.isoformat()

@@ -38,6 +38,7 @@ DAILY_PATHS = (
     "/ops/api/daily-funds/summary?range=30d",
     "/ops/api/daily-funds/timeseries?range=30d",
     "/ops/api/daily-funds/cashflow-observations?range=30d",
+    "/ops/api/daily-funds/payment-request-observations?range=30d",
     "/ops/api/daily-funds/source-health",
     "/ops/api/daily-funds/thresholds",
     "/ops/api/daily-funds/auth-session",
@@ -238,9 +239,30 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
             },
         ],
     }
+    payment_request_observation = {
+        "schema_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "generated_at": "2026-07-30T12:05:00Z",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "source_coverage": {
+            "eligible_documents": 2,
+            "parsed_documents": 2,
+            "rejected_documents": 0,
+            "distinct_business_days": 2,
+            "superseded_reports": 0,
+        },
+        "rejection_categories": {},
+        "evidence_version": "b" * 12,
+        "status": "VERIFIED",
+        "machine_code": "PAYMENT_REQUEST_OBSERVATION_VERIFIED",
+        "points": [
+            {"business_date": "2026-07-29", "request_total_fen": 1_600},
+            {"business_date": "2026-07-30", "request_total_fen": 2_400},
+        ],
+    }
     for name, payload in (
         ("current.json", current), ("status.json", status), ("flow_state.json", flow_state),
         ("cashflow_observation.json", cashflow_observation),
+        ("payment_request_observation.json", payment_request_observation),
     ):
         (root / name).write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -315,6 +337,22 @@ def _write_archived_needs_review_projection(root: Path) -> None:
         "points": [],
     })
     observation_path.write_text(json.dumps(observation, ensure_ascii=False) + "\n", encoding="utf-8")
+    payment_request_path = root / "payment_request_observation.json"
+    payment_request = json.loads(payment_request_path.read_text(encoding="utf-8"))
+    payment_request.update({
+        "source_coverage": {
+            "eligible_documents": 0,
+            "parsed_documents": 0,
+            "rejected_documents": 0,
+            "distinct_business_days": 0,
+            "superseded_reports": 0,
+        },
+        "rejection_categories": {},
+        "status": "NOT_AVAILABLE",
+        "machine_code": "PAYMENT_REQUEST_OBSERVATION_SOURCE_EMPTY",
+        "points": [],
+    })
+    payment_request_path.write_text(json.dumps(payment_request, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _free_port() -> int:
@@ -391,6 +429,14 @@ def _summary_response(response: Any, range_value: str) -> bool:
     parsed = urlsplit(response.url)
     return (
         parsed.path == "/ops/api/daily-funds/summary"
+        and parse_qs(parsed.query).get("range") == [range_value]
+    )
+
+
+def _payment_request_response(response: Any, range_value: str) -> bool:
+    parsed = urlsplit(response.url)
+    return (
+        parsed.path == "/ops/api/daily-funds/payment-request-observations"
         and parse_qs(parsed.query).get("range") == [range_value]
     )
 
@@ -588,13 +634,19 @@ def _exercise_case(
 
             page.get_by_label("自定义开始日期").fill("2026-07-24")
             page.get_by_label("自定义结束日期").fill("2026-07-30")
-            with page.expect_response(lambda candidate: _summary_response(candidate, "custom"), timeout=10_000) as expected:
+            with (
+                page.expect_response(lambda candidate: _summary_response(candidate, "custom"), timeout=10_000) as expected,
+                page.expect_response(lambda candidate: _payment_request_response(candidate, "custom"), timeout=10_000) as payment_expected,
+            ):
                 range_group.get_by_role("button", name="应用").click()
             assert expected.value.status == 200
+            assert payment_expected.value.status == 200
             page.get_by_text("自定义区间至少 7 个自然日", exact=False).wait_for(state="visible")
             _assert_chart_interaction(page)
         elif trusted_projection:
             page.locator("svg").filter(has_text="可用资金").first.wait_for(state="visible", timeout=10_000)
+            page.get_by_text("待付款请示（非账户余额）", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("最新待付款请示", exact=False).wait_for(state="visible", timeout=10_000)
         else:
             page.get_by_text("暂无可信 publication，需处理", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("附件解析能力", exact=False).wait_for(state="visible", timeout=10_000)
@@ -604,6 +656,8 @@ def _exercise_case(
             page.get_by_text("云端附件读取传输失败", exact=False).first.wait_for(state="visible", timeout=10_000)
             page.get_by_text("已采集收支流水（非可用资金）", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("收支流水暂不展示金额", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("待付款请示（非账户余额）", exact=False).wait_for(state="visible", timeout=10_000)
+            page.get_by_text("待付款请示暂不展示金额", exact=False).wait_for(state="visible", timeout=10_000)
             page.get_by_text("归档待分类", exact=False).first.wait_for(state="visible", timeout=10_000)
             page.get_by_text("尚未确认其为资金流水；因此不写入收支图表或金额", exact=False).wait_for(state="visible", timeout=10_000)
             chart = page.locator("svg").filter(has_text="可用资金")
@@ -656,6 +710,7 @@ def _exercise_case(
             "/ops/api/daily-funds/summary",
             "/ops/api/daily-funds/timeseries",
             "/ops/api/daily-funds/cashflow-observations",
+            "/ops/api/daily-funds/payment-request-observations",
             "/ops/api/daily-funds/source-health",
             "/ops/api/daily-funds/thresholds",
             "/ops/api/daily-funds/auth-session",

@@ -1804,7 +1804,7 @@ const 阈值控制话 = value => {
   return value.mode === 'disabled' ? '已停用' : '未验证'
 }
 
-function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水观察, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
+function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水观察, 付款请示, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
   const [阈值模式, 设阈值模式] = useState('numeric')
   const [阈值金额, 设阈值金额] = useState('')
   const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
@@ -1829,6 +1829,18 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
   const 收支观察最新 = 收支观察点.length ? 收支观察点[收支观察点.length - 1] : null
   const 收支观察覆盖 = 流水观察?.source_coverage || {}
   const 收支观察拒绝类别 = Object.entries(流水观察?.rejection_categories || {})
+    .filter(([label, count]) => typeof label === 'string' && Number.isInteger(count) && count > 0)
+    .map(([label, count]) => `${label} ${count} 份`)
+  const 付款请示状态 = ['VERIFIED', 'NEEDS_REVIEW', 'NOT_AVAILABLE'].includes(付款请示?.status)
+    ? 付款请示.status : 'NOT_AVAILABLE'
+  const 付款请示已验证 = 付款请示状态 === 'VERIFIED'
+  const 付款请示点 = 付款请示已验证 && Array.isArray(付款请示?.points)
+    ? 付款请示.points.filter(point => point && typeof point.business_date === 'string'
+      && Number.isInteger(point.request_total_fen) && point.request_total_fen > 0)
+    : []
+  const 付款请示最新 = 付款请示点.length ? 付款请示点[付款请示点.length - 1] : null
+  const 付款请示覆盖 = 付款请示?.source_coverage || {}
+  const 付款请示拒绝类别 = Object.entries(付款请示?.rejection_categories || {})
     .filter(([label, count]) => typeof label === 'string' && Number.isInteger(count) && count > 0)
     .map(([label, count]) => `${label} ${count} 份`)
   const points = (时序?.points || 摘要?.points || []).filter(p => Number.isInteger(p.ending_available_fen))
@@ -2040,6 +2052,24 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
     }
   }, [收支观察点])
 
+  const 付款请示图 = useMemo(() => {
+    if (!付款请示点.length) return null
+    return {
+      tooltip: { trigger: 'axis', formatter: rows => {
+        const row = 付款请示点[rows?.[0]?.dataIndex]
+        if (!row) return ''
+        return `${row.business_date}<br/>待付款请示总额：${资金金额(row.request_total_fen)}`
+      } },
+      grid: { left: 8, right: 12, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: 'category', data: 付款请示点.map(point => point.business_date.slice(5)), axisLabel: { fontSize: 10 } },
+      yAxis: { type: 'value', axisLabel: { formatter: value => `¥${(value / 10000).toFixed(0)}万`, fontSize: 10 } },
+      series: [{
+        type: 'bar', name: '待付款请示总额', data: 付款请示点.map(point => point.request_total_fen / 100),
+        itemStyle: { color: '#7c3aed' },
+      }],
+    }
+  }, [付款请示点])
+
   const 应用自定义 = () => {
     if (自定义.from && 自定义.to) { 设范围('custom'); 刷新('custom', 自定义.from, 自定义.to) }
   }
@@ -2218,6 +2248,30 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         </div>}
         {option && (覆盖.missing_dates?.length > 0 || 覆盖.coverage_gap_dates?.length > 0) && <div className="hint" role="status">{覆盖.missing_dates?.length > 0 && `未发布断档 ${覆盖.missing_dates.length} 天`}{覆盖.missing_dates?.length > 0 && 覆盖.coverage_gap_dates?.length > 0 ? '；' : ''}{覆盖.coverage_gap_dates?.length > 0 && `覆盖缺口 ${覆盖.coverage_gap_dates.length} 天（图中菱形标记，不参与浮动阈值）`}</div>}
       </div>
+
+      <section className="card daily-funds-chart" aria-label="待付款请示走势" style={{ marginTop: 14 }}>
+        <div className="daily-funds-chart-head">
+          <div>
+            <b>待付款请示（非账户余额）</b>
+            <div className="muted">标题、业务日期和总合计经独立 OCR 一致才展示；反映待付款请示，不代表已付款或可用资金。</div>
+          </div>
+          <span className={`chip ${付款请示已验证 ? 'ok' : 付款请示状态 === 'NEEDS_REVIEW' ? 'bad' : 'muted'}`}>
+            {付款请示已验证 ? '已验证日表' : 付款请示状态 === 'NEEDS_REVIEW' ? '待复核' : '暂无日表'}
+          </span>
+        </div>
+        {付款请示已验证 && 付款请示图 ? <>
+          <div className="grid" style={{ margin: '10px 0 0' }}>
+            <Kpi 标="最新请示日" 值={付款请示最新?.business_date || '—'} 小 />
+            <Kpi 标="最新待付款请示" 值={资金金额(付款请示最新?.request_total_fen)} 小 />
+          </div>
+          <Chart option={付款请示图} height="18rem" />
+          <div className="hint" role="status">已逐份复核 {付款请示覆盖.parsed_documents ?? '—'} / {付款请示覆盖.eligible_documents ?? '—'} 份日表，覆盖 {付款请示覆盖.distinct_business_days ?? '—'} 个业务日；它不是账户余额、已完成付款或风险阈值依据。</div>
+        </> : <div className="card callout warn" style={{ marginTop: 12 }}>
+          <b>待付款请示暂不展示金额</b>
+          <div className="sub">{付款请示?.message || '尚未形成已验证的待付款请示日表。'}</div>
+          {付款请示拒绝类别.length > 0 && <div className="hint" role="status">本次确定性复核定位：{付款请示拒绝类别.join('；')}。不含原始附件、文本或金额。</div>}
+        </div>}
+      </section>
 
       <section className="card daily-funds-chart" aria-label="已采集收支流水走势" style={{ marginTop: 14 }}>
         <div className="daily-funds-chart-head">
@@ -2431,6 +2485,7 @@ export default function App() {
   const [资金认证, set资金认证] = useState(null)
   const [资金历史探针, set资金历史探针] = useState(null)
   const [资金流水观察, set资金流水观察] = useState(null)
+  const [资金付款请示, set资金付款请示] = useState(null)
   const [资金范围状态, set资金范围] = useState('30d')
   const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
   // 每日资金是独立的私有纵向切片。若深链直接进入它，不能先把二十多条
@@ -2488,6 +2543,7 @@ export default function App() {
     取(`/ops/api/daily-funds/summary${查询}`, set资金摘要)
     取(`/ops/api/daily-funds/timeseries${查询}`, set资金时序)
     取(`/ops/api/daily-funds/cashflow-observations${查询}`, set资金流水观察)
+    取(`/ops/api/daily-funds/payment-request-observations${查询}`, set资金付款请示)
     取('/ops/api/daily-funds/source-health', set资金来源)
     取('/ops/api/daily-funds/thresholds', set资金阈值)
     取('/ops/api/daily-funds/auth-session', set资金认证)
@@ -2616,7 +2672,7 @@ export default function App() {
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '每日资金' && <每日资金 摘要={资金摘要} 时序={资金时序} 来源={资金来源} 阈值={资金阈值}
-              认证={资金认证} 探针={资金历史探针} 流水观察={资金流水观察} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
+              认证={资金认证} 探针={资金历史探针} 流水观察={资金流水观察} 付款请示={资金付款请示} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
             {页 === '今天' && <>
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />

@@ -36,6 +36,25 @@ def test_cashflow_projection_parser_version_tracks_worker_contract() -> None:
     assert versions == [main_module.DAILY_FUNDS_CASHFLOW_OBSERVATION_PARSER_VERSION]
 
 
+def test_payment_request_projection_parser_version_tracks_worker_contract() -> None:
+    """The pending-payment projection must pin the worker parser contract."""
+
+    worker_parser = (
+        Path(__file__).resolve().parents[3]
+        / "skills" / "每日资金" / "daily_funds" / "parsing.py"
+    )
+    module = ast.parse(worker_parser.read_text(encoding="utf-8"))
+    versions = [
+        node.value.value
+        for node in module.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION" for target in node.targets)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    ]
+    assert versions == [main_module.DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION]
+
+
 def _same_origin_headers() -> dict[str, str]:
     return {"Origin": "http://testserver", "Host": "testserver"}
 
@@ -270,6 +289,27 @@ def _write_projection(root: Path) -> None:
         ],
     }
     (root / "cashflow_observation.json").write_text(json.dumps(cashflow_observation), encoding="utf-8")
+    payment_request_observation = {
+        "schema_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "generated_at": "2026-07-30T12:05:00Z",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "source_coverage": {
+            "eligible_documents": 2,
+            "parsed_documents": 2,
+            "rejected_documents": 0,
+            "distinct_business_days": 2,
+            "superseded_reports": 0,
+        },
+        "rejection_categories": {},
+        "evidence_version": "b" * 12,
+        "status": "VERIFIED",
+        "machine_code": "PAYMENT_REQUEST_OBSERVATION_VERIFIED",
+        "points": [
+            {"business_date": "2026-07-29", "request_total_fen": 1_600},
+            {"business_date": "2026-07-30", "request_total_fen": 2_400},
+        ],
+    }
+    (root / "payment_request_observation.json").write_text(json.dumps(payment_request_observation), encoding="utf-8")
 
 
 def test_cashflow_observation_is_read_only_footer_reconciled_and_not_a_balance_fallback(tmp_path, monkeypatch):
@@ -327,6 +367,65 @@ def test_cashflow_observation_is_read_only_footer_reconciled_and_not_a_balance_f
     assert blocked.json()["status"] == "NEEDS_REVIEW"
     assert blocked.json()["points"] == []
     assert "cashflow-raw-fixture" not in blocked.text
+
+
+def test_payment_request_observation_is_read_only_and_never_becomes_a_balance(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    _write_projection(publication)
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    response = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "VERIFIED"
+    assert body["message"].startswith("已按标题、日期与总合计复核")
+    assert body["points"] == [
+        {"business_date": "2026-07-29", "request_total_fen": 1_600},
+        {"business_date": "2026-07-30", "request_total_fen": 2_400},
+    ]
+    assert "machine_code" not in body
+    assert "parser_version" not in body
+    assert "source" not in body
+    assert body["rejection_categories"] == {}
+
+    observation_path = publication / "payment_request_observation.json"
+    needs_review = json.loads(observation_path.read_text(encoding="utf-8"))
+    needs_review.update({
+        "status": "NEEDS_REVIEW",
+        "machine_code": "PAYMENT_REQUEST_OBSERVATION_PARSE_NEEDS_REVIEW",
+        "points": [],
+        "source_coverage": {
+            "eligible_documents": 2,
+            "parsed_documents": 0,
+            "rejected_documents": 2,
+            "distinct_business_days": 0,
+            "superseded_reports": 0,
+        },
+        "rejection_categories": {"GRAND_TOTAL_LABEL": 2},
+    })
+    observation_path.write_text(json.dumps(needs_review), encoding="utf-8")
+    review = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
+    assert review.status_code == 200
+    assert review.json()["rejection_categories"] == {"总合计标签": 2}
+    assert "TOTAL_LABEL_MISMATCH" not in review.text
+
+    stale = json.loads(observation_path.read_text(encoding="utf-8"))
+    stale["parser_version"] = "kmfa.daily_funds.payment_request_observation.v0"
+    observation_path.write_text(json.dumps(stale), encoding="utf-8")
+    stale_response = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
+    assert stale_response.status_code == 200
+    assert stale_response.json()["status"] == "NEEDS_REVIEW"
+    assert stale_response.json()["points"] == []
+
+    malformed = json.loads(observation_path.read_text(encoding="utf-8"))
+    malformed["parser_version"] = main_module.DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION
+    malformed["raw_fixture_should_not_escape"] = "payment-request-raw-fixture"
+    observation_path.write_text(json.dumps(malformed), encoding="utf-8")
+    blocked = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
+    assert blocked.status_code == 200
+    assert blocked.json()["status"] == "NEEDS_REVIEW"
+    assert blocked.json()["points"] == []
+    assert "payment-request-raw-fixture" not in blocked.text
 
 
 def test_daily_funds_auth_session_is_access_api_only_and_never_enters_source_projection(tmp_path, monkeypatch):
@@ -933,6 +1032,7 @@ def test_daily_funds_projection_paths_require_access_in_production(tmp_path, mon
     assert client.get("/api/daily-funds/summary").status_code == 403
     assert client.get("/ops/api/daily-funds/summary").status_code == 403
     assert client.get("/ops/api/daily-funds/cashflow-observations").status_code == 403
+    assert client.get("/ops/api/daily-funds/payment-request-observations").status_code == 403
     assert client.get("/ops/daily-funds").status_code == 403
 
 
@@ -945,6 +1045,7 @@ def test_daily_funds_projection_paths_are_available_under_owner_public_override(
     assert client.get("/api/daily-funds/summary").status_code == 200
     assert client.get("/ops/api/daily-funds/summary").status_code == 200
     assert client.get("/ops/api/daily-funds/cashflow-observations").status_code == 200
+    assert client.get("/ops/api/daily-funds/payment-request-observations").status_code == 200
     assert client.get("/ops/daily-funds").status_code == 200
 
 

@@ -59,6 +59,7 @@ from daily_funds.models import SourceRef
 from daily_funds.parsing import (
     ACCOUNT_FAMILY,
     CASHFLOW_OBSERVATION_PARSER_VERSION,
+    PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
     PARSER_VERSION,
     ParseError,
     deterministic_ocr_runtime_ready,
@@ -67,6 +68,7 @@ from daily_funds.parsing import (
     parse_cashflow_observation,
     parse_generic_structured_attachment,
     parse_ocr_attachment,
+    parse_payment_request_observation,
 )
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle, S3CompatibleStore
 from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
@@ -2255,6 +2257,134 @@ def test_runtime_cashflow_observation_requires_complete_unique_day_coverage(tmp_
     assert rejected["status"] == "NEEDS_REVIEW"
     assert rejected["machine_code"] == "CASHFLOW_OBSERVATION_PARSE_NEEDS_REVIEW"
     assert rejected["rejection_categories"] == {"FOOTER_RECONCILIATION": 2}
+
+
+def test_payment_request_observation_requires_fixed_title_date_label_and_total_consensus() -> None:
+    image_module = pytest.importorskip("PIL.Image")
+    image = image_module.new("RGB", (1000, 2000), "white")
+    stream = BytesIO()
+    image.save(stream, format="PNG")
+    payload = stream.getvalue()
+
+    def runner(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        psm = command[command.index("--psm") + 1]
+        output = {
+            "title": "待付款请示明细表",
+            "business_date": "2026-08-21",
+            "grand_total_label": "总合计",
+            "grand_total": "80397.63",
+        }[region]
+        assert psm in {"6", "11", "12"}
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    observation = parse_payment_request_observation(
+        filename="payment-request.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        mime="image/png",
+        runner=runner,
+    )
+    assert observation is not None
+    assert observation.business_date.isoformat() == "2026-08-21"
+    assert observation.request_total_fen == 8_039_763
+    assert observation.parser_evidence.parser_version == PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION
+    assert len(observation.layout_fingerprint) == 64
+
+    def disagreeing_total(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        psm = command[command.index("--psm") + 1]
+        output = {
+            "title": "待付款请示明细表",
+            "business_date": "2026-08-21",
+            "grand_total_label": "总合计",
+            "grand_total": "80397.63" if psm != "12" else "80398.63",
+        }[region]
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    with pytest.raises(ParseError, match="PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING"):
+        parse_payment_request_observation(
+            filename="payment-request.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+            mime="image/png",
+            runner=disagreeing_total,
+        )
+
+    def non_candidate(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        output = "普通图片" if region == "title" else ""
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    assert parse_payment_request_observation(
+        filename="payment-request.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        mime="image/png",
+        runner=non_candidate,
+    ) is None
+
+
+def test_runtime_payment_request_observation_exposes_verified_latest_request_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import daily_funds.runtime as runtime_module
+
+    config = replace(_config(tmp_path), ocr_enabled=True)
+    runtime = DailyFundsRuntime(config)
+
+    def attachment(day: str, marker: bytes, index: int) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        return DownloadedAttachment(
+            message={},
+            message_id=f"payment-{index}",
+            message_id_hash=(str(index) * 64)[:64],
+            message_at=datetime.fromisoformat(day + "T12:00:00+00:00"),
+            index=0,
+            filename=f"payment-{index}.png",
+            family=None,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="image/png",
+        )
+
+    first = attachment("2026-08-20", b"first", 1)
+    second = attachment("2026-08-21", b"second", 2)
+    monkeypatch.setattr(runtime_module, "deterministic_ocr_runtime_ready", lambda: True)
+
+    def observed(**kwargs):
+        source = kwargs["source"]
+        received_at = kwargs["received_at"]
+        total = 8_000 if source.attachment_sha256 == first.sha256 else 9_000
+        return SimpleNamespace(
+            business_date=received_at.date(),
+            request_total_fen=total,
+        )
+
+    monkeypatch.setattr(runtime_module, "parse_payment_request_observation", observed)
+    verified = runtime._write_payment_request_observation((first, second))
+    assert verified["status"] == "VERIFIED"
+    assert verified["machine_code"] == "PAYMENT_REQUEST_OBSERVATION_VERIFIED"
+    assert verified["source_coverage"] == {
+        "eligible_documents": 2,
+        "parsed_documents": 2,
+        "rejected_documents": 0,
+        "distinct_business_days": 2,
+        "superseded_reports": 0,
+    }
+    assert [point["request_total_fen"] for point in verified["points"]] == [8_000, 9_000]
+    saved = (config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8")
+    assert first.sha256 not in saved
+    assert second.sha256 not in saved
+
+    def rejected(**_kwargs):
+        raise ParseError("PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING")
+
+    monkeypatch.setattr(runtime_module, "parse_payment_request_observation", rejected)
+    needs_review = runtime._write_payment_request_observation((first, second))
+    assert needs_review["status"] == "NEEDS_REVIEW"
+    assert needs_review["rejection_categories"] == {"GRAND_TOTAL": 2}
 
 
 def test_cashflow_observation_admits_explicit_generic_source_labels_to_the_strict_chart_gate(tmp_path: Path) -> None:
@@ -5784,7 +5914,7 @@ def test_sparse_writer_marks_only_transport_stderr_retryable_for_audit_reads(tmp
     assert command[:2] == ["git", "clone"]
 
 
-def test_source_gate_is_single_id_and_dws_environment_is_isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_source_gate_uses_one_group_and_a_bounded_static_sender_allowlist(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config = _config(tmp_path)
     assert config.validate() is None
     from dataclasses import replace
@@ -5794,6 +5924,12 @@ def test_source_gate_is_single_id_and_dws_environment_is_isolated(tmp_path: Path
         replace(config, group_id="group-a,group-b").validate()
     with pytest.raises(ConfigError, match="CONFIG_INVALID"):
         replace(config, sender_id="").validate()
+    allowlisted = replace(config, sender_ids=(config.sender_id, "sender-fixture-2"))
+    assert allowlisted.validate() is None
+    with pytest.raises(ConfigError, match="SOURCE_ID_LIST_INVALID"):
+        replace(config, sender_ids=(config.sender_id, config.sender_id)).validate()
+    with pytest.raises(ConfigError, match="SOURCE_ID_LIST_INVALID"):
+        replace(config, sender_ids=tuple(f"sender-{index}" for index in range(13))).validate()
     monkeypatch.setenv("KMFA_DWS_PROFILE", "must-not-inherit")
     monkeypatch.setenv("DWS_PROFILE", "must-not-inherit")
     env = DwsHistoryClient(config)._environment()
@@ -8461,7 +8597,10 @@ def test_daily_funds_deployment_keeps_its_auth_bundle_and_identifiers_private() 
     # needs DELETE permission. Compose does not declare this legacy key, so it
     # cannot reach the worker.
     assert "DAILY_FUNDS_DWS_CLIENT_SECRET: ${{ secrets." not in ops
-    assert "每日资金 12 个必填 secret 已通过 Coolify PATCH/POST 覆盖生产运行上下文" in ops
+    assert "每日资金 13 个必填 secret 已通过 Coolify PATCH/POST 覆盖生产运行上下文" in ops
+    assert 'DAILY_FUNDS_SENDER_IDS: "${DAILY_FUNDS_SENDER_IDS:-}"' in daily_service
+    assert "DAILY_FUNDS_SENDER_IDS=" in env_example
+    assert "DAILY_FUNDS_SENDER_IDS: ${{ secrets.DAILY_FUNDS_SENDER_IDS }}" in ops
     assert '"$BASE/api/v1/applications/$APP/envs" || true)' in ops
     sync_block = ops.split("- name: 同步每日资金专用 secrets", 1)[1].split("      - name:", 1)[0]
     assert '[ "$code" = "404" ]' in sync_block

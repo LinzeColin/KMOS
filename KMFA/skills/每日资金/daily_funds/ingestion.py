@@ -1290,7 +1290,7 @@ class DwsHistoryClient:
             # query within the configured group source rather than
             # accepting a broader conversation family.
             "--conversation-type", "group",
-            "--sender-ids", self.config.sender_id,
+            "--sender-ids", ",".join(self.config.sender_ids),
         ]
         if start is not None:
             # ``end`` is necessarily present after the paired-bound check.
@@ -1354,11 +1354,11 @@ class DwsHistoryClient:
         # ``sender`` is a display name.  The stable source gate must use the
         # opaque senderOpenDingTalkId that DWS returns with group history.
         sender_id = _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id"))
-        if conversation_id != self.config.group_id or sender_id != self.config.sender_id:
+        if conversation_id != self.config.group_id or sender_id not in self.config.sender_ids:
             raise IngestionError("AMBIGUOUS_SOURCE")
 
     def selected_messages(self, page: DwsPage) -> tuple[dict[str, Any], ...]:
-        """Keep only the configured sender's two document families.
+        """Keep only the configured sender allowlist's document families.
 
         The remote request is already constrained to the configured group and
         sender, but its reply remains untrusted.  An unexpected sender is
@@ -1372,7 +1372,7 @@ class DwsHistoryClient:
             sender_id = _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id"))
             if conversation_id != self.config.group_id:
                 raise IngestionError("AMBIGUOUS_SOURCE")
-            if sender_id == self.config.sender_id and _family(message) is not None:
+            if sender_id in self.config.sender_ids and _family(message) is not None:
                 selected.append(message)
         return tuple(selected)
 
@@ -1393,7 +1393,7 @@ class DwsHistoryClient:
             if conversation_id != self.config.group_id:
                 raise IngestionError("AMBIGUOUS_SOURCE")
             if (
-                sender_id == self.config.sender_id
+                sender_id in self.config.sender_ids
                 and _family(message) is None
                 and self.attachment_count(message) > 0
             ):
