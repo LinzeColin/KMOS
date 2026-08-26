@@ -2343,6 +2343,42 @@ def test_payment_request_observation_requires_fixed_title_date_label_and_total_c
     ) is None
 
 
+def test_payment_request_observation_renders_a_single_page_scanned_pdf() -> None:
+    image_module = pytest.importorskip("PIL.Image")
+    rendered = image_module.new("RGB", (1000, 2000), "white")
+    payload = b"%PDF-1.4\nsynthetic-payment-request\n"
+
+    def runner(command, **_kwargs):
+        executable = Path(command[0]).name
+        if executable == "pdfinfo":
+            return SimpleNamespace(returncode=0, stdout="Pages: 1\n", stderr="")
+        if executable == "pdftoppm":
+            rendered.save(f"{command[-1]}-1.png", format="PNG")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        region = Path(command[1]).stem.removeprefix("payment-")
+        output = {
+            "title": "待付款请示明细表",
+            "business_date": "2026-08-21",
+            "grand_total_label": "总合计",
+            "grand_total": "100.00",
+        }[region]
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    observation = parse_payment_request_observation(
+        filename="payment-request.pdf",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        mime="application/pdf",
+        runner=runner,
+    )
+
+    assert observation is not None
+    assert observation.business_date.isoformat() == "2026-08-21"
+    assert observation.request_total_fen == 10_000
+    assert observation.parser_evidence.magic == "PDF"
+
+
 def test_runtime_payment_request_observation_exposes_verified_latest_request_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import daily_funds.runtime as runtime_module
 
