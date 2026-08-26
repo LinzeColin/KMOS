@@ -6230,6 +6230,8 @@ def test_sparse_writer_uses_exact_path_and_private_local_fixture_round_trip(tmp_
     # second clone/fetch of the identical commit turns ordinary cloud latency
     # into a prolonged recovery window without strengthening the proof.
     assert len([command for command in raw_writer_commands if command and command[0] == "clone"]) == 1
+    assert ("checkout", "main") not in raw_writer_commands
+    assert ("checkout", "--detach", commit.commit_sha) in raw_writer_commands
     assert not any(command and command[0] in {"add", "commit", "push"} for command in raw_writer_commands)
     verification = tmp_path / "verification"
     # A newly-created bare repository can retain a symbolic HEAD pointing at
