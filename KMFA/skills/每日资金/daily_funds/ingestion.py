@@ -3319,19 +3319,20 @@ class GitSparseWriter:
             key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
             env = self._git_environment(temp_root, key_path)
             tree_repo = temp_root / "private-db-tree"
-            # A non-existent exact path materialises no raw object.  The
-            # following ``ls-tree`` examines names only and is bounded before
-            # any selected manifest or blob is checked out.
-            sentinel = (SPARSE_PATH / "raw" / ".raw-audit-sentinel").as_posix()
+            # The first phase needs only Git tree names.  It deliberately
+            # creates no working tree: ``ls-tree`` can prove the bounded path
+            # census directly from the shallow commit, and the exact metadata
+            # paths are checked out once below after their names are known.
             self._clone_sparse(
                 tree_repo,
                 env=env,
                 ref=self.config.private_branch,
-                patterns=(sentinel,),
                 audit_read=True,
                 commit_sha=commit_sha,
+                checkout=False,
             )
-            commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True)
+            if commit_sha is None:
+                commit_sha = self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True)
             occurrence_paths = self._raw_archive_tree_paths(
                 tree_repo,
                 env=env,
@@ -3384,6 +3385,12 @@ class GitSparseWriter:
             )
             self._git(
                 ["sparse-checkout", "set", "--no-cone", *selected_metadata_patterns],
+                cwd=tree_repo,
+                env=env,
+                audit_read=True,
+            )
+            self._git(
+                ["checkout", "--detach", commit_sha],
                 cwd=tree_repo,
                 env=env,
                 audit_read=True,
@@ -3490,16 +3497,24 @@ class GitSparseWriter:
         audit_read: bool = False,
         failure_code: str = "GIT_WRITE_FAILED",
         commit_sha: str | None = None,
+        checkout: bool = True,
     ) -> None:
         """Clone only the caller's approved sparse materialisation paths.
 
         ``patterns=None`` remains the compatibility/default path for callers
         which really need the complete approved tree.  Raw ingestion and
-        publication callers always provide a narrow immutable path set.
+        publication callers always provide a narrow immutable path set.  The
+        metadata-audit tree phase sets ``checkout=False`` so it can enumerate
+        bounded Git names before materialising one exact metadata checkout.
         """
 
         roots = tuple(allowed_roots)
-        selected = self._validated_sparse_patterns(patterns, allowed_roots=roots)
+        if checkout:
+            selected = self._validated_sparse_patterns(patterns, allowed_roots=roots)
+        elif not roots or any(root.is_absolute() or ".." in root.parts for root in roots):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        else:
+            selected = ()
         # A shallow clone normally fetches only the remote symbolic HEAD.  A
         # newly-created private repository can still have that HEAD pointing
         # at ``master`` even though this single-writer contract permits only
@@ -3517,13 +3532,14 @@ class GitSparseWriter:
         # Cone mode always includes root-level files.  Non-cone mode is used
         # deliberately so an exact-path writer never checks out unrelated
         # repository material before it handles financial evidence.
-        self._git(
-            ["sparse-checkout", "set", "--no-cone", *selected],
-            cwd=repo,
-            env=env,
-            audit_read=audit_read,
-            failure_code=failure_code,
-        )
+        if checkout:
+            self._git(
+                ["sparse-checkout", "set", "--no-cone", *selected],
+                cwd=repo,
+                env=env,
+                audit_read=audit_read,
+                failure_code=failure_code,
+            )
         if commit_sha is not None:
             self._git(
                 ["fetch", "--depth=1", "origin", commit_sha],
@@ -3532,16 +3548,18 @@ class GitSparseWriter:
                 audit_read=audit_read,
                 failure_code=failure_code,
             )
-            self._git(
-                ["checkout", "--detach", commit_sha],
-                cwd=repo,
-                env=env,
-                audit_read=audit_read,
-                failure_code=failure_code,
-            )
-        else:
+            if checkout:
+                self._git(
+                    ["checkout", "--detach", commit_sha],
+                    cwd=repo,
+                    env=env,
+                    audit_read=audit_read,
+                    failure_code=failure_code,
+                )
+        elif checkout:
             self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
-        self._assert_sparse_checkout_scope(repo, allowed_roots=roots)
+        if checkout:
+            self._assert_sparse_checkout_scope(repo, allowed_roots=roots)
 
     @staticmethod
     def _validated_sparse_patterns(
