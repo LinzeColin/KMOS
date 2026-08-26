@@ -3047,6 +3047,46 @@ def _daily_funds_operation_receipts(rows: object) -> dict[str, dict[str, object]
     return receipts
 
 
+def _daily_funds_payment_request_refresh_health(receipt: object) -> dict[str, object]:
+    """Return a values-free owner status for the live payment-request refresh.
+
+    The pending-payment chart has an independent source and parser path.  Its
+    latest worker receipt is decision-relevant, but the public source-health
+    response must never forward a raw machine code, attachment detail, group
+    identifier, message metadata, or financial value.  This reducer keeps the
+    one actionable distinction: whether the live refresh is current, running,
+    or which fixed non-sensitive stage needs attention.
+    """
+
+    unavailable = {"状态": "未观测", "说明": "尚未收到待付款请示刷新回执。", "最近一次": None}
+    if not isinstance(receipt, dict):
+        return unavailable
+    state = receipt.get("状态")
+    result = receipt.get("结果")
+    observed_at = receipt.get("最近一次")
+    if not isinstance(observed_at, str):
+        observed_at = None
+    if state == "处理中":
+        return {"状态": "处理中", "说明": "正在读取财务群中的最新付款请示。", "最近一次": observed_at}
+    if state == "成功" and result == "PAYMENT_REQUEST_REFRESH_VERIFIED":
+        return {"状态": "已更新", "说明": "最新付款请示已完成固定版式与总合计复核。", "最近一次": observed_at}
+    if state != "失败":
+        return unavailable
+    if result == "PAYMENT_REQUEST_REFRESH_CONFIG_INVALID":
+        explanation = "云端财务群读取配置待补齐。"
+    elif result == "PAYMENT_REQUEST_REFRESH_SOURCE_EMPTY":
+        explanation = "当前读取窗口内尚未找到可展示的付款请示。"
+    elif result == "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW":
+        explanation = "最新付款请示尚未通过固定版式与总合计复核。"
+    elif isinstance(result, str) and result.startswith("PAYMENT_REQUEST_REFRESH_ATTACHMENT_"):
+        explanation = "付款请示附件暂未通过受控读取。"
+    elif result == "PAYMENT_REQUEST_REFRESH_SOURCE_READ_FAILED":
+        explanation = "财务群读取暂不可用，等待下一次自动刷新。"
+    else:
+        explanation = "待付款请示刷新需要处理。"
+    return {"状态": "需处理", "说明": explanation, "最近一次": observed_at}
+
+
 def _daily_funds_historical_backfill(
     value: object,
     receipt: dict[str, object],
@@ -4101,6 +4141,9 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
     parser_capability = flow["附件能力"]
     source_discovery = flow["来源诊断"]
     historical_backfill = flow["历史回填"]
+    payment_request_refresh = _daily_funds_payment_request_refresh_health(
+        flow["运行回执"]["待付款请示刷新"]
+    )
     view: dict[str, Any] = {
         "human_status": status["human_status"],
         "effective_business_date": status["effective_business_date"],
@@ -4112,6 +4155,7 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
         "parser_capability": parser_capability,
         "source_discovery": source_discovery,
         "historical_backfill": historical_backfill,
+        "payment_request_refresh": payment_request_refresh,
         "has_trusted_publication": False,
         "message": "尚无可展示的已验证资金数据。",
     }
