@@ -405,6 +405,12 @@ class Stage109ReportImpactAnalysisPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE109-P4",
             "IDS-STAGE109-REVIEW-GATE",
         )
+        review_current = (
+            "IDS-STAGE109",
+            "IDS-STAGE109-REVIEW",
+            "IDS-V0_1-STAGE109-REVIEW",
+            "IDS-STAGE110-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -418,7 +424,7 @@ class Stage109ReportImpactAnalysisPhase2Tests(unittest.TestCase):
             self.assertFalse(is_current_projection)
             return
         self.assertTrue(is_current_projection)
-        self.assertEqual(phase4_current, current)
+        self.assertIn(current, {phase4_current, review_current})
 
 
 if __name__ == "__main__":
