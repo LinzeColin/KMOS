@@ -2592,17 +2592,19 @@ DAILY_FUNDS_CASHFLOW_OBSERVATION_FIELDS = frozenset({
     "rejection_categories", "evidence_version", "points", "status", "machine_code",
 })
 DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v5"
-DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v5"
+DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v6"
 DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_STATUSES = {"VERIFIED", "NEEDS_REVIEW", "NOT_AVAILABLE"}
 DAILY_FUNDS_PAYMENT_REQUEST_DATE_BASIS_LABELS = {
     "DOCUMENT_DAY": "表内业务日期",
     "MESSAGE_DAY": "群消息当天",
+    "FILENAME_DAY": "文件名业务日期",
 }
 DAILY_FUNDS_PAYMENT_REQUEST_REJECTION_CATEGORY_LABELS = {
     "TITLE_CONFIRMATION": "标题确认",
     "DATE_FIELD": "日期字段",
     "GRAND_TOTAL_LABEL": "总合计标签",
     "GRAND_TOTAL": "总合计金额",
+    "WORKBOOK_LAYOUT": "表格字段",
     "OCR_FORMAT": "表格识别",
     "OTHER_REVIEW": "其他确定性复核",
 }
@@ -4483,6 +4485,8 @@ def _daily_funds_payment_request_observation_view() -> dict[str, Any]:
         message = "已按标题、表内业务日期与总合计复核的待付款请示；它不是账户余额或已完成付款。"
     elif point_date_bases == {"群消息当天"}:
         message = "已按群消息当天、固定总合计标签与三次 OCR 一致复核的待付款请示汇总；它不是账户余额或已完成付款。"
+    elif point_date_bases == {"文件名业务日期"}:
+        message = "已按文件名业务日期、申请明细与总合计复核的待付款计划；它不是账户余额或已完成付款。"
     else:
         message = "已按每个数据点标注的日期口径与总合计复核的待付款请示；它不是账户余额或已完成付款。"
     return {

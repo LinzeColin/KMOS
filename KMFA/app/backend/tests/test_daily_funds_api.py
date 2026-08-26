@@ -297,7 +297,7 @@ def _write_projection(root: Path) -> None:
     payment_request_observation = {
         "schema_version": "kmfa.daily_funds.payment_request_observation.v5",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.payment_request_observation.v5",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v6",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
@@ -404,6 +404,19 @@ def test_payment_request_observation_is_read_only_and_never_becomes_a_balance(tm
     assert strip.status_code == 200
     assert strip.json()["message"].startswith("已按群消息当天、固定总合计标签")
     assert strip.json()["points"][-1]["date_basis"] == "群消息当天"
+
+    filename_projection = json.loads(observation_path.read_text(encoding="utf-8"))
+    filename_projection["points"] = [
+        {"business_date": "2026-07-30", "date_basis": "FILENAME_DAY", "request_total_fen": 2_400},
+    ]
+    filename_projection["source_coverage"]["eligible_documents"] = 1
+    filename_projection["source_coverage"]["parsed_documents"] = 1
+    filename_projection["source_coverage"]["distinct_business_days"] = 1
+    observation_path.write_text(json.dumps(filename_projection), encoding="utf-8")
+    filename_view = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
+    assert filename_view.status_code == 200
+    assert filename_view.json()["message"].startswith("已按文件名业务日期、申请明细与总合计复核")
+    assert filename_view.json()["points"][-1]["date_basis"] == "文件名业务日期"
 
     needs_review = json.loads(observation_path.read_text(encoding="utf-8"))
     needs_review.update({
