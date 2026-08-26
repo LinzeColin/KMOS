@@ -7,7 +7,7 @@
   "acceptance_id": "ACC-STAGE-107",
   "entry_gate": "IDS-STAGE107-P3-GATE",
   "next_gate": "IDS-STAGE107-P4-GATE",
-  "executed_at": "2026-08-26T11:20:00+1000",
+  "executed_at": "2026-08-26T11:44:36+1000",
   "result": "PASS_HUMAN_CONFIRMATION_ITEMS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
   "control_shape": {
     "phase2_control_request_count": 6,
@@ -123,7 +123,20 @@
     "github_upload_allowed": false,
     "push_allowed": false,
     "repository_wide_green_claimed": false,
-    "final_validation_recorded": false
+    "final_validation_recorded": true,
+    "final_validation": {
+      "completed_at": "2026-08-26T11:44:36+1000",
+      "focused_test_count": 23,
+      "historical_whitebox_chain_test_count": 914,
+      "stage005_governance_valid": true,
+      "batch041_050_review_valid": true,
+      "batch051_060_review_valid": true,
+      "human_rendered_file_count": 7,
+      "document_budget_valid": true,
+      "blocker_stop_valid": true,
+      "dual_plane_valid": true,
+      "all_local_validation_passed": true
+    }
   },
   "rollback": {
     "return_to": "PASS_IN_MEMORY_HUMAN_CONFIRMATION_ITEMS_CONTROL_SLICE_RUNTIME_DISABLED",

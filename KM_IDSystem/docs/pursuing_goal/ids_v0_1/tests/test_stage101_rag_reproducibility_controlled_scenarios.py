@@ -576,6 +576,12 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE107-P2",
             "IDS-STAGE107-P3-GATE",
         )
+        stage107_phase3_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P3",
+            "IDS-V0_1-STAGE107-P3",
+            "IDS-STAGE107-P4-GATE",
+        )
         legacy_projections = {phase1_current, phase2_current}
         if current in {
             phase4_current,
@@ -737,6 +743,7 @@ class Stage101RagReproducibilityPhase3Tests(unittest.TestCase):
             stage106_review_current,
             stage107_phase1_current,
             stage107_phase2_current,
+            stage107_phase3_current,
         }:
             self.assertTrue(is_current_projection)
         else:

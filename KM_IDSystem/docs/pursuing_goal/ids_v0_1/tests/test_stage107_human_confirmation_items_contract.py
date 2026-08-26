@@ -283,6 +283,24 @@ class Stage107HumanConfirmationItemsPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE107-P2",
             "IDS-STAGE107-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P3",
+            "IDS-V0_1-STAGE107-P3",
+            "IDS-STAGE107-P4-GATE",
+        )
+        phase4_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P4",
+            "IDS-V0_1-STAGE107-P4",
+            "IDS-STAGE107-REVIEW-GATE",
+        )
+        review_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-REVIEW",
+            "IDS-V0_1-STAGE107-REVIEW",
+            "IDS-STAGE108-P1-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -292,7 +310,17 @@ class Stage107HumanConfirmationItemsPhase1Tests(unittest.TestCase):
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, {predecessor_current, phase1_current, phase2_current})
+        self.assertIn(
+            current,
+            {
+                predecessor_current,
+                phase1_current,
+                phase2_current,
+                phase3_current,
+                phase4_current,
+                review_current,
+            },
+        )
         if current == predecessor_current:
             self.assertFalse(is_current_projection)
         elif current == phase1_current:

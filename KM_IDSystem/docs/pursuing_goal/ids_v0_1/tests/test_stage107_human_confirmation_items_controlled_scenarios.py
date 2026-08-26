@@ -554,6 +554,19 @@ class Stage107HumanConfirmationItemsPhase3Tests(unittest.TestCase):
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
         self.assertEqual(self.module.PASS_RESULT, receipt["result"])
         self.assertEqual("IDS-STAGE107-P4-GATE", receipt["next_gate"])
+        validation = receipt["validation"]
+        self.assertTrue(validation["final_validation_recorded"])
+        final_validation = validation["final_validation"]
+        self.assertEqual(23, final_validation["focused_test_count"])
+        self.assertEqual(914, final_validation["historical_whitebox_chain_test_count"])
+        self.assertTrue(final_validation["stage005_governance_valid"])
+        self.assertTrue(final_validation["batch041_050_review_valid"])
+        self.assertTrue(final_validation["batch051_060_review_valid"])
+        self.assertEqual(7, final_validation["human_rendered_file_count"])
+        self.assertTrue(final_validation["document_budget_valid"])
+        self.assertTrue(final_validation["blocker_stop_valid"])
+        self.assertTrue(final_validation["dual_plane_valid"])
+        self.assertTrue(final_validation["all_local_validation_passed"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
         self.assertTrue(
             all(value is False for value in receipt["runtime_flags"].values())
