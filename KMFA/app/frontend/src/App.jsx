@@ -1836,6 +1836,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
   const 付款请示已验证 = 付款请示状态 === 'VERIFIED'
   const 付款请示点 = 付款请示已验证 && Array.isArray(付款请示?.points)
     ? 付款请示.points.filter(point => point && typeof point.business_date === 'string'
+      && ['表内业务日期', '群消息当天'].includes(point.date_basis)
       && Number.isInteger(point.request_total_fen) && point.request_total_fen > 0)
     : []
   const 付款请示最新 = 付款请示点.length ? 付款请示点[付款请示点.length - 1] : null
@@ -2058,7 +2059,7 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
       tooltip: { trigger: 'axis', formatter: rows => {
         const row = 付款请示点[rows?.[0]?.dataIndex]
         if (!row) return ''
-        return `${row.business_date}<br/>待付款请示总额：${资金金额(row.request_total_fen)}`
+        return `${row.business_date}<br/>日期口径：${row.date_basis}<br/>待付款请示总额：${资金金额(row.request_total_fen)}`
       } },
       grid: { left: 8, right: 12, top: 24, bottom: 16, containLabel: true },
       xAxis: { type: 'category', data: 付款请示点.map(point => point.business_date.slice(5)), axisLabel: { fontSize: 10 } },
@@ -2253,19 +2254,20 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         <div className="daily-funds-chart-head">
           <div>
             <b>待付款请示（非账户余额）</b>
-            <div className="muted">标题、业务日期和总合计经独立 OCR 一致才展示；反映待付款请示，不代表已付款或可用资金。</div>
+            <div className="muted">整页日表按表内业务日期复核；横向群消息汇总按群消息当天标注。所有金额均需固定总合计标签与独立 OCR 一致。</div>
           </div>
           <span className={`chip ${付款请示已验证 ? 'ok' : 付款请示状态 === 'NEEDS_REVIEW' ? 'bad' : 'muted'}`}>
-            {付款请示已验证 ? '已验证日表' : 付款请示状态 === 'NEEDS_REVIEW' ? '待复核' : '暂无日表'}
+            {付款请示已验证 ? '已验证走势' : 付款请示状态 === 'NEEDS_REVIEW' ? '待复核' : '暂无日表'}
           </span>
         </div>
         {付款请示已验证 && 付款请示图 ? <>
           <div className="grid" style={{ margin: '10px 0 0' }}>
-            <Kpi 标="最新请示日" 值={付款请示最新?.business_date || '—'} 小 />
+            <Kpi 标="最新请示日期" 值={付款请示最新?.business_date || '—'} 小 />
+            <Kpi 标="日期口径" 值={付款请示最新?.date_basis || '—'} 小 />
             <Kpi 标="最新待付款请示" 值={资金金额(付款请示最新?.request_total_fen)} 小 />
           </div>
           <Chart option={付款请示图} height="18rem" />
-          <div className="hint" role="status">已逐份复核 {付款请示覆盖.parsed_documents ?? '—'} / {付款请示覆盖.eligible_documents ?? '—'} 份日表，覆盖 {付款请示覆盖.distinct_business_days ?? '—'} 个业务日；它不是账户余额、已完成付款或风险阈值依据。</div>
+          <div className="hint" role="status">已逐份复核 {付款请示覆盖.parsed_documents ?? '—'} / {付款请示覆盖.eligible_documents ?? '—'} 份来源，覆盖 {付款请示覆盖.distinct_business_days ?? '—'} 个日期点；每个日期口径在图表中明确标注。它不是账户余额、已完成付款或风险阈值依据。</div>
         </> : <div className="card callout warn" style={{ marginTop: 12 }}>
           <b>待付款请示暂不展示金额</b>
           <div className="sub">{付款请示?.message || '尚未形成已验证的待付款请示日表。'}</div>

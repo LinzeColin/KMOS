@@ -113,6 +113,10 @@ class PaymentRequestObservation:
     """
 
     business_date: date
+    # ``DOCUMENT_DAY`` comes from a visible document date. ``MESSAGE_DAY``
+    # comes from the exact DWS message day when the approved horizontal
+    # summary profile has no visible date cell.
+    date_basis: str
     request_total_fen: int
     source: SourceRef
     parser_evidence: ParserEvidence

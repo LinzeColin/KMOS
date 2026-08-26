@@ -295,9 +295,9 @@ def _write_projection(root: Path) -> None:
     }
     (root / "cashflow_observation.json").write_text(json.dumps(cashflow_observation), encoding="utf-8")
     payment_request_observation = {
-        "schema_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "schema_version": "kmfa.daily_funds.payment_request_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v2",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
@@ -310,8 +310,8 @@ def _write_projection(root: Path) -> None:
         "status": "VERIFIED",
         "machine_code": "PAYMENT_REQUEST_OBSERVATION_VERIFIED",
         "points": [
-            {"business_date": "2026-07-29", "request_total_fen": 1_600},
-            {"business_date": "2026-07-30", "request_total_fen": 2_400},
+            {"business_date": "2026-07-29", "date_basis": "DOCUMENT_DAY", "request_total_fen": 1_600},
+            {"business_date": "2026-07-30", "date_basis": "DOCUMENT_DAY", "request_total_fen": 2_400},
         ],
     }
     (root / "payment_request_observation.json").write_text(json.dumps(payment_request_observation), encoding="utf-8")
@@ -383,10 +383,10 @@ def test_payment_request_observation_is_read_only_and_never_becomes_a_balance(tm
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "VERIFIED"
-    assert body["message"].startswith("已按标题、日期与总合计复核")
+    assert body["message"].startswith("已按标题、表内业务日期与总合计复核")
     assert body["points"] == [
-        {"business_date": "2026-07-29", "request_total_fen": 1_600},
-        {"business_date": "2026-07-30", "request_total_fen": 2_400},
+        {"business_date": "2026-07-29", "date_basis": "表内业务日期", "request_total_fen": 1_600},
+        {"business_date": "2026-07-30", "date_basis": "表内业务日期", "request_total_fen": 2_400},
     ]
     assert "machine_code" not in body
     assert "parser_version" not in body
@@ -394,6 +394,17 @@ def test_payment_request_observation_is_read_only_and_never_becomes_a_balance(tm
     assert body["rejection_categories"] == {}
 
     observation_path = publication / "payment_request_observation.json"
+    strip_projection = json.loads(observation_path.read_text(encoding="utf-8"))
+    strip_projection["points"] = [
+        {"business_date": "2026-07-29", "date_basis": "MESSAGE_DAY", "request_total_fen": 1_600},
+        {"business_date": "2026-07-30", "date_basis": "MESSAGE_DAY", "request_total_fen": 2_400},
+    ]
+    observation_path.write_text(json.dumps(strip_projection), encoding="utf-8")
+    strip = client.get("/ops/api/daily-funds/payment-request-observations?range=30d")
+    assert strip.status_code == 200
+    assert strip.json()["message"].startswith("已按群消息当天、固定总合计标签")
+    assert strip.json()["points"][-1]["date_basis"] == "群消息当天"
+
     needs_review = json.loads(observation_path.read_text(encoding="utf-8"))
     needs_review.update({
         "status": "NEEDS_REVIEW",

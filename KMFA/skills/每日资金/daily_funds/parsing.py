@@ -89,8 +89,11 @@ CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11
 # This parser is deliberately a separate report family: the source image is a
 # daily payment-request sheet, not a bank statement and not a completed cash
 # receipt/payment flow.  It can expose one total only after three fixed OCR
-# segmentations agree on the title, business date, grand-total label and total.
-PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v1"
+# segmentations agree on the fixed fields required by its visual profile.  v2
+# adds the approved horizontal message-summary profile.  It records the exact
+# message day as its date basis because that compact profile has no visible
+# document-date cell.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v2"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2426,11 +2429,17 @@ def parse_cashflow_observation(
 
 
 _PAYMENT_REQUEST_OCR_PSMS = (6, 11, 12)
-_PAYMENT_REQUEST_MIN_WIDTH = 640
-_PAYMENT_REQUEST_MIN_HEIGHT = 900
+_PAYMENT_REQUEST_SHEET_LAYOUT = "SHEET"
+_PAYMENT_REQUEST_MESSAGE_STRIP_LAYOUT = "MESSAGE_STRIP"
+_PAYMENT_REQUEST_SHEET_MIN_WIDTH = 640
+_PAYMENT_REQUEST_SHEET_MIN_HEIGHT = 900
+_PAYMENT_REQUEST_STRIP_MIN_WIDTH = 960
+_PAYMENT_REQUEST_STRIP_MIN_HEIGHT = 200
+_PAYMENT_REQUEST_STRIP_MIN_ASPECT_RATIO = 4.0
+_PAYMENT_REQUEST_STRIP_MAX_ASPECT_RATIO = 6.0
 _PAYMENT_REQUEST_MAX_PIXELS = 16_000_000
 _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS = 7
-_PAYMENT_REQUEST_CROPS = {
+_PAYMENT_REQUEST_SHEET_CROPS = {
     # These relative crops describe the frozen ``待付款请示明细表`` layout.
     # The parser never searches arbitrary image text for a number: every
     # accepted value must appear in the labelled grand-total cell.
@@ -2439,10 +2448,38 @@ _PAYMENT_REQUEST_CROPS = {
     "grand_total_label": (0.60, 0.985, 0.76, 1.00),
     "grand_total": (0.74, 0.985, 0.87, 1.00),
 }
+_PAYMENT_REQUEST_MESSAGE_STRIP_CROPS = {
+    # The exact-group message summary is a horizontal export strip.  Its
+    # footer retains the fixed label/amount cells while the document title and
+    # business-date cells are outside the captured area.
+    "strip_grand_total_label": (0.58, 0.80, 0.78, 0.995),
+    "strip_grand_total": (0.74, 0.80, 0.96, 0.995),
+}
 _PAYMENT_REQUEST_DATE = re.compile(
     r"(?P<year>20\d{2})\s*[-./]\s*(?P<month>\d{1,2})\s*[-./]\s*(?P<day>\d{1,2})"
 )
 _PAYMENT_REQUEST_AMOUNT = re.compile(r"\d+(?:\.\d{1,2})?")
+
+
+def _payment_request_layout_and_crops(
+    *,
+    width: int,
+    height: int,
+) -> tuple[str, Mapping[str, tuple[float, float, float, float]]]:
+    """Select one frozen payment-request layout from image geometry."""
+
+    if width * height > _PAYMENT_REQUEST_MAX_PIXELS:
+        raise ParseError("PAYMENT_REQUEST_IMAGE_DIMENSIONS_UNSUPPORTED")
+    if width >= _PAYMENT_REQUEST_SHEET_MIN_WIDTH and height >= _PAYMENT_REQUEST_SHEET_MIN_HEIGHT:
+        return _PAYMENT_REQUEST_SHEET_LAYOUT, _PAYMENT_REQUEST_SHEET_CROPS
+    aspect_ratio = width / height if height else 0.0
+    if (
+        width >= _PAYMENT_REQUEST_STRIP_MIN_WIDTH
+        and height >= _PAYMENT_REQUEST_STRIP_MIN_HEIGHT
+        and _PAYMENT_REQUEST_STRIP_MIN_ASPECT_RATIO <= aspect_ratio <= _PAYMENT_REQUEST_STRIP_MAX_ASPECT_RATIO
+    ):
+        return _PAYMENT_REQUEST_MESSAGE_STRIP_LAYOUT, _PAYMENT_REQUEST_MESSAGE_STRIP_CROPS
+    raise ParseError("PAYMENT_REQUEST_IMAGE_DIMENSIONS_UNSUPPORTED")
 
 
 def _payment_request_crop_texts(
@@ -2450,8 +2487,8 @@ def _payment_request_crop_texts(
     payload: bytes,
     evidence: ParserEvidence,
     runner: Callable[..., Any],
-) -> dict[str, tuple[str, ...]]:
-    """Read only the four fixed visual cells needed by the report contract."""
+) -> tuple[str, dict[str, tuple[str, ...]]]:
+    """Read only the fixed visual cells required by one approved layout."""
 
     if evidence.magic not in {"PNG", "JPEG", "BMP", "WEBP", "PDF"}:
         raise ParseError("PAYMENT_REQUEST_IMAGE_UNSUPPORTED")
@@ -2486,15 +2523,10 @@ def _payment_request_crop_texts(
             with Image.open(image_path) as image:
                 image.load()
                 width, height = image.size
-                if (
-                    width < _PAYMENT_REQUEST_MIN_WIDTH
-                    or height < _PAYMENT_REQUEST_MIN_HEIGHT
-                    or width * height > _PAYMENT_REQUEST_MAX_PIXELS
-                ):
-                    raise ParseError("PAYMENT_REQUEST_IMAGE_DIMENSIONS_UNSUPPORTED")
+                layout, crops = _payment_request_layout_and_crops(width=width, height=height)
                 rendered = image.convert("RGB")
                 regions: dict[str, Path] = {}
-                for name, (left, top, right, bottom) in _PAYMENT_REQUEST_CROPS.items():
+                for name, (left, top, right, bottom) in crops.items():
                     bounds = (
                         int(width * left),
                         int(height * top),
@@ -2522,14 +2554,14 @@ def _payment_request_crop_texts(
 
         output: dict[str, tuple[str, ...]] = {}
         for name, path in regions.items():
-            language = "eng" if name == "grand_total" else OCR_LANGUAGE
+            language = "eng" if name.endswith("grand_total") else OCR_LANGUAGE
             values: list[str] = []
             for psm in _PAYMENT_REQUEST_OCR_PSMS:
                 command = [
                     "tesseract", str(path), "stdout", "-l", language,
                     "--psm", str(psm),
                 ]
-                if name == "grand_total":
+                if name.endswith("grand_total"):
                     command.extend(("-c", "tessedit_char_whitelist=0123456789.,"))
                 values.append(_run_ocr_command(
                     command,
@@ -2537,7 +2569,7 @@ def _payment_request_crop_texts(
                     failure_code="PAYMENT_REQUEST_OCR_ENGINE_FAILED",
                 ).strip())
             output[name] = tuple(values)
-        return output
+        return layout, output
 
 
 def _payment_request_date(value: str) -> date:
@@ -2576,6 +2608,26 @@ def _payment_request_consensus(values: tuple[object, ...], *, code: str) -> obje
     return values[0]
 
 
+def _payment_request_layout_fingerprint(
+    *,
+    layout: str,
+    evidence: ParserEvidence,
+    crops: Mapping[str, tuple[float, float, float, float]],
+) -> str:
+    return sha256(
+        "\x1f".join((
+            "payment_request_observation.v2",
+            layout,
+            evidence.format,
+            evidence.magic,
+            *(
+                f"{name}:{left:.3f},{top:.3f},{right:.3f},{bottom:.3f}"
+                for name, (left, top, right, bottom) in crops.items()
+            ),
+        )).encode("utf-8")
+    ).hexdigest()
+
+
 def parse_payment_request_observation(
     *,
     filename: str,
@@ -2587,10 +2639,10 @@ def parse_payment_request_observation(
 ) -> PaymentRequestObservation | None:
     """Return one verified daily payment-request total or ``None`` for other images.
 
-    A missing title is a non-candidate rather than a rejected payment report,
-    so unrelated exact-group images cannot erase a valid payment-request
-    projection.  Once all three title reads identify a payment request, every
-    remaining cell becomes mandatory and disagreement fails closed.
+    A full sheet uses its title, document date, label and total.  The approved
+    horizontal message summary has no title/date cells, so all three OCR reads
+    must identify its fixed total label and amount; its date is the exact DWS
+    message day.  Other exact-group images remain non-candidates.
     """
 
     if not isinstance(received_at, datetime):
@@ -2602,7 +2654,36 @@ def parse_payment_request_observation(
         inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime),
         parser_version=PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
     )
-    regions = _payment_request_crop_texts(payload=payload, evidence=evidence, runner=runner)
+    layout, regions = _payment_request_crop_texts(payload=payload, evidence=evidence, runner=runner)
+    if layout == _PAYMENT_REQUEST_MESSAGE_STRIP_LAYOUT:
+        grand_total_label_votes = sum(
+            "总" in value and "合计" in value
+            for value in regions["strip_grand_total_label"]
+        )
+        if grand_total_label_votes == 0:
+            return None
+        if grand_total_label_votes != len(_PAYMENT_REQUEST_OCR_PSMS):
+            raise ParseError("PAYMENT_REQUEST_GRAND_TOTAL_LABEL_MISSING")
+        request_total_fen = _payment_request_consensus(
+            tuple(_payment_request_amount(value) for value in regions["strip_grand_total"]),
+            code="PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING",
+        )
+        assert isinstance(request_total_fen, int)
+        from zoneinfo import ZoneInfo
+
+        return PaymentRequestObservation(
+            business_date=received_at.astimezone(ZoneInfo("Asia/Shanghai")).date(),
+            date_basis="MESSAGE_DAY",
+            request_total_fen=request_total_fen,
+            source=source,
+            parser_evidence=evidence,
+            layout_fingerprint=_payment_request_layout_fingerprint(
+                layout=layout,
+                evidence=evidence,
+                crops=_PAYMENT_REQUEST_MESSAGE_STRIP_CROPS,
+            ),
+        )
+
     title_votes = sum("付款" in value for value in regions["title"])
     if title_votes == 0:
         return None
@@ -2632,23 +2713,17 @@ def parse_payment_request_observation(
     lag_days = (received_day - business_date).days
     if lag_days < 0 or lag_days > _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS:
         raise ParseError("PAYMENT_REQUEST_DATE_OUT_OF_RANGE")
-    layout_fingerprint = sha256(
-        "\x1f".join((
-            "payment_request_observation.v1",
-            evidence.format,
-            evidence.magic,
-            *(
-                f"{name}:{left:.3f},{top:.3f},{right:.3f},{bottom:.3f}"
-                for name, (left, top, right, bottom) in _PAYMENT_REQUEST_CROPS.items()
-            ),
-        )).encode("utf-8")
-    ).hexdigest()
     return PaymentRequestObservation(
         business_date=business_date,
+        date_basis="DOCUMENT_DAY",
         request_total_fen=request_total_fen,
         source=source,
         parser_evidence=evidence,
-        layout_fingerprint=layout_fingerprint,
+        layout_fingerprint=_payment_request_layout_fingerprint(
+            layout=layout,
+            evidence=evidence,
+            crops=_PAYMENT_REQUEST_SHEET_CROPS,
+        ),
     )
 
 
