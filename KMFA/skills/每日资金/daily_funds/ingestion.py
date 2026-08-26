@@ -2986,9 +2986,16 @@ class GitSparseWriter:
         root: Path,
         occurrences: Iterable[_RawArchiveOccurrence],
     ) -> tuple[PersistedRawAttachment, ...]:
-        """Re-establish the original source envelope gate without a DWS call."""
+        """Re-establish archived envelope structure before current selection.
 
-        source_gate = DwsHistoryClient(self.config)
+        The private raw authority is immutable across controlled source-profile
+        changes.  This read proves every archived message's own group, sender,
+        message, timestamp and resource identity, then lets the runtime apply
+        the current explicit selector before parsing or publication.  Historic
+        records outside that selector remain structurally audited and cannot
+        enter the financial fact lane.
+        """
+
         references: list[PersistedRawAttachment] = []
         for occurrence in occurrences:
             try:
@@ -2999,24 +3006,38 @@ class GitSparseWriter:
                 raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW") from exc
             if not isinstance(message, Mapping):
                 raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW")
+            if not all((
+                _message_field(message, ("openConversationId", "conversationId", "conversation_id")),
+                _message_field(message, ("senderOpenDingTalkId", "sender_open_dingtalk_id")),
+                _message_field(message, ("openMessageId", "messageId", "message_id", "id")),
+            )):
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW")
             try:
-                candidate = source_gate.reopen_candidate(
-                    dict(message),
-                    occurrence.index,
-                    occurrence.sha256,
+                _message_timestamp(message)
+            except IngestionError as exc:
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW") from exc
+            attachments = _attachments(message)
+            if (
+                occurrence.index < 0
+                or occurrence.index >= len(attachments)
+                or _attachment_resource(attachments[occurrence.index]) is None
+            ):
+                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_ATTACHMENT_NEEDS_REVIEW")
+            try:
+                identity = RawMaterializer._persisted_reopen_source_identity(
+                    message,
+                    attachment_index=occurrence.index,
                 )
             except IngestionError as exc:
-                if exc.code == "AMBIGUOUS_SOURCE":
-                    raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_SCOPE_NEEDS_REVIEW") from exc
-                if exc.code in {
-                    "MESSAGE_ID_MISSING",
-                    "MESSAGE_TIMESTAMP_MISSING",
-                    "MESSAGE_TIMESTAMP_INVALID",
-                }:
-                    raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW") from exc
                 raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_ENVELOPE_NEEDS_REVIEW") from exc
-            if candidate is None:
-                raise IngestionError("RAW_ARCHIVE_METADATA_SOURCE_ATTACHMENT_NEEDS_REVIEW")
+            candidate = PersistedRawAttachment(
+                message=dict(message),
+                message_id=identity[2],
+                message_id_hash=_hash_text(identity[2]),
+                message_at=identity[3],
+                index=occurrence.index,
+                sha256=occurrence.sha256,
+            )
             if (
                 candidate.message_id_hash != occurrence.message_id_hash
                 or candidate.message_at.astimezone(UTC) != occurrence.message_at
@@ -3286,15 +3307,17 @@ class GitSparseWriter:
         on_attachment: Callable[[PersistedRawAttachment], None] | None = None,
         commit_sha: str | None = None,
     ) -> RawArchiveAudit:
-        """Census source-gated raw occurrences without hydrating every blob.
+        """Census structurally valid raw occurrences without hydrating every blob.
 
         This is intentionally narrower than :meth:`audit_raw_archive`: it
         validates the commit-pinned occurrence, message and immutable-batch
         metadata, then exposes only persisted occurrence identities to the
-        caller.  It never gives a parser any payload bytes.  A later
-        publication still has to use :meth:`reopen_persisted` for its exact
-        account/transaction pair, which reopens and verifies those bytes from
-        the same pinned commit before reconciliation.
+        caller.  The caller applies the current explicit source selector before
+        any parse, coverage receipt or publication use.  It never gives a
+        parser any payload bytes.  A later publication still has to use
+        :meth:`reopen_persisted` for its exact account/transaction pair, which
+        reopens and verifies those bytes from the same pinned commit before
+        reconciliation.
 
         Coverage reconciliation needs identities, not a 360-day OCR replay.
         Avoiding one sparse Git transport per payload batch keeps that

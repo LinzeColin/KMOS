@@ -3707,14 +3707,19 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
 
     import daily_funds.runtime as runtime_module
 
+    config = _config(tmp_path)
     moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    source_message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+    }
     existing_payload = b"\x89PNG\r\n\x1a\nexisting-raw-image"
     missing_payload = (
         "业务日期,公司,开户行,账号,期末余额\n"
         "2026-07-30,甲,乙,00123,110.00\n"
     ).encode()
     existing = DownloadedAttachment(
-        message={},
+        message=source_message,
         message_id="coverage-message",
         message_id_hash="9" * 64,
         message_at=moment,
@@ -3726,7 +3731,7 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
         mime="image/png",
     )
     missing = DownloadedAttachment(
-        message={},
+        message=source_message,
         message_id="coverage-message",
         message_id_hash="9" * 64,
         message_at=moment,
@@ -3737,7 +3742,6 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
         sha256=sha256(missing_payload).hexdigest(),
         mime="text/csv",
     )
-    source_message = {"fixture": "coverage-repair"}
     persisted: list[tuple[DownloadedAttachment, ...]] = []
 
     class CoverageClient:
@@ -3783,7 +3787,7 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
             self.persisted = True
             return GitCommit("a" * 40, SimpleNamespace(), received)
 
-    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime, "_dws_client", lambda: CoverageClient())
     monkeypatch.setattr(runtime_module, "GitSparseWriter", CoverageWriter)
     monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("coverage repair must not publish"))
@@ -3809,8 +3813,9 @@ def test_raw_coverage_repair_archives_only_the_missing_source_occurrence(
     assert receipt == {
         "raw_archive_occurrences": 2,
         "raw_commit_sha": "a" * 40,
-        "schema_version": "kmfa.daily_funds.raw_coverage_receipt.v1",
+        "schema_version": "kmfa.daily_funds.raw_coverage_receipt.v2",
         "source_occurrences": 2,
+        "source_scope_marker": runtime._source_scope_marker(),
         "verified_occurrences": 2,
         "window_days": 360,
     }
@@ -3826,6 +3831,134 @@ def test_raw_fact_replay_requires_a_fresh_coverage_receipt(tmp_path: Path) -> No
     assert not (runtime.config.publication_dir / "current.json").exists()
 
 
+def test_raw_fact_replay_requires_coverage_for_the_active_source_scope(tmp_path: Path) -> None:
+    """A selector update obtains a fresh exact-source coverage receipt."""
+
+    config = _config(tmp_path)
+    runtime = DailyFundsRuntime(config)
+    runtime._record_raw_coverage_receipt(
+        raw_commit_sha="a" * 40,
+        source_occurrences=2,
+        verified_occurrences=2,
+        raw_archive_occurrences=2,
+    )
+    updated = DailyFundsRuntime(replace(config, group_id="updated-group-fixture"))
+
+    assert updated._raw_coverage_receipt() is None
+    assert updated.raw_fact_replay(now=datetime(2026, 8, 1, tzinfo=UTC)) == {
+        "ok": False,
+        "code": "RAW_COVERAGE_RECEIPT_REQUIRED",
+    }
+
+
+def test_raw_coverage_repair_recovers_current_scope_despite_historic_identity_collision(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An active source always receives its own coverage proof and raw write."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    message_id = "scope-coverage-fixture"
+    message_id_hash = sha256(message_id.encode("utf-8")).hexdigest()
+    payload = (
+        "业务日期,公司,开户行,账号,期末余额\n"
+        "2026-07-30,甲,乙,00123,110.00\n"
+    ).encode()
+    current_message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": message_id,
+        "createTime": moment.isoformat(),
+    }
+    historic_message = {
+        **current_message,
+        "openConversationId": "historic-group-fixture",
+    }
+
+    def attachment(message: dict[str, str]) -> DownloadedAttachment:
+        return DownloadedAttachment(
+            message=message,
+            message_id=message_id,
+            message_id_hash=message_id_hash,
+            message_at=moment,
+            index=0,
+            filename="fixture.csv",
+            family=ACCOUNT_FAMILY,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="text/csv",
+        )
+
+    historic = attachment(historic_message)
+    current = attachment(current_message)
+    downloaded = 0
+    persisted: list[tuple[DownloadedAttachment, ...]] = []
+
+    class CoverageClient:
+        @staticmethod
+        def collect_group_history_v2(_start, _end):
+            return DwsPage(messages=(current_message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page):
+            return (current_message,)
+
+        @staticmethod
+        def quarantine_messages(_page):
+            return ()
+
+        @staticmethod
+        def message_id_hash(_message):
+            return message_id_hash
+
+        @staticmethod
+        def attachment_count(_message):
+            return 1
+
+        @staticmethod
+        def download(_message, index):
+            nonlocal downloaded
+            assert index == 0
+            downloaded += 1
+            return current
+
+    class CoverageWriter:
+        def __init__(self, _config):
+            self.persisted = False
+
+        def audit_raw_archive_metadata(self, *, on_attachment):
+            attachments = (historic, current) if self.persisted else (historic,)
+            for item in attachments:
+                on_attachment(item)
+            return RawArchiveAudit("a" * 40, (), len(attachments), 1, len(attachments))
+
+        def persist(self, attachments):
+            received = tuple(attachments)
+            assert received == (current,)
+            persisted.append(received)
+            self.persisted = True
+            return GitCommit("a" * 40, SimpleNamespace(), received)
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime, "_dws_client", lambda: CoverageClient())
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", CoverageWriter)
+
+    result = runtime.raw_coverage_repair(now=datetime(2026, 8, 1, tzinfo=UTC))
+
+    assert result["ok"] is True
+    assert result["code"] == "RAW_COVERAGE_REPAIRED"
+    assert result["source_occurrences"] == 1
+    assert result["recovered_occurrences"] == 1
+    assert downloaded == 1
+    assert persisted == [(current,)]
+    receipt = json.loads(runtime.state.get("raw_coverage_360d_receipt") or "{}")
+    assert receipt["raw_archive_occurrences"] == 2
+    assert receipt["source_occurrences"] == 1
+
+
 def test_raw_coverage_repair_persists_available_occurrences_and_keeps_failed_downloads_open(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3834,11 +3967,16 @@ def test_raw_coverage_repair_persists_available_occurrences_and_keeps_failed_dow
 
     import daily_funds.runtime as runtime_module
 
+    config = _config(tmp_path)
     moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
+    source_message = {
+        "openConversationId": config.group_id,
+        "senderOpenDingTalkId": config.sender_id,
+    }
 
     def attachment(index: int, payload: bytes) -> DownloadedAttachment:
         return DownloadedAttachment(
-            message={},
+            message=source_message,
             message_id="coverage-partial",
             message_id_hash="c" * 64,
             message_at=moment,
@@ -3853,7 +3991,6 @@ def test_raw_coverage_repair_persists_available_occurrences_and_keeps_failed_dow
     existing = attachment(0, "业务日期,公司,开户行,账号,期末余额\n2026-07-30,甲,乙,001,100.00\n".encode())
     available = attachment(1, "业务日期,公司,开户行,账号,期末余额\n2026-07-30,甲,乙,002,100.00\n".encode())
     unavailable = attachment(2, b"unavailable-fixture")
-    source_message = {"fixture": "coverage-partial"}
     attempts = 0
 
     class PartialClient:
@@ -3902,7 +4039,7 @@ def test_raw_coverage_repair_persists_available_occurrences_and_keeps_failed_dow
             self.persisted = True
             return GitCommit("c" * 40, SimpleNamespace(), received)
 
-    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime = DailyFundsRuntime(config)
     monkeypatch.setattr(runtime, "_dws_client", lambda: PartialClient())
     monkeypatch.setattr(runtime_module, "GitSparseWriter", PartialWriter)
     monkeypatch.setattr(runtime, "_coordinator", lambda: pytest.fail("partial coverage must not publish"))
@@ -3932,6 +4069,7 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
 
     import daily_funds.runtime as runtime_module
 
+    config = _config(tmp_path)
     moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
     account_payload = (
         "业务日期,公司,开户行,账号,期初余额,期末余额\n"
@@ -3943,6 +4081,8 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
     ).encode()
     account = DownloadedAttachment(
         message={
+            "openConversationId": config.group_id,
+            "senderOpenDingTalkId": config.sender_id,
             "openMessageId": "replay-account",
             "attachments": [{"fileId": "registered-account-file"}],
         },
@@ -3958,6 +4098,8 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
     )
     transaction = DownloadedAttachment(
         message={
+            "openConversationId": config.group_id,
+            "senderOpenDingTalkId": config.sender_id,
             "openMessageId": "replay-transaction",
             "attachments": [{"fileId": "registered-transaction-file"}],
         },
@@ -4039,7 +4181,7 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
                 oci_backup_state="OK",
             )
 
-    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime = DailyFundsRuntime(config)
     runtime._record_raw_coverage_receipt(
         raw_commit_sha="a" * 40,
         source_occurrences=2,
@@ -4076,6 +4218,7 @@ def test_raw_fact_replay_keeps_quarantined_titleless_bytes_out_of_formal_pairing
 
     import daily_funds.runtime as runtime_module
 
+    config = _config(tmp_path)
     moment = datetime(2026, 7, 30, 8, tzinfo=UTC)
     account_payload = (
         "业务日期,公司,开户行,账号,期初余额,期末余额\n"
@@ -4114,7 +4257,12 @@ def test_raw_fact_replay_keeps_quarantined_titleless_bytes_out_of_formal_pairing
             assert commit_sha == "a" * 40
             for item in attachments:
                 on_attachment(PersistedRawAttachment(
-                    message={"title": None},
+                    message={
+                        "openConversationId": config.group_id,
+                        "senderOpenDingTalkId": config.sender_id,
+                        "openMessageId": item.message_id,
+                        "attachments": [{"fileId": f"fixture-{item.index}"}],
+                    },
                     message_id=item.message_id,
                     message_id_hash=item.message_id_hash,
                     message_at=item.message_at,
@@ -4123,7 +4271,7 @@ def test_raw_fact_replay_keeps_quarantined_titleless_bytes_out_of_formal_pairing
                 ))
             return RawArchiveAudit("a" * 40, (), 2, 1, 2)
 
-    runtime = DailyFundsRuntime(_config(tmp_path))
+    runtime = DailyFundsRuntime(config)
     runtime._record_raw_coverage_receipt(
         raw_commit_sha="a" * 40,
         source_occurrences=2,
@@ -5321,7 +5469,6 @@ def test_raw_archive_metadata_audit_projects_fixed_stage_without_private_context
 
 
 @pytest.mark.parametrize(("overrides", "expected_code"), (
-    ({"openConversationId": "other-group"}, "RAW_ARCHIVE_METADATA_SOURCE_SCOPE_NEEDS_REVIEW"),
     ({"openMessageId": ""}, "RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW"),
     ({"createTime": "not-a-timestamp"}, "RAW_ARCHIVE_METADATA_SOURCE_MESSAGE_NEEDS_REVIEW"),
     ({"content": "attachment reference omitted"}, "RAW_ARCHIVE_METADATA_SOURCE_ATTACHMENT_NEEDS_REVIEW"),
@@ -5368,6 +5515,99 @@ def test_archive_metadata_projects_fixed_source_envelope_repair_class(
 
     with pytest.raises(IngestionError, match=f"^{expected_code}$"):
         GitSparseWriter(config)._archive_persisted_references(root, (occurrence,))
+
+
+def test_archive_metadata_keeps_historic_out_of_scope_envelope_structurally_auditable(tmp_path: Path) -> None:
+    """A prior source scope stays private and cannot block the active selector."""
+
+    import daily_funds.ingestion as ingestion_module
+
+    config = _config(tmp_path)
+    received_at = datetime(2026, 8, 1, 8, tzinfo=UTC)
+    message_id = "archived-scope-fixture"
+    message_id_hash = sha256(message_id.encode("utf-8")).hexdigest()
+    message = {
+        "openConversationId": "historic-group-fixture",
+        "senderOpenDingTalkId": config.sender_id,
+        "openMessageId": message_id,
+        "createTime": received_at.isoformat(),
+        "content": "document mediaId=fixture-resource",
+    }
+    message_path, occurrence_path = RawMaterializer._message_and_occurrence_paths(
+        received_at,
+        message_id_hash,
+        0,
+    )
+    root = tmp_path / "private-raw"
+    stored_message = root / message_path
+    stored_message.parent.mkdir(parents=True)
+    stored_message.write_text(json.dumps(message), encoding="utf-8")
+    occurrence = ingestion_module._RawArchiveOccurrence(
+        occurrence_path=str(occurrence_path),
+        message_path=str(message_path),
+        message_at=received_at,
+        message_id_hash=message_id_hash,
+        index=0,
+        sha256="a" * 64,
+    )
+
+    references = GitSparseWriter(config)._archive_persisted_references(root, (occurrence,))
+
+    assert len(references) == 1
+    with pytest.raises(IngestionError, match="^AMBIGUOUS_SOURCE$"):
+        DwsHistoryClient(config).assert_exact_source(references[0].message)
+
+
+def test_raw_archive_and_replay_exclude_historic_scope_from_facts(tmp_path: Path) -> None:
+    """Only the active source selector can feed parse, pairing or publication."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    received_at = datetime(2026, 8, 1, 8, tzinfo=UTC)
+    message_id = "archived-scope-replay-fixture"
+    message_id_hash = sha256(message_id.encode("utf-8")).hexdigest()
+    payload = b"scope-fixture"
+    message = {
+        "openConversationId": "historic-group-fixture",
+        "senderOpenDingTalkId": runtime.config.sender_id,
+        "openMessageId": message_id,
+        "createTime": received_at.isoformat(),
+        "content": "document mediaId=fixture-resource",
+    }
+    attachment = DownloadedAttachment(
+        message=message,
+        message_id=message_id,
+        message_id_hash=message_id_hash,
+        message_at=received_at,
+        index=0,
+        filename="fixture.csv",
+        family=ACCOUNT_FAMILY,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="text/csv",
+    )
+
+    archive_accumulator = runtime_module._RawArchiveAuditAccumulator(runtime)
+    archive_accumulator.consume(attachment)
+    assert archive_accumulator.archive_occurrence_count == 1
+    assert archive_accumulator.out_of_scope_occurrence_count == 1
+    assert archive_accumulator.occurrence_count == 0
+    assert archive_accumulator.inbox == []
+
+    replay_accumulator = runtime_module._RawFactReplayAccumulator(runtime)
+    replay_accumulator.index_persisted(PersistedRawAttachment(
+        message=message,
+        message_id=message_id,
+        message_id_hash=message_id_hash,
+        message_at=received_at,
+        index=0,
+        sha256=attachment.sha256,
+    ))
+    assert replay_accumulator.archive_occurrence_count == 1
+    assert replay_accumulator.out_of_scope_occurrence_count == 1
+    assert replay_accumulator.occurrence_count == 0
+    assert replay_accumulator.declared_candidates == ()
 
 
 def test_raw_archive_audit_process_lock_prevents_an_expired_lease_from_starting_a_second_audit(
