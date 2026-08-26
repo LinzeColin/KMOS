@@ -578,25 +578,12 @@ def orphaned_bridge_resource_ids(
     }
 
 
-def inert_service_auth_policy_resource_ids(
-    service_tokens_path: str | Path,
-    policies_path: str | Path,
-) -> dict[str, tuple[str, ...]]:
-    """Select one inert service-auth policy on a fixed control child app.
+def _legacy_service_auth_policy_material(policies_path: str | Path) -> tuple[str, str]:
+    """Return a single non-identity service-token policy from a control app."""
 
-    Historical bridge runs can leave an old-name policy after the corresponding
-    service token has already disappeared.  Such a policy grants no current
-    access.  This function never selects a policy with a present token,
-    multiple policies, an identity selector, or an allow decision.
-    """
-
-    try:
-        policies = _cloudflare_single_page_result(policies_path)
-        tokens = _cloudflare_single_page_result(service_tokens_path)
-    except AccessBridgeInputError as exc:
-        raise AccessBridgeInputError("inert service-auth provider input invalid") from exc
+    policies = _cloudflare_single_page_result(policies_path)
     if len(policies) != 1:
-        raise AccessBridgeInputError("inert service-auth policy is not unique")
+        raise AccessBridgeInputError("legacy service-auth policy is not unique")
 
     policy = policies[0]
     policy_id = policy.get("id")
@@ -605,17 +592,65 @@ def inert_service_auth_policy_resource_ids(
         or _UUID_RE.fullmatch(policy_id.lower()) is None
         or policy.get("decision") != "non_identity"
     ):
-        raise AccessBridgeInputError("inert service-auth policy is invalid")
+        raise AccessBridgeInputError("legacy service-auth policy is invalid")
     include = policy.get("include")
     if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
-        raise AccessBridgeInputError("inert service-auth selector is invalid")
+        raise AccessBridgeInputError("legacy service-auth selector is invalid")
     selector = include[0]
     service_token = selector.get("service_token")
     if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
-        raise AccessBridgeInputError("inert service-auth selector is invalid")
+        raise AccessBridgeInputError("legacy service-auth selector is invalid")
     token_id = service_token.get("token_id")
     if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
-        raise AccessBridgeInputError("inert service-auth token is invalid")
+        raise AccessBridgeInputError("legacy service-auth token is invalid")
+    return policy_id.lower(), token_id.lower()
+
+
+def _legacy_service_auth_token_material(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> tuple[str, str, str]:
+    """Return one exact short-lived bridge token behind a legacy policy."""
+
+    policy_id, token_id = _legacy_service_auth_policy_material(policies_path)
+    tokens = _cloudflare_single_page_result(service_tokens_path)
+    matched_tokens = [
+        token
+        for token in tokens
+        if isinstance(token.get("id"), str) and token["id"].lower() == token_id
+    ]
+    if len(matched_tokens) != 1:
+        raise AccessBridgeInputError("legacy service-auth token is not unique")
+    token = matched_tokens[0]
+    token_name = token.get("name")
+    if not isinstance(token_name, str) or not token_name.startswith(_BRIDGE_RESOURCE_PREFIX):
+        raise AccessBridgeInputError("legacy service-auth token name is invalid")
+    run_tag = token_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
+    if (
+        bridge_resource_name(run_tag) != token_name
+        or _COMPLETED_RUN_TAG_RE.fullmatch(run_tag) is None
+        or token.get("duration") != SERVICE_TOKEN_DURATION
+    ):
+        raise AccessBridgeInputError("legacy service-auth token is invalid")
+    return policy_id, token_id, run_tag
+
+
+def inert_service_auth_policy_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> dict[str, tuple[str, ...]]:
+    """Select one inert service-auth policy on a fixed control child app.
+
+    Historical bridge runs can leave an old-name policy after the corresponding
+    service token has already disappeared. Such a policy grants no current
+    access and can be removed without affecting any live credential.
+    """
+
+    try:
+        policy_id, token_id = _legacy_service_auth_policy_material(policies_path)
+        tokens = _cloudflare_single_page_result(service_tokens_path)
+    except AccessBridgeInputError as exc:
+        raise AccessBridgeInputError("inert service-auth provider input invalid") from exc
     if any(
         isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
         for token in tokens
@@ -624,6 +659,36 @@ def inert_service_auth_policy_resource_ids(
     return {
         "service_token_ids": (),
         "policy_ids": (policy_id.lower(),),
+    }
+
+
+def legacy_service_auth_run_tag(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> str:
+    """Return a proven old bridge run tag without exposing provider fields."""
+
+    _, _, run_tag = _legacy_service_auth_token_material(service_tokens_path, policies_path)
+    return run_tag
+
+
+def legacy_service_auth_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+    *,
+    retired_run_tag: str | None = None,
+) -> dict[str, tuple[str, ...]]:
+    """Select a legacy policy/token pair only after its source run ended."""
+
+    policy_id, token_id, run_tag = _legacy_service_auth_token_material(
+        service_tokens_path,
+        policies_path,
+    )
+    if retired_run_tag != run_tag:
+        raise AccessBridgeInputError("legacy service-auth token is not retired")
+    return {
+        "service_token_ids": (token_id,),
+        "policy_ids": (policy_id,),
     }
 
 
