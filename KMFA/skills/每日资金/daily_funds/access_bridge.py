@@ -429,6 +429,64 @@ def owned_bridge_resource_ids(
     }
 
 
+def orphaned_bridge_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> dict[str, tuple[str, ...]]:
+    """Identify one abandoned, exact-shape bridge policy for controlled cleanup.
+
+    Each control application is expected to have no persistent policy.  A
+    normal bridge removes its short-lived service-auth policy before exit; a
+    cancelled run can leave one behind.  This recognises precisely one policy
+    with the bridge-generated name, decision, and service-token selector, and
+    only after its short-lived credential has disappeared from the provider
+    list.  A different shape, multiple policies, or a still-present token
+    remains ineligible for automatic cleanup.
+    """
+
+    policies = _cloudflare_single_page_result(policies_path)
+    if len(policies) != 1:
+        raise AccessBridgeInputError("orphaned bridge policy is not unique")
+    policy = policies[0]
+    policy_id = policy.get("id")
+    policy_name = policy.get("name")
+    if (
+        not isinstance(policy_id, str)
+        or _UUID_RE.fullmatch(policy_id.lower()) is None
+        or not isinstance(policy_name, str)
+        or not policy_name.startswith(_BRIDGE_RESOURCE_PREFIX)
+        or policy.get("decision") != "non_identity"
+    ):
+        raise AccessBridgeInputError("orphaned bridge policy is invalid")
+    run_tag = policy_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
+    if bridge_resource_name(run_tag) != policy_name:
+        raise AccessBridgeInputError("orphaned bridge policy name is invalid")
+
+    include = policy.get("include")
+    if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
+        raise AccessBridgeInputError("orphaned bridge policy selector is invalid")
+    selector = include[0]
+    service_token = selector.get("service_token")
+    if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
+        raise AccessBridgeInputError("orphaned bridge policy selector is invalid")
+    token_id = service_token.get("token_id")
+    if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
+        raise AccessBridgeInputError("orphaned bridge token is invalid")
+
+    tokens = _cloudflare_single_page_result(service_tokens_path)
+    matched_tokens = [
+        token
+        for token in tokens
+        if isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
+    ]
+    if matched_tokens:
+        raise AccessBridgeInputError("orphaned bridge credential still exists")
+    return {
+        "service_token_ids": (),
+        "policy_ids": (policy_id.lower(),),
+    }
+
+
 def _strict_credential(value: object) -> str:
     if not isinstance(value, str) or _CREDENTIAL_RE.fullmatch(value) is None:
         raise AccessBridgeInputError("service token response invalid")

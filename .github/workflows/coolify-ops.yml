@@ -1058,6 +1058,35 @@ jobs:
             test "$final_state" = "ABSENT"
           }
 
+          reconcile_orphaned_control_policy() {
+            # A completed bridge must leave this child application empty.  An
+            # interrupted earlier run may leave one expired service-auth
+            # policy behind; accept cleanup only when its full shape matches
+            # the bridge-generated policy and service-token pair.
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/orphaned-service-token-list.json"
+            if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+            if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
+              --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+              --policies "$bridge_dir/control-app-policies-before.json" \
+              --output "$bridge_dir/orphaned-resources.env"; then return 1; fi
+            unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
+            . "$bridge_dir/orphaned-resources.env"
+            for orphaned_policy_id in $CF_ACCESS_OWNED_POLICY_IDS; do
+              request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies/${orphaned_policy_id}" "$bridge_dir/orphaned-policy-delete.json"
+              if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ] || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/orphaned-policy-delete.json" >/dev/null 2>&1; then return 1; fi
+            done
+            for orphaned_service_token_id in $CF_ACCESS_OWNED_SERVICE_TOKEN_IDS; do
+              request_cf DELETE "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens/${orphaned_service_token_id}" "$bridge_dir/orphaned-service-token-delete.json"
+              if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ] || ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" validate-success --response "$bridge_dir/orphaned-service-token-delete.json" >/dev/null 2>&1; then return 1; fi
+            done
+            unset CF_ACCESS_OWNED_POLICY_IDS CF_ACCESS_OWNED_SERVICE_TOKEN_IDS
+            request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/apps/${CF_ACCESS_APP_ID}/policies?per_page=1000" "$bridge_dir/orphaned-policy-list-after.json"
+            if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
+            final_policy_state="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" control-app-policy-state \
+              --policies "$bridge_dir/orphaned-policy-list-after.json" 2>/dev/null || printf '%s' 'INVALID')"
+            test "$final_policy_state" = "EMPTY"
+          }
+
           cleanup() {
             set +e
             if [ "$policy_created" = "1" ] && [ -f "$bridge_dir/policy.env" ]; then
@@ -1092,7 +1121,10 @@ jobs:
               "$bridge_dir/service-token-delete.json" "$bridge_dir/service-token-list-before.json" \
               "$bridge_dir/policy-list-before.json" "$bridge_dir/owned-resources.env" \
               "$bridge_dir/policy-reconcile-delete.json" "$bridge_dir/service-token-reconcile-delete.json" \
-              "$bridge_dir/service-token-list-after.json" "$bridge_dir/policy-list-after.json"
+              "$bridge_dir/service-token-list-after.json" "$bridge_dir/policy-list-after.json" \
+              "$bridge_dir/orphaned-service-token-list.json" "$bridge_dir/orphaned-resources.env" \
+              "$bridge_dir/orphaned-policy-delete.json" "$bridge_dir/orphaned-service-token-delete.json" \
+              "$bridge_dir/orphaned-policy-list-after.json"
             if ! rmdir "$bridge_dir" 2>/dev/null; then
               cleanup_result=NEEDS_ATTENTION
             fi
@@ -1168,7 +1200,13 @@ jobs:
             --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INVALID')"
           case "$control_app_policy_state" in
             EMPTY) ;;
-            NOT_EMPTY) echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_NOT_EMPTY"; exit 1 ;;
+            NOT_EMPTY)
+              if ! reconcile_orphaned_control_policy; then
+                echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_NOT_EMPTY"
+                exit 1
+              fi
+              echo "${CONTROL_LABEL}_orphaned_bridge=RECONCILED"
+              ;;
             *) echo "$CONTROL_LABEL=CONTROL_ACCESS_POLICY_INVALID"; exit 1 ;;
           esac
 

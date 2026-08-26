@@ -29,6 +29,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     control_application_payload,
     control_application_policy_state,
     diagnose_bridge_target,
+    orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
     policy_payload,
     projection_poll_state,
@@ -240,6 +241,11 @@ def main(argv: list[str] | None = None) -> int:
     owned_state.add_argument("--policies", required=True)
     owned_state.add_argument("--run-tag", required=True)
 
+    orphaned = subparsers.add_parser("write-orphaned-resource-env")
+    orphaned.add_argument("--service-tokens", required=True)
+    orphaned.add_argument("--policies", required=True)
+    orphaned.add_argument("--output", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -366,6 +372,14 @@ def main(argv: list[str] | None = None) -> int:
                 "ABSENT"
                 if not resources["service_token_ids"] and not resources["policy_ids"]
                 else "PRESENT"
+            )
+        elif args.command == "write-orphaned-resource-env":
+            _write_owned_resource_material(
+                _private_output(parser, args),
+                orphaned_bridge_resource_ids(
+                    args.service_tokens,
+                    args.policies,
+                ),
             )
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
