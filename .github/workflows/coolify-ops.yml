@@ -21,7 +21,7 @@ on:
         type: choice
         options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-runtime-topology, daily-funds-worker-logs, daily-funds-app-logs, daily-funds-public-routing-audit, daily-funds-recovery-force-rebuild, daily-funds-source-advance, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
-        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-projection-probe-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-runtime-topology / daily-funds-recovery-force-rebuild / daily-funds-source-advance 必填；先用 list 查）"
+        description: "目标应用 uuid（daily-funds* 与 public-dashboard 可留空，工作流会按唯一 KMFA Compose 目标解析并回读；其他模式按需填写）"
         required: false
         type: string
       command:
@@ -55,6 +55,63 @@ jobs:
       TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
       APP: ${{ inputs.app_uuid }}
     steps:
+      # Daily-funds application UUIDs can change when Coolify recreates an
+      # application.  Resolve the one canonical Compose application inside
+      # the runner before any daily-funds control action, then keep the UUID
+      # in GitHub's masked runner environment only.  Every later action still
+      # verifies the resolved target before reading, restarting, or deploying.
+      - name: 解析唯一每日资金目标（零标识输出）
+        if: inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-recovery-restart' || inputs.mode == 'daily-funds-recovery-component-restart' || inputs.mode == 'daily-funds-runtime-topology' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs' || inputs.mode == 'daily-funds-public-routing-audit' || inputs.mode == 'daily-funds-recovery-force-rebuild' || inputs.mode == 'daily-funds-source-advance'
+        run: |
+          set -euo pipefail
+          target_file="$RUNNER_TEMP/daily-funds-target-resolution.json"
+          trap 'rm -f "$target_file"' EXIT
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_target_resolution=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${BASE:-}" || { echo "daily_funds_target_resolution=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "daily_funds_target_resolution=CONFIG_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+          response_status="$(curl -sS -o "$target_file" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/applications" 2>/dev/null || true)"
+          test "$response_status" = "200" || { echo "daily_funds_target_resolution=CONTROL_UNAVAILABLE"; exit 1; }
+          if ! resolved_app="$(python3 - "$target_file" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              raise SystemExit(2)
+          if isinstance(payload, dict):
+              payload = payload.get("data", payload.get("applications"))
+          if not isinstance(payload, list):
+              raise SystemExit(2)
+          matches = []
+          for application in payload:
+              if not isinstance(application, dict):
+                  continue
+              if (
+                  application.get("name") == "kmfa-kmos-p1"
+                  and application.get("build_pack") == "dockercompose"
+              ):
+                  uuid = str(application.get("uuid") or "")
+                  if re.fullmatch(r"[A-Za-z0-9_-]+", uuid):
+                      matches.append(uuid)
+          if len(matches) != 1:
+              raise SystemExit(2)
+          print(matches[0])
+          PY
+          )"; then
+            echo "daily_funds_target_resolution=TARGET_UNRESOLVED"
+            exit 1
+          fi
+          if [ -n "${APP:-}" ] && [ "$APP" != "$resolved_app" ]; then
+            echo "daily_funds_target_resolution=INPUT_MISMATCH"
+            exit 1
+          fi
+          printf 'APP=%s\n' "$resolved_app" >> "$GITHUB_ENV"
+          echo "daily_funds_target_resolution=VERIFIED"
+
       - name: 检出诊断代码
         if: inputs.mode == 'project-cost-diagnostic' || inputs.mode == 'logs' || inputs.mode == 'daily-funds-access-audit' || inputs.mode == 'public-dashboard' || inputs.mode == 'daily-funds-history-probe-bridge' || inputs.mode == 'daily-funds-recovery-bridge' || inputs.mode == 'daily-funds-recovery-status-bridge' || inputs.mode == 'daily-funds-projection-probe-bridge' || inputs.mode == 'daily-funds-history-probe-cleanup' || inputs.mode == 'daily-funds-recovery-cleanup' || inputs.mode == 'daily-funds-projection-probe-cleanup' || inputs.mode == 'daily-funds-worker-logs' || inputs.mode == 'daily-funds-app-logs'
         uses: actions/checkout@v4
