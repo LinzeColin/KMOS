@@ -28,6 +28,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token_id,
     control_application_payload,
     control_application_policy_state,
+    diagnose_legacy_service_auth_resources,
     diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
@@ -270,6 +271,10 @@ def main(argv: list[str] | None = None) -> int:
     inert_policy.add_argument("--policies", required=True)
     inert_policy.add_argument("--output", required=True)
 
+    legacy_diagnostic = subparsers.add_parser("diagnose-legacy-service-auth")
+    legacy_diagnostic.add_argument("--service-tokens", required=True)
+    legacy_diagnostic.add_argument("--policies", required=True)
+
     legacy_resources = subparsers.add_parser("write-legacy-service-auth-resource-env")
     legacy_resources.add_argument("--service-tokens", required=True)
     legacy_resources.add_argument("--policies", required=True)
@@ -431,6 +436,8 @@ def main(argv: list[str] | None = None) -> int:
                 _private_output(parser, args),
                 inert_service_auth_policy_resource_ids(args.service_tokens, args.policies),
             )
+        elif args.command == "diagnose-legacy-service-auth":
+            print(diagnose_legacy_service_auth_resources(args.service_tokens, args.policies))
         elif args.command == "write-legacy-service-auth-resource-env":
             _write_owned_resource_material(
                 _private_output(parser, args),

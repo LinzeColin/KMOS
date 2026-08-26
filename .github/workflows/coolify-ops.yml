@@ -1085,7 +1085,14 @@ jobs:
                   if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-legacy-service-auth-run-tag-env \
                     --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
                     --policies "$bridge_dir/control-app-policies-before.json" \
-                    --output "$bridge_dir/orphaned-run-tag.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_TOKEN_NOT_RECONCILABLE"; return 1; fi
+                    --output "$bridge_dir/orphaned-run-tag.env"; then
+                    local legacy_diagnostic
+                    legacy_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-legacy-service-auth \
+                      --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+                      --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
+                    echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_${legacy_diagnostic}"
+                    return 1
+                  fi
                   unset CF_ACCESS_ORPHANED_RUN_TAG
                   . "$bridge_dir/orphaned-run-tag.env"
                   if [[ ! "${CF_ACCESS_ORPHANED_RUN_TAG:-}" =~ ^[1-9][0-9]{0,31}-[1-9][0-9]{0,15}$ ]]; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_RUN_TAG_INVALID"; return 1; fi
@@ -1103,7 +1110,14 @@ jobs:
                     --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
                     --policies "$bridge_dir/control-app-policies-before.json" \
                     --retired-run-tag "$orphaned_run_tag" \
-                    --output "$bridge_dir/orphaned-resources.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_TOKEN_NOT_RECONCILABLE"; return 1; fi
+                    --output "$bridge_dir/orphaned-resources.env"; then
+                    local legacy_diagnostic
+                    legacy_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-legacy-service-auth \
+                      --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+                      --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
+                    echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_${legacy_diagnostic}"
+                    return 1
+                  fi
                   orphaned_legacy_policy=1
                 fi
                 ;;
