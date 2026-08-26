@@ -6790,7 +6790,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
 
 
 @pytest.mark.parametrize(
-    ("attachment", "downloaded_name", "expected_filename", "expected_resource_type"),
+    ("attachment", "expected_output_name", "expected_filename", "expected_resource_type"),
     (
         (
             {
@@ -6798,7 +6798,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
                 "fileName": "daily-balance.xlsx",
                 "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             },
-            "delivered.xlsx",
+            "attachment-0.xlsx",
             "daily-balance.xlsx",
             "mediaId",
         ),
@@ -6807,14 +6807,14 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
                 "mediaId": "attachment-image-media",
                 "mimeType": "image/jpeg",
             },
-            "delivered.jpg",
-            "delivered.jpg",
+            "attachment-0.jpg",
+            "attachment-0.jpg",
             "mediaId",
         ),
         (
             {"mediaId": "attachment-unknown-media"},
-            "delivered.bin",
-            "delivered.bin",
+            "attachment-0.download",
+            "attachment-0.download",
             "mediaId",
         ),
         (
@@ -6823,7 +6823,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
                 "resourceId": "attachment-native-workbook",
                 "fileName": "daily-balance.xls",
             },
-            "delivered.xls",
+            "attachment-0.xls",
             "daily-balance.xls",
             "fileId",
         ),
@@ -6832,7 +6832,7 @@ def test_dws_attachment_permission_denial_is_not_misreported_as_auth_loss(tmp_pa
 def test_dws_attachment_download_uses_an_isolated_relative_output_directory(
     tmp_path: Path,
     attachment: dict[str, str],
-    downloaded_name: str,
+    expected_output_name: str,
     expected_filename: str,
     expected_resource_type: str,
 ) -> None:
@@ -6850,7 +6850,7 @@ def test_dws_attachment_download_uses_an_isolated_relative_output_directory(
             )
         if command[1:3] == ["chat", "+messages-resource-download"]:
             assert command[command.index("--type") + 1] == expected_resource_type
-            assert command[command.index("--output") + 1] == "."
+            assert command[command.index("--output") + 1] == expected_output_name
             output_dir = Path(kwargs["cwd"])
             assert output_dir.name == "download"
             if expected_resource_type == "mediaId":
@@ -6859,7 +6859,7 @@ def test_dws_attachment_download_uses_an_isolated_relative_output_directory(
             else:
                 assert "--message-id" not in command
                 assert "--open-conversation-id" not in command
-            (output_dir / downloaded_name).write_bytes(b"fixture-media")
+            (output_dir / expected_output_name).write_bytes(b"fixture-media")
             return subprocess.CompletedProcess(command, 0, "", "")
         raise AssertionError(f"unexpected DWS command: {command}")
 
