@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE111",
-  "phase": "IDS-STAGE111-P4",
-  "task": "IDS-V0_1-STAGE111-P4",
-  "real_progress": "Stage111 报告重新生成队列 P4 已从 P3 的五条、每条 44 字段、共 220 个纯内存场景检查点派生五组各五条和两条生命周期说明，形成 388 个 metadata-only 交付字段检查点。",
-  "report_grade": "冻结 Stage111 任务包、Stage111 P1/P2/P3 控制工件与 Stage110 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P4 只形成报告重新生成队列 metadata-only 交付控制证据与 P3 回退说明；真实队列、报告、PDF、快照、影响分析、质量评分、人工确认、导出审计、模型 Token、Agent、OVH 与生产保持后续白箱授权和零执行。",
-  "evidence_status": "REPORT_REGENERATION_QUEUE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "phase": "IDS-STAGE111-REVIEW",
+  "task": "IDS-V0_1-STAGE111-REVIEW",
+  "real_progress": "Stage111 报告重新生成队列 Review 已机械复审 P1 的 30/5/17/4、P2 的 5×32/4×88/440、P3 的 5×44=220/5/5/5/15/4 与 P4 的 5/5/5/5/5/2、17/13/13/15/14/14、388/4/17 固定控制形状。",
+  "report_grade": "冻结 Stage111 任务包、Stage111 P1--P4 控制工件与 Stage110 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "本 Review 只形成报告重新生成队列整阶段纯内存复审控制证据，保持 evidence_id/evidence_gap 语义、报告状态与队列控制、外部增强来源分离、业务线白箱门禁及 P4→P3 回退；真实运行继续由后续白箱授权阶段管理。",
+  "evidence_status": "REVIEWED_REPORT_REGENERATION_QUEUE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-27",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE111-REVIEW-GATE",
+  "next_gate": "IDS-STAGE112-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

@@ -519,16 +519,10 @@ class Stage111ReportRegenerationQueuePhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE111-P4",
             "IDS-STAGE111-REVIEW-GATE",
         )
-        review_current = (
-            "IDS-STAGE111",
-            "IDS-STAGE111-REVIEW",
-            "IDS-V0_1-STAGE111-REVIEW",
-            "IDS-STAGE112-P1-GATE",
-        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
-            {phase3_current, phase4_current, review_current},
+            {phase3_current, phase4_current},
             status,
             plan,
             ROADMAP,
