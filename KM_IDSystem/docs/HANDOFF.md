@@ -1,5 +1,14 @@
 # IDS / Industrial Data System Handoff
 
+## Current Gate - Stage111 P2 accepted locally - 2026-08-27
+
+- IDS-V0_1-STAGE111-P2 已完成本地机械验收；当前治理状态为 IDS-STAGE111 / IDS-STAGE111-P2 / IDS-V0_1-STAGE111-P2 / IDS-STAGE111-P3-GATE。Stage111 P3 只由新的独立 run 在冻结任务包门禁下承接。
+- P2 固定五条非业务、reference-only 控制请求，每条 32 个输入字段，完整承接 P1 的 30 个控制引用。每条关键结论严格二选一关联 evidence_id_ref 或 evidence_gap_ref；四组纯内存投影覆盖报告证据绑定与章节、未来报告字段、data/index/evidence/model/generated_at 五项快照、影响分析、质量评分、导出审计控制、队列进入原因与状态、外部增强来源语义和业务线白箱门禁，每条 88 字段、共 440 个检查点。
+- 单一权威保持冻结任务包、Stage111 P1 静态合同与 Stage110 Review 控制工件的工程控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。真实队列、报告、PDF、快照、影响分析、质量评分、人工确认、导出审计、数据库、OVH 与生产保持后续白箱授权。
+- 已验证：Stage111 P2 聚焦 8/8、Stage111 P1 聚焦 7/7、Stage110 前向兼容 38/38、Stage109 前向兼容 38/38、两组 Batch 门禁用例 13/13、Stage005 直接治理校验 valid=true 及机器平面 7 个中文文件均通过。完整历史发现保留为独立高成本基线，不作为本 P2 的完成态断言。回执记录运行计数为 0、运行标志为 false，模型 Token 与 Agent 执行均为 0。
+- 回滚只撤回 Stage111 P2 的范围说明、纯内存模块、合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 PASS_REPORT_REGENERATION_QUEUE_CONTRACT_RUNTIME_DISABLED；Stage111 P1、Stage110 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。既有开发分支的用户授权恢复检查点保持可用。
+- 下一步：仅在新的独立 run 进入 IDS-STAGE111-P3-GATE，继续使用同一既有 scratch worktree 与开发分支。
+
 ## Current Gate - Stage111 P1 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE111-P1` 已完成本地机械验收；当前治理状态为 `IDS-STAGE111 / IDS-STAGE111-P1 / IDS-V0_1-STAGE111-P1 / IDS-STAGE111-P2-GATE`。Stage111 P2 只由新的独立 run 在冻结任务包门禁下承接。
