@@ -26,6 +26,7 @@ from .ingestion import (
     IngestionError,
     PersistedRawAttachment,
     _family,
+    _message_timestamp,
 )
 from .models import CashflowObservation, PaymentRequestObservation, ParsedFacts, SourceRef, Transaction
 from .parsing import (
@@ -413,6 +414,17 @@ class _PaymentRequestObservationAccumulator:
         self.observations: list[tuple[datetime, PaymentRequestObservation]] = []
         self.rejection_categories: dict[str, int] = {}
         self.ocr_ready: bool | None = None
+
+    @property
+    def latest_parsed_received_at(self) -> datetime | None:
+        """Return the newest exact-source report that passed the title gate.
+
+        The worker uses this only to decide whether an older, unavailable
+        attachment can affect the newest published operational observation.
+        It is never persisted or exposed by the public page.
+        """
+
+        return max((received_at for received_at, _observation in self.observations), default=None)
 
     def add(self, attachment: DownloadedAttachment) -> None:
         if (
@@ -2025,6 +2037,25 @@ class DailyFundsRuntime:
             accumulator.add(attachment)
         return accumulator.write()
 
+    def _latest_parsed_payment_request_received_at(
+        self,
+        attachments: Iterable[DownloadedAttachment],
+    ) -> datetime | None:
+        """Identify the newest verified candidate before tolerating an old failure.
+
+        A successfully downloaded non-financial attachment cannot prove that
+        a payment-request report is current.  Run the same strict parser gate
+        used by the projection and compare only a parsed report's receipt time
+        with failed attachment occurrences.  The caller writes the projection
+        separately, so this preflight retains no source payload and creates no
+        publication side effect.
+        """
+
+        accumulator = _PaymentRequestObservationAccumulator(self)
+        for attachment in attachments:
+            accumulator.add(attachment)
+        return accumulator.latest_parsed_received_at
+
     def _clear_payment_request_observation(self) -> None:
         """Make an interrupted live refresh visible instead of serving stale money.
 
@@ -2122,7 +2153,9 @@ class DailyFundsRuntime:
         # whether each downloaded image is a real payment-request report.
         messages = (*client.selected_messages(page), *client.quarantine_messages(page))
         attachments: list[DownloadedAttachment] = []
+        failed_attachments: list[tuple[datetime, IngestionError]] = []
         seen_occurrences: set[tuple[str, int]] = set()
+        attempted_attachments = 0
         for message in messages:
             message_id_hash = client.message_id_hash(message)
             for index in range(client.attachment_count(message)):
@@ -2130,9 +2163,25 @@ class DailyFundsRuntime:
                 if occurrence in seen_occurrences:
                     raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_AMBIGUOUS")
                 seen_occurrences.add(occurrence)
-                if len(attachments) >= _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS:
+                if attempted_attachments >= _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS:
                     raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_LIMIT")
-                attachments.append(client.download(message, index))
+                attempted_attachments += 1
+                try:
+                    attachments.append(client.download(message, index))
+                except IngestionError as exc:
+                    # A provider can retain an inaccessible, old attachment
+                    # beside a newer confirmed payment-request screenshot.
+                    # The old occurrence cannot invalidate that newer source,
+                    # while a failure at the same or a later time must still
+                    # stop publication so the page never presents stale money
+                    # as current.
+                    failed_attachments.append((_message_timestamp(message), exc))
+
+        if failed_attachments:
+            latest_parsed_received_at = self._latest_parsed_payment_request_received_at(attachments)
+            latest_failed_at, latest_failure = max(failed_attachments, key=lambda item: item[0])
+            if latest_parsed_received_at is None or latest_failed_at >= latest_parsed_received_at:
+                raise latest_failure
 
         projection = self._write_payment_request_observation(attachments)
         status = projection.get("status")

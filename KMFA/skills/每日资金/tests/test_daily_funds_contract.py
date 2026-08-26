@@ -2497,7 +2497,7 @@ def test_payment_request_refresh_reports_attachment_provider_phase_without_provi
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime = DailyFundsRuntime(_config(tmp_path))
-    message = {"fixture": "attachment-failure"}
+    message = {"fixture": "attachment-failure", "createTime": "2026-08-26T01:00:00Z"}
 
     class AttachmentFailureClient:
         @staticmethod
@@ -2530,6 +2530,148 @@ def test_payment_request_refresh_reports_attachment_provider_phase_without_provi
     assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PROVIDER_FAILED"}
     saved = (runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8")
     assert "ATTACHMENT_DOWNLOAD_FAILED" not in saved
+
+
+def test_payment_request_refresh_keeps_a_newer_verified_report_when_an_older_attachment_is_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An old provider miss cannot erase a newer parsed finance-group report."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(replace(_config(tmp_path), ocr_enabled=True))
+    older = {"openMessageId": "older", "createTime": "2026-08-24T01:00:00Z"}
+    newer = {"openMessageId": "newer", "createTime": "2026-08-25T01:00:00Z"}
+    payload = b"\x89PNG\r\n\x1a\nnewer-payment-request"
+    downloaded = DownloadedAttachment(
+        message=newer,
+        message_id="newer",
+        message_id_hash="b" * 64,
+        message_at=datetime(2026, 8, 25, 1, tzinfo=UTC),
+        index=0,
+        filename="newer.png",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+
+    class MixedClient:
+        @staticmethod
+        def collect_group_history_v2(_start: datetime, _end: datetime) -> DwsPage:
+            return DwsPage(messages=(older, newer), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page: DwsPage):
+            return (older, newer)
+
+        @staticmethod
+        def quarantine_messages(_page: DwsPage):
+            return ()
+
+        @staticmethod
+        def message_id_hash(message: dict[str, object]) -> str:
+            return "a" * 64 if message is older else "b" * 64
+
+        @staticmethod
+        def attachment_count(_message: dict[str, object]) -> int:
+            return 1
+
+        @staticmethod
+        def download(message: dict[str, object], _index: int) -> DownloadedAttachment:
+            if message is older:
+                raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED")
+            return downloaded
+
+    monkeypatch.setattr(runtime, "_dws_client", MixedClient)
+    monkeypatch.setattr(runtime_module, "deterministic_ocr_runtime_ready", lambda: True)
+    monkeypatch.setattr(
+        runtime_module,
+        "parse_payment_request_observation",
+        lambda **kwargs: SimpleNamespace(
+            business_date=kwargs["received_at"].date(),
+            request_total_fen=1,
+        ),
+    )
+
+    result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
+
+    assert result == {"ok": True, "code": "PAYMENT_REQUEST_REFRESH_VERIFIED"}
+    projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
+    assert projection["status"] == "VERIFIED"
+    assert projection["source_coverage"]["parsed_documents"] == 1
+
+
+def test_payment_request_refresh_blocks_a_newer_attachment_failure_before_stale_data_can_publish(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A later unavailable source remains a hard stop for the live page."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(replace(_config(tmp_path), ocr_enabled=True))
+    older = {"openMessageId": "older", "createTime": "2026-08-24T01:00:00Z"}
+    newer = {"openMessageId": "newer", "createTime": "2026-08-25T01:00:00Z"}
+    payload = b"\x89PNG\r\n\x1a\nolder-payment-request"
+    downloaded = DownloadedAttachment(
+        message=older,
+        message_id="older",
+        message_id_hash="a" * 64,
+        message_at=datetime(2026, 8, 24, 1, tzinfo=UTC),
+        index=0,
+        filename="older.png",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="image/png",
+    )
+
+    class MixedClient:
+        @staticmethod
+        def collect_group_history_v2(_start: datetime, _end: datetime) -> DwsPage:
+            return DwsPage(messages=(older, newer), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page: DwsPage):
+            return (older, newer)
+
+        @staticmethod
+        def quarantine_messages(_page: DwsPage):
+            return ()
+
+        @staticmethod
+        def message_id_hash(message: dict[str, object]) -> str:
+            return "a" * 64 if message is older else "b" * 64
+
+        @staticmethod
+        def attachment_count(_message: dict[str, object]) -> int:
+            return 1
+
+        @staticmethod
+        def download(message: dict[str, object], _index: int) -> DownloadedAttachment:
+            if message is newer:
+                raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED")
+            return downloaded
+
+    monkeypatch.setattr(runtime, "_dws_client", MixedClient)
+    monkeypatch.setattr(runtime_module, "deterministic_ocr_runtime_ready", lambda: True)
+    monkeypatch.setattr(
+        runtime_module,
+        "parse_payment_request_observation",
+        lambda **kwargs: SimpleNamespace(
+            business_date=kwargs["received_at"].date(),
+            request_total_fen=1,
+        ),
+    )
+
+    result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
+
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PROVIDER_FAILED"}
+    projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
+    assert projection["status"] == "NEEDS_REVIEW"
+    assert projection["points"] == []
 
 
 @pytest.mark.parametrize(("internal_code", "expected_code"), (
