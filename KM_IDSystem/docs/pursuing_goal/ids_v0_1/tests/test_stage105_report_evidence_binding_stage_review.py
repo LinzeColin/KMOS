@@ -414,6 +414,12 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE107-P3",
             "IDS-STAGE107-P4-GATE",
         )
+        stage107_phase4_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P4",
+            "IDS-V0_1-STAGE107-P4",
+            "IDS-STAGE107-REVIEW-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -436,6 +442,7 @@ class Stage105ReportEvidenceBindingStageReviewTests(unittest.TestCase):
                 stage107_phase1_current,
                 stage107_phase2_current,
                 stage107_phase3_current,
+                stage107_phase4_current,
             },
         )
         if current == phase4_current:
