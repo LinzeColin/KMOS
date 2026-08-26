@@ -31,6 +31,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
+    inert_service_auth_policy_resource_ids,
     orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
@@ -262,6 +263,11 @@ def main(argv: list[str] | None = None) -> int:
     orphaned_policy_diagnostic = subparsers.add_parser("diagnose-orphaned-policy")
     orphaned_policy_diagnostic.add_argument("--policies", required=True)
 
+    inert_policy = subparsers.add_parser("write-inert-service-auth-policy-env")
+    inert_policy.add_argument("--service-tokens", required=True)
+    inert_policy.add_argument("--policies", required=True)
+    inert_policy.add_argument("--output", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -407,6 +413,11 @@ def main(argv: list[str] | None = None) -> int:
             print(diagnose_orphaned_bridge_resources(args.service_tokens, args.policies))
         elif args.command == "diagnose-orphaned-policy":
             print(diagnose_orphaned_bridge_policy(args.policies))
+        elif args.command == "write-inert-service-auth-policy-env":
+            _write_owned_resource_material(
+                _private_output(parser, args),
+                inert_service_auth_policy_resource_ids(args.service_tokens, args.policies),
+            )
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
     except (AccessBridgeInputError, KeyError, OSError, ValueError):

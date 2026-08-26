@@ -578,6 +578,55 @@ def orphaned_bridge_resource_ids(
     }
 
 
+def inert_service_auth_policy_resource_ids(
+    service_tokens_path: str | Path,
+    policies_path: str | Path,
+) -> dict[str, tuple[str, ...]]:
+    """Select one inert service-auth policy on a fixed control child app.
+
+    Historical bridge runs can leave an old-name policy after the corresponding
+    service token has already disappeared.  Such a policy grants no current
+    access.  This function never selects a policy with a present token,
+    multiple policies, an identity selector, or an allow decision.
+    """
+
+    try:
+        policies = _cloudflare_single_page_result(policies_path)
+        tokens = _cloudflare_single_page_result(service_tokens_path)
+    except AccessBridgeInputError as exc:
+        raise AccessBridgeInputError("inert service-auth provider input invalid") from exc
+    if len(policies) != 1:
+        raise AccessBridgeInputError("inert service-auth policy is not unique")
+
+    policy = policies[0]
+    policy_id = policy.get("id")
+    if (
+        not isinstance(policy_id, str)
+        or _UUID_RE.fullmatch(policy_id.lower()) is None
+        or policy.get("decision") != "non_identity"
+    ):
+        raise AccessBridgeInputError("inert service-auth policy is invalid")
+    include = policy.get("include")
+    if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
+        raise AccessBridgeInputError("inert service-auth selector is invalid")
+    selector = include[0]
+    service_token = selector.get("service_token")
+    if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
+        raise AccessBridgeInputError("inert service-auth selector is invalid")
+    token_id = service_token.get("token_id")
+    if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
+        raise AccessBridgeInputError("inert service-auth token is invalid")
+    if any(
+        isinstance(token.get("id"), str) and token["id"].lower() == token_id.lower()
+        for token in tokens
+    ):
+        raise AccessBridgeInputError("inert service-auth token still exists")
+    return {
+        "service_token_ids": (),
+        "policy_ids": (policy_id.lower(),),
+    }
+
+
 def _strict_credential(value: object) -> str:
     if not isinstance(value, str) or _CREDENTIAL_RE.fullmatch(value) is None:
         raise AccessBridgeInputError("service token response invalid")
