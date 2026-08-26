@@ -2653,8 +2653,11 @@ jobs:
           if app.get("git_branch") != "main":
               fail("SOURCE_BRANCH_UNEXPECTED")
           revision = app.get("git_commit_sha")
-          if not isinstance(revision, str) or re.fullmatch(r"[0-9a-f]{40}", revision.lower()) is None:
-              fail("SOURCE_REVISION_UNAVAILABLE")
+          current_revision = (
+              revision.lower()
+              if isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}", revision.lower()) is not None
+              else None
+          )
           command_fields = (
               "docker_compose_custom_start_command",
               "docker_compose_custom_build_command",
@@ -2680,7 +2683,7 @@ jobs:
           ):
               fail("DEPLOYMENT_ALREADY_ACTIVE")
           Path(sys.argv[3]).write_text(
-              json.dumps({"pointer_state": "CURRENT" if revision.lower() == expected else "ADVANCE"}),
+              json.dumps({"pointer_state": "CURRENT" if current_revision == expected else "ADVANCE"}),
               encoding="utf-8",
           )
           Path(sys.argv[3]).chmod(0o600)

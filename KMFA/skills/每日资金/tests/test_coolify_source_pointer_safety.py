@@ -24,6 +24,8 @@ def test_source_advance_is_main_only_exact_target_and_values_free() -> None:
     assert "KMFA/deploy/coolify/docker-compose.yml" in step
     assert "DEPLOYMENT_ALREADY_ACTIVE" in step
     assert 'active = active.get("deployments", active.get("items"))' in step
+    assert "current_revision = (" in step
+    assert '"CURRENT" if current_revision == expected else "ADVANCE"' in step
     assert 'json.dumps({"git_commit_sha": os.environ["EXPECTED_SOURCE_REVISION"]})' in step
     assert 'str(payload.get("git_commit_sha") or "").strip().lower() != expected' in step
     assert "daily_funds_source_advance_pointer=ADVANCED" in step
