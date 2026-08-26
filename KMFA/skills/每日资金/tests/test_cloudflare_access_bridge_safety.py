@@ -25,6 +25,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token,
     control_application_payload,
     control_application_policy_state,
+    diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
     orphaned_bridge_run_tag,
@@ -521,6 +522,28 @@ def test_orphaned_resource_diagnostic_is_finite_and_values_free(tmp_path: Path) 
     assert manager.main([
         "diagnose-orphaned-bridge", "--service-tokens", str(service_tokens), "--policies", str(policies),
     ]) == 0
+
+
+def test_orphaned_policy_diagnostic_identifies_only_structural_categories(tmp_path: Path) -> None:
+    policies = tmp_path / "policies.json"
+    policy = {
+        "id": POLICY_ID,
+        "name": "kmfa-daily-funds-history-probe-312-1",
+        "decision": "non_identity",
+        "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+    }
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": [policy]})
+    assert diagnose_orphaned_bridge_policy(policies) == "POLICY_EXACT"
+
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": [policy, policy]})
+    assert diagnose_orphaned_bridge_policy(policies) == "POLICY_NOT_UNIQUE"
+
+    policy["decision"] = "allow"
+    _write(policies, {"success": True, "result_info": {"total_pages": 1}, "result": [policy]})
+    assert diagnose_orphaned_bridge_policy(policies) == "POLICY_DECISION_INVALID"
+
+    manager = _load_script()
+    assert manager.main(["diagnose-orphaned-policy", "--policies", str(policies)]) == 0
 
 
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
@@ -1163,6 +1186,7 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "write-orphaned-resource-env" in step
     assert "write-orphaned-run-tag-env" in step
     assert "diagnose-orphaned-bridge" in step
+    assert "diagnose-orphaned-policy" in step
     assert "--retired-run-tag" in step
     assert "/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" in step
     assert "UNRECONCILABLE_${orphaned_diagnostic}" in step

@@ -1074,6 +1074,12 @@ jobs:
               --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
             case "$orphaned_diagnostic" in
               TOKEN_ABSENT|TOKEN_COMPLETED_RUN_CANDIDATE) ;;
+              POLICY_*)
+                orphaned_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-orphaned-policy \
+                  --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
+                echo "${CONTROL_LABEL}_orphaned_bridge=UNRECONCILABLE_${orphaned_diagnostic}"
+                return 1
+                ;;
               *) echo "${CONTROL_LABEL}_orphaned_bridge=UNRECONCILABLE_${orphaned_diagnostic}"; return 1 ;;
             esac
             if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \

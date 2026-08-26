@@ -430,38 +430,60 @@ def owned_bridge_resource_ids(
     }
 
 
-def _orphaned_bridge_policy_material(policies_path: str | Path) -> tuple[str, str, str]:
-    """Validate one exact bridge policy without exposing its identifiers."""
+def _orphaned_bridge_policy_state(
+    policies_path: str | Path,
+) -> tuple[str, tuple[str, str, str] | None]:
+    """Validate one bridge policy and retain only private material for callers."""
 
-    policies = _cloudflare_single_page_result(policies_path)
+    try:
+        policies = _cloudflare_single_page_result(policies_path)
+    except AccessBridgeInputError:
+        return "POLICY_LIST_INVALID", None
+    if not policies:
+        return "POLICY_EMPTY", None
     if len(policies) != 1:
-        raise AccessBridgeInputError("orphaned bridge policy is not unique")
+        return "POLICY_NOT_UNIQUE", None
+
     policy = policies[0]
     policy_id = policy.get("id")
+    if not isinstance(policy_id, str) or _UUID_RE.fullmatch(policy_id.lower()) is None:
+        return "POLICY_ID_INVALID", None
     policy_name = policy.get("name")
-    if (
-        not isinstance(policy_id, str)
-        or _UUID_RE.fullmatch(policy_id.lower()) is None
-        or not isinstance(policy_name, str)
-        or not policy_name.startswith(_BRIDGE_RESOURCE_PREFIX)
-        or policy.get("decision") != "non_identity"
-    ):
-        raise AccessBridgeInputError("orphaned bridge policy is invalid")
+    if not isinstance(policy_name, str) or not policy_name.startswith(_BRIDGE_RESOURCE_PREFIX):
+        return "POLICY_NAME_INVALID", None
     run_tag = policy_name.removeprefix(_BRIDGE_RESOURCE_PREFIX)
     if bridge_resource_name(run_tag) != policy_name:
-        raise AccessBridgeInputError("orphaned bridge policy name is invalid")
+        return "POLICY_NAME_INVALID", None
+    if policy.get("decision") != "non_identity":
+        return "POLICY_DECISION_INVALID", None
 
     include = policy.get("include")
     if not isinstance(include, list) or len(include) != 1 or not isinstance(include[0], Mapping):
-        raise AccessBridgeInputError("orphaned bridge policy selector is invalid")
+        return "POLICY_SELECTOR_INVALID", None
     selector = include[0]
     service_token = selector.get("service_token")
     if set(selector) != {"service_token"} or not isinstance(service_token, Mapping):
-        raise AccessBridgeInputError("orphaned bridge policy selector is invalid")
+        return "POLICY_SELECTOR_INVALID", None
     token_id = service_token.get("token_id")
     if not isinstance(token_id, str) or _UUID_RE.fullmatch(token_id.lower()) is None:
-        raise AccessBridgeInputError("orphaned bridge token is invalid")
-    return policy_id.lower(), policy_name, token_id.lower()
+        return "POLICY_TOKEN_INVALID", None
+    return "POLICY_EXACT", (policy_id.lower(), policy_name, token_id.lower())
+
+
+def diagnose_orphaned_bridge_policy(policies_path: str | Path) -> str:
+    """Return a finite, values-free classification for a bridge policy list."""
+
+    state, _ = _orphaned_bridge_policy_state(policies_path)
+    return state
+
+
+def _orphaned_bridge_policy_material(policies_path: str | Path) -> tuple[str, str, str]:
+    """Validate one exact bridge policy without exposing its identifiers."""
+
+    state, material = _orphaned_bridge_policy_state(policies_path)
+    if material is None:
+        raise AccessBridgeInputError(f"orphaned bridge policy {state.lower()}")
+    return material
 
 
 def orphaned_bridge_run_tag(policies_path: str | Path) -> str:
@@ -480,10 +502,10 @@ def diagnose_orphaned_bridge_resources(
 ) -> str:
     """Classify one orphan cleanup candidate without returning provider data."""
 
-    try:
-        _, policy_name, token_id = _orphaned_bridge_policy_material(policies_path)
-    except AccessBridgeInputError:
-        return "POLICY_INVALID"
+    policy_state, material = _orphaned_bridge_policy_state(policies_path)
+    if material is None:
+        return policy_state
+    _, policy_name, token_id = material
     try:
         tokens = _cloudflare_single_page_result(service_tokens_path)
     except AccessBridgeInputError:
