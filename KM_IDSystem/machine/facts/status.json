@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE112",
-  "phase": "IDS-STAGE112-P1",
-  "task": "IDS-V0_1-STAGE112-P1",
-  "real_progress": "Stage112 报告导出审计 P1 已固定 32 个未来控制引用、data/index/evidence/model/generated_at 五项生成快照、20 类失败关闭与四条中文反馈；每次未来导出保持 actor、time、report_id、evidence_snapshot 审计控制引用。",
+  "phase": "IDS-STAGE112-P2",
+  "task": "IDS-V0_1-STAGE112-P2",
+  "real_progress": "Stage112 报告导出审计 P2 已固定五条非业务、reference-only 控制请求，每条 34 个字段，机械投影四组控制记录、每条 100 个字段、共 500 个检查点；actor、time、report_id、evidence_snapshot、证据绑定、快照、影响、质量、审计状态／保留与白箱门禁保持控制形状。",
   "report_grade": "冻结 Stage112 任务包与 Stage111 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P1 只形成报告导出审计静态控制证据，保持报告证据绑定、PDF 引用来源、外部增强来源分离、人工确认、报告快照、影响分析、质量评分和导出审计保留控制；真实导出、审计写入和运行继续由后续白箱授权阶段管理。",
-  "evidence_status": "REPORT_EXPORT_AUDIT_CONTRACT_RUNTIME_DISABLED",
+  "business_verdict": "本 P2 只形成纯内存报告导出审计控制投影，保持 actor、time、report_id、evidence_snapshot、报告证据绑定、PDF 引用、生成快照、影响、质量、审计状态／失败原因／保留、重新生成、撤回和业务线白箱门禁；真实导出、审计写入和运行继续由后续白箱授权阶段管理。",
+  "evidence_status": "REPORT_EXPORT_AUDIT_CONTROL_SLICE_RUNTIME_DISABLED",
   "rendered_at": "2026-08-27",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE112-P2-GATE",
+  "next_gate": "IDS-STAGE112-P3-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }

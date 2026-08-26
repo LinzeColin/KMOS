@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE112"
-current_phase_id: "IDS-STAGE112-P1"
-current_task_id: "IDS-V0_1-STAGE112-P1"
-next_gate_id: "IDS-STAGE112-P2-GATE"
+current_phase_id: "IDS-STAGE112-P2"
+current_task_id: "IDS-V0_1-STAGE112-P2"
+next_gate_id: "IDS-STAGE112-P3-GATE"
 current_transition_history:
+  stage112_phase2_state:
+    current_stage_id: "IDS-STAGE112"
+    current_phase_id: "IDS-STAGE112-P2"
+    current_task_id: "IDS-V0_1-STAGE112-P2"
+    next_gate_id: "IDS-STAGE112-P3-GATE"
   stage112_phase1_state:
     current_stage_id: "IDS-STAGE112"
     current_phase_id: "IDS-STAGE112-P1"
@@ -2000,21 +2005,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-112"
     objective: "依据冻结 Stage112 任务包与 Stage111 Review 控制工件，完成报告导出审计的 P1 静态控制合同、P2 受控最小切片、P3 异常场景验证、P4 交付控制证据与整阶段机械复审，固定每次未来导出的 actor、time、report_id、evidence_snapshot 审计控制以及报告证据绑定、来源分离、白箱人工确认、报告快照、影响、质量和回滚形状。"
-    status: "phase1_completed_local"
+    status: "phase2_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE112-P2-GATE"
+    next_gate_id: "IDS-STAGE112-P3-GATE"
     gate:
-      gate_id: "IDS-STAGE112-P1-GATE"
+      gate_id: "IDS-STAGE112-P2-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE112-P2-GATE"
+      next_gate_id: "IDS-STAGE112-P3-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage112 任务包与 Stage111 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 固定 actor、time、report_id、evidence_snapshot 及报告证据绑定、引用、来源分离、人工确认、报告快照、五项生成快照、影响、质量、导出状态、保留、重新生成和撤回的未来控制引用。"
+      - "P2 固定五条非业务、reference-only 控制请求；每条包含 34 个输入字段、四组共 100 个投影字段，五条合计 500 个纯内存控制字段。"
       - "所有真实报告导出、PDF 生成、审计写入、数据库、模型 Token、Agent、OVH、生产与正式上传保持零运行时边界。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、引用内容、快照、真实证据账本、审计日志、数据库、报告状态、质量分数或业务结论。"
-      - "执行真实导出、报告生成、PDF 生成、审计写入、数据库写入、人工确认、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage112 P2 及以后阶段。"
+      - "执行真实导出、报告生成、PDF 生成、审计写入、数据库写入、人工确认、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage112 P3 及以后阶段。"
     phases:
       - phase_id: "IDS-STAGE112-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -2067,19 +2073,19 @@ stages:
       - phase_id: "IDS-STAGE112-P2"
         name: "Phase 2 · 实现、接入与最小可运行切片"
         objective: "以 Stage112 P1 静态合同为前序，实现报告证据绑定、章节输出、快照保存、影响分析或质量评分切片，并记录报告导出审计。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE112-P3-GATE"
         gate:
           gate_id: "IDS-STAGE112-P2-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE112-P3-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE112-P2"
             name: "实现报告导出审计受控最小切片"
             objective: "在独立授权 run 中承接 P1 静态合同。"
-            status: "not_started"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE112-P1"
             acceptance_ids:
@@ -2088,11 +2094,33 @@ stages:
               - "ACC-STAGE112-P2-02"
               - "ACC-STAGE112-P2-03"
               - "ACC-STAGE112-P2-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage112_report_export_audit_control_slice"
+              - "Stage112 P1 至 Stage112 P2 兼容、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage112 P2 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage112 P2 聚焦纯内存报告导出审计控制切片、Stage112 P1 前向兼容、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage112 P2 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-112_报告导出审计.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE112_PHASE2_REPORT_EXPORT_AUDIT_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage112_report_export_audit_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage112_report_export_audit_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage112_report_export_audit_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage112-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE112_PHASE1_REPORT_EXPORT_AUDIT_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage112_report_export_audit_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage112_report_export_audit_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage112-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE111_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage111_report_regeneration_queue_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage111_report_regeneration_queue_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage111-review-local.json"
+            risk: "将纯内存导出审计控制投影、聚焦用例、路线或机器事实误作真实报告、导出、审计、业务事实或生产动作，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P2 的范围说明、纯内存模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage112 P1 的本地零运行时状态；不改变 Stage112 P1、Stage111 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE112-P3"
         name: "Phase 3 · 报告导出审计专项验证与异常场景"
         objective: "验证关键结论 evidence_id/evidence_gap、资料撤回、证据降级、索引版本变化的报告状态影响，以及外部增强来源分离。"
         status: "not_started"
-        entry_authorized: false
+        entry_authorized: true
         next_gate_id: "IDS-STAGE112-P4-GATE"
         gate:
           gate_id: "IDS-STAGE112-P3-GATE"

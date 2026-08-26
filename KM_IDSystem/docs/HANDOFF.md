@@ -1,6 +1,15 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage112 P1 accepted locally - 2026-08-27
+## Current Gate - Stage112 P2 accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE112-P2` 已完成本地纯内存受控最小切片验收；当前治理状态为 `IDS-STAGE112 / IDS-STAGE112-P2 / IDS-V0_1-STAGE112-P2 / IDS-STAGE112-P3-GATE`。P3 由新的独立 run 在冻结任务包门禁下承接。
+- P2 固定五条非业务、`reference-only` 控制请求，每条 `34` 个输入字段，完整承接 P1 的 `32` 个控制引用；四组纯内存投影覆盖审计身份与证据绑定、报告及五项生成快照、报告影响／质量／审计状态／保留、外部增强来源分离与业务线白箱门禁，每条 `100` 个字段、共 `500` 个检查点。
+- 单一工程控制上下文保持冻结 Stage112 任务包、Stage112 P1 静态合同与 Stage111 Review 控制工件；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 P2 形成纯内存控制投影与本地治理证据。
+- 已验证：Stage112 P2 聚焦 `8/8`、Stage112 P1 前向投影 `7/7`、Stage111 Review 前向投影 `7/7`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁用例 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`，模型 Token、Agent、OVH 与生产运行保持零执行。
+- 回滚仅撤回 Stage112 P2 的范围说明、纯内存控制模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REPORT_EXPORT_AUDIT_CONTRACT_RUNTIME_DISABLED`；Stage112 P1、Stage111 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub main/release、OVH 与应用状态保持原有边界。本 P2 没有新增远端推送。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE112-P3-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage112 P1 accepted locally - 2026-08-27
 
 - IDS-V0_1-STAGE112-P1 已完成本地静态控制验收；当前治理状态为 IDS-STAGE112 / IDS-STAGE112-P1 / IDS-V0_1-STAGE112-P1 / IDS-STAGE112-P2-GATE。P2 只由新的独立 run 在冻结任务包门禁下承接。
 - P1 固定 32 个未来控制引用、data/index/evidence/model/generated_at 五项生成快照、20 类失败关闭与四条中文反馈。每次未来报告导出保持 actor、time、report_id、evidence_snapshot 控制引用，并保持报告证据绑定、PDF 引用来源、外部增强来源分离、人工确认、报告快照、影响分析、质量评分、审计状态和保留控制。
