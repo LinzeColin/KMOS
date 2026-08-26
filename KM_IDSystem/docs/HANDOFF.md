@@ -1,16 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage108 Review accepted locally - 2026-08-26
+## Current Gate - Stage109 P1 accepted locally - 2026-08-26
 
-- `IDS-V0_1-STAGE108-REVIEW` 已完成本地机械验收；当前治理状态为 `IDS-STAGE108 / IDS-STAGE108-REVIEW / IDS-V0_1-STAGE108-REVIEW / IDS-STAGE109-P1-GATE`。Stage109 P1 只由新的独立 run 在冻结任务包门禁下承接。
-- Review 只聚合 P1 的 `24/5/23/4`、P2 的 `5×26/4×82/410/22/4`、P3 的 `5×39=195/5/5/2/15/4` 与 P4 的 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17` 固定、非业务、`reference-only` 控制工件；关键结论 `evidence_id/evidence_gap` 二选一、外部增强来源语义、报告状态影响、业务线白箱门禁和 P4→P3 回退保持一致。
-- 已验证：Review 聚焦 `7/7`、Stage108 P1--Review 兼容 `38/38`、Stage088--Stage108 精确白箱链 `967/967`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
-- 本 checkout 的 `python` 命令与 `scripts/lean_governance.py` 组合状态保持 `NOT_AVAILABLE`；阶段验收使用冻结任务包、聚焦白箱链、Stage005、两组批次门禁和机器平面检查形成直接证据，完整仓库绿保持为独立范围。
-- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。既有远端 WIP 检查点保全同一开发分支；本 Review 完成态仅形成新的本地提交，`main`、release、正式全局上传、OVH 与生产继续由后续门禁承接。
-- 回滚只撤回 Stage108 Review 的范围说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REPORT_SNAPSHOT_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage108 P1/P2/P3/P4、Stage107 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
-- 下一步：仅在新的独立 run 进入 `IDS-STAGE109-P1-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+- `IDS-V0_1-STAGE109-P1` 已完成本地机械验收；当前治理状态为 `IDS-STAGE109 / IDS-STAGE109-P1 / IDS-V0_1-STAGE109-P1 / IDS-STAGE109-P2-GATE`。P2 只由新的独立 run 在冻结任务包门禁下承接。
+- P1 固定 `33` 个非业务、`reference-only` 控制引用、`data/index/evidence/model/generated_at` 五项生成快照、`11` 项报告影响交付控制、`35` 类失败关闭与 `4` 条中文反馈。引用资料更新、资料撤回、证据降级、索引版本变化、受影响报告、报告状态影响、报告质量评分、导出审计、模板限制、重新生成与撤回全部保留未来控制边界；关键结论保持 `evidence_id/evidence_gap` 二选一，外部增强保持底层来源类型，人工确认与最终结论保持业务线白箱前置。
+- 已验证：P1 聚焦 `7/7`、Stage108 P1--Review 兼容 `38/38`、Stage088--Stage109 精确白箱链 `974/974`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- Lean 语义检查状态为 `NOT_AVAILABLE`；阶段验收采用冻结任务包、聚焦白箱链、Stage005、两组批次门禁和机器平面检查形成直接证据，完整仓库绿由独立范围管理。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。本 P1 新增远端写入数为 `0`；用户已授权的既有恢复检查点继续保全同一开发分支，`main`、release、正式全局上传、OVH 与生产继续由后续门禁承接。
+- 回滚只撤回 Stage109 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REVIEWED_REPORT_SNAPSHOT_RUNTIME_DISABLED`；Stage108 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE109-P2-GATE`，继续使用同一既有 scratch worktree 与开发分支。
 
-## Superseded Gate - Stage108 P4 accepted locally - 2026-08-26
+## Superseded Gate - Stage108 Review accepted locally - 2026-08-26
 
 ## Superseded Gate - Stage108 P3 accepted locally - 2026-08-26
 
