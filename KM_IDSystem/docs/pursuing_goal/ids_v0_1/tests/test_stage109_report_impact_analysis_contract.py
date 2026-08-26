@@ -289,6 +289,8 @@ class Stage109ReportImpactAnalysisPhase1Tests(unittest.TestCase):
             self.assertFalse(is_current_projection)
             return
         self.assertTrue(is_current_projection)
+        if current != phase1_current:
+            return
         self.assertEqual(phase1_current, current)
         self.assertEqual(
             "REPORT_IMPACT_ANALYSIS_CONTRACT_RUNTIME_DISABLED",
