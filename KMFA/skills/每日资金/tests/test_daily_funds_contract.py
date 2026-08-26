@@ -2484,12 +2484,52 @@ def test_payment_request_refresh_clears_stale_points_when_the_exact_source_fails
     monkeypatch.setattr(runtime, "_dws_client", FailingClient)
     result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
 
-    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_FAILED"}
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_SOURCE_READ_FAILED"}
     projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
     assert projection["status"] == "NEEDS_REVIEW"
     assert projection["machine_code"] == "PAYMENT_REQUEST_OBSERVATION_REFRESH_UNAVAILABLE"
     assert projection["points"] == []
     assert "DWS_HISTORY_FAILED" not in json.dumps(projection)
+
+
+def test_payment_request_refresh_reports_attachment_phase_without_provider_detail(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    message = {"fixture": "attachment-failure"}
+
+    class AttachmentFailureClient:
+        @staticmethod
+        def collect_group_history_v2(_start: datetime, _end: datetime) -> DwsPage:
+            return DwsPage(messages=(message,), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page: DwsPage):
+            return (message,)
+
+        @staticmethod
+        def quarantine_messages(_page: DwsPage):
+            return ()
+
+        @staticmethod
+        def message_id_hash(_message: dict[str, object]) -> str:
+            return "d" * 64
+
+        @staticmethod
+        def attachment_count(_message: dict[str, object]) -> int:
+            return 1
+
+        @staticmethod
+        def download(_message: dict[str, object], _index: int) -> DownloadedAttachment:
+            raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED")
+
+    monkeypatch.setattr(runtime, "_dws_client", AttachmentFailureClient)
+    result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
+
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_READ_FAILED"}
+    saved = (runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8")
+    assert "ATTACHMENT_DOWNLOAD_FAILED" not in saved
 
 
 def test_cashflow_observation_admits_explicit_generic_source_labels_to_the_strict_chart_gate(tmp_path: Path) -> None:

@@ -2068,12 +2068,40 @@ class DailyFundsRuntime:
                 return self._payment_request_refresh_locked(now=now)
         except ConfigError:
             self._clear_payment_request_observation()
-            return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_FAILED"}
+            return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_CONFIG_INVALID"}
         except IngestionError as exc:
             if exc.code == "PAYMENT_REQUEST_REFRESH_LOCK_HELD":
                 return {"ok": False, "code": exc.code}
             self._clear_payment_request_observation()
-            return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_FAILED"}
+            return {
+                "ok": False,
+                "code": self._payment_request_refresh_failure_code(exc),
+            }
+
+    @staticmethod
+    def _payment_request_refresh_failure_code(error: IngestionError) -> str:
+        """Classify a live refresh failure without exposing provider detail.
+
+        The public operation receipt needs an actionable category, while a
+        DWS/attachment exception can contain source or provider text.  Keep
+        only the fixed execution phase; the original error remains inside the
+        worker process and never reaches logs, state JSON, or the owner UI.
+        """
+
+        attachment_codes = {
+            "ATTACHMENT_DOWNLOAD_AMBIGUOUS",
+            "ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID",
+            "ATTACHMENT_DOWNLOAD_FAILED",
+            "ATTACHMENT_DOWNLOAD_READ_FAILED",
+            "ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED",
+            "ATTACHMENT_INDEX_INVALID",
+            "UNSUPPORTED_ATTACHMENT",
+        }
+        return (
+            "PAYMENT_REQUEST_REFRESH_ATTACHMENT_READ_FAILED"
+            if error.code in attachment_codes
+            else "PAYMENT_REQUEST_REFRESH_SOURCE_READ_FAILED"
+        )
 
     def _payment_request_refresh_locked(self, *, now: datetime | None) -> dict[str, Any]:
         """Read one bounded DWS window and replace the independent snapshot."""
