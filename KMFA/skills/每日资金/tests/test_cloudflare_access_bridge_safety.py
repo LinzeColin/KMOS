@@ -1029,8 +1029,8 @@ def test_workflow_recovery_restart_is_main_only_and_target_verified() -> None:
 def test_workflow_component_restart_requires_an_exact_compose_component_mapping() -> None:
     workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
     start = workflow.index("精确重启每日资金组件")
-    end = workflow.find("\n      - name:", start + 1)
-    step = workflow[start:] if end == -1 else workflow[start:end]
+    end = workflow.index("只读分类每日资金运行拓扑", start)
+    step = workflow[start:end]
 
     assert "daily-funds-recovery-component-restart" in workflow
     assert "inputs.mode == 'daily-funds-recovery-component-restart'" in step
@@ -1041,12 +1041,12 @@ def test_workflow_component_restart_requires_an_exact_compose_component_mapping(
     assert 'app.get("name") != "kmfa-kmos-p1"' in step
     assert 'app.get("build_pack") != "dockercompose"' in step
     assert '"docker_compose_raw"' in step
-    assert 'destination_id = app.get("destination_id")' in step
-    assert 'destination_type = app.get("destination_type")' in step
+    assert "def runtime_key(record: dict):" in step
+    assert 'for key in ("environment_id", "destination_id", "destination_type"):' in step
+    assert "target_runtime = runtime_key(app)" in step
     assert "TARGET_RUNTIME_BINDING_UNAVAILABLE" in step
-    assert 'service.get("destination_id") != destination_id' in step
-    assert 'service.get("destination_type") != destination_type' in step
-    assert "app_compose.isdisjoint(service_compose)" in step
+    assert "runtime_key(service) != target_runtime" in step
+    assert "contains_daily_funds_component(compose)" in step
     assert 'component.get("name") == "daily-funds"' in step
     assert '"$BASE/api/v1/services"' in step
     assert '"$BASE/api/v1/services/$service_uuid/applications"' in step
@@ -1063,7 +1063,8 @@ def test_workflow_component_restart_requires_an_exact_compose_component_mapping(
 def test_workflow_force_rebuild_uses_the_documented_deploy_route_only() -> None:
     workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
     start = workflow.index("受控强制重建每日资金恢复目标")
-    step = workflow[start:]
+    end = workflow.index("前进每日资金受控源码并重建", start)
+    step = workflow[start:end]
 
     assert "daily-funds-recovery-force-rebuild" in workflow
     assert "inputs.mode == 'daily-funds-recovery-force-rebuild'" in step
