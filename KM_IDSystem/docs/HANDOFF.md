@@ -1,6 +1,15 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage112 P4 accepted locally - 2026-08-27
+## Current Gate - Stage112 Review accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE112-REVIEW` 已完成本地机械复审；当前治理状态为 `IDS-STAGE112 / IDS-STAGE112-REVIEW / IDS-V0_1-STAGE112-REVIEW / IDS-STAGE113-P1-GATE`。Stage113 仅由新的独立 run 在冻结任务包门禁下承接。
+- Review 复审 P1 的 `32/5/20/4`、P2 的 `5×34/4×100/500`、P3 的 `5×53=265/5/5/5/15/4` 与 P4 的 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17` 固定控制形状，覆盖关键结论证据绑定、导出审计身份、报告状态／质量／快照／审计、来源分离、业务线白箱门禁与 `P4→P3` 回退。
+- 冻结任务包、Stage112 P1--P4 与 Stage111 Review 工件只构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 Review 未建立第二权威事实源。
+- 已验证：Review 聚焦 `7/7`、Stage112 P1/P2/P3/P4 与 Stage111 Review 前向治理套件 `52/52`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REPORT_EXPORT_AUDIT_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage112 P1--P4、Stage111 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE113-P1-GATE`；当前分支在本地验收和单一提交完成后可作为休眠前恢复检查点同步。
+
+## Superseded Gate - Stage112 P4 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE112-P4` 已完成本地 metadata-only 交付控制证据验收；当前治理状态为 `IDS-STAGE112 / IDS-STAGE112-P4 / IDS-V0_1-STAGE112-P4 / IDS-STAGE112-REVIEW-GATE`。Review 由新的独立 run 在冻结任务包门禁下承接。
 - P4 机械重放 P3 的五条非业务、`reference-only` 专项场景：承接 P2 的五条请求、每条 `34` 个输入字段、P1 的 `32` 个控制引用、四组投影、每条 `100` 个字段、`500` 个前序检查点，以及 P3 的五条每条 `53` 字段、`265` 个场景检查点、五个控制视图和五条业务线白箱处理记录；形成报告样例、报告快照、报告质量评分、报告影响分析、模板限制与业务线白箱确认各五条，以及重新生成与撤回说明两条，字段形状为 `17/13/13/15/14/14`、共 `388` 个 metadata-only 检查点。

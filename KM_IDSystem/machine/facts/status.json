@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
   "stage": "IDS-STAGE112",
-  "phase": "IDS-STAGE112-P4",
-  "task": "IDS-V0_1-STAGE112-P4",
-  "real_progress": "Stage112 报告导出审计 P4 已从 P3 的五条非业务、reference-only 专项场景投影五组各五条 metadata-only 交付控制记录与两条生命周期说明，共 388 个检查点；报告样例、快照、质量评分、影响分析、模板限制、业务线白箱确认、重新生成与撤回保持可验证控制形状。",
+  "phase": "IDS-STAGE112-REVIEW",
+  "task": "IDS-V0_1-STAGE112-REVIEW",
+  "real_progress": "Stage112 报告导出审计已机械复审 P1--P4 的冻结控制工件：P1 32/5/20/4、P2 5×34/4×100/500、P3 5×53=265/5/5/5/15/4 与 P4 5/5/5/5/5/2、17/13/13/15/14/14、388/4/17 形状保持一致。",
   "report_grade": "冻结 Stage112 任务包、Stage112 P1/P2/P3 控制工件与 Stage111 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 P4 只形成纯内存 metadata-only 报告导出审计交付控制证据。关键结论维持 evidence_id 或 evidence_gap 的严格二选一；actor、time、report_id、evidence_snapshot 维持控制引用；资料撤回、证据降级与索引版本变化维持未来报告状态、质量、快照与导出审计复核控制；外部增强来源分离、模板限制、人工确认、重新生成与撤回由业务线白箱门禁承接。",
-  "evidence_status": "REPORT_EXPORT_AUDIT_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
+  "business_verdict": "本 Review 只形成纯内存报告导出审计整阶段复审证据。关键结论维持 evidence_id 或 evidence_gap 的严格二选一；actor、time、report_id、evidence_snapshot 维持控制引用；报告状态、质量、快照、导出审计、外部增强来源分离、模板限制、人工确认、重新生成与撤回维持业务线白箱门禁与 P4→P3 可验证回退。",
+  "evidence_status": "REVIEWED_REPORT_EXPORT_AUDIT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-27",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE112-REVIEW-GATE",
+  "next_gate": "IDS-STAGE113-P1-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
