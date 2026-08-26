@@ -2355,7 +2355,11 @@ def test_payment_request_message_strip_uses_the_exact_message_day() -> None:
         region = Path(command[1]).stem.removeprefix("payment-")
         assert region in {"strip_grand_total_label", "strip_grand_total"}
         output = {
-            "strip_grand_total_label": "总合计",
+            "strip_grand_total_label": {
+                "6": "总 合 计",
+                "11": "总合 计",
+                "12": "总\n合\t计",
+            }[command[command.index("--psm") + 1]],
             "strip_grand_total": "80397.63",
         }[region]
         return SimpleNamespace(returncode=0, stdout=output, stderr="")

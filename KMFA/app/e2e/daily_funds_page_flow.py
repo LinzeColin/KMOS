@@ -240,9 +240,9 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
         ],
     }
     payment_request_observation = {
-        "schema_version": "kmfa.daily_funds.payment_request_observation.v2",
+        "schema_version": "kmfa.daily_funds.payment_request_observation.v3",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.payment_request_observation.v2",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v3",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
