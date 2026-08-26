@@ -3003,11 +3003,33 @@ def test_payment_request_refresh_blocks_a_newer_parse_rejection_before_stale_dat
 
     result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
 
-    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"}
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_GRAND_TOTAL_NEEDS_REVIEW"}
     projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
     assert projection["status"] == "NEEDS_REVIEW"
     assert projection["points"] == []
     assert downloads == ["newer"]
+
+
+@pytest.mark.parametrize(
+    ("projection", "expected_code"),
+    (
+        ({"machine_code": "PAYMENT_REQUEST_OBSERVATION_OCR_UNAVAILABLE"}, "PAYMENT_REQUEST_REFRESH_OCR_UNAVAILABLE"),
+        ({"machine_code": "PAYMENT_REQUEST_OBSERVATION_DUPLICATE_AMBIGUOUS"}, "PAYMENT_REQUEST_REFRESH_DUPLICATE_NEEDS_REVIEW"),
+        ({"rejection_categories": {"TITLE_CONFIRMATION": 1}}, "PAYMENT_REQUEST_REFRESH_TITLE_NEEDS_REVIEW"),
+        ({"rejection_categories": {"DATE_FIELD": 1}}, "PAYMENT_REQUEST_REFRESH_DATE_NEEDS_REVIEW"),
+        ({"rejection_categories": {"GRAND_TOTAL_LABEL": 1}}, "PAYMENT_REQUEST_REFRESH_GRAND_TOTAL_LABEL_NEEDS_REVIEW"),
+        ({"rejection_categories": {"GRAND_TOTAL": 1}}, "PAYMENT_REQUEST_REFRESH_GRAND_TOTAL_NEEDS_REVIEW"),
+        ({"rejection_categories": {"WORKBOOK_LAYOUT": 1}}, "PAYMENT_REQUEST_REFRESH_WORKBOOK_NEEDS_REVIEW"),
+        ({"rejection_categories": {"OCR_FORMAT": 1}}, "PAYMENT_REQUEST_REFRESH_OCR_NEEDS_REVIEW"),
+        ({"rejection_categories": {"DATE_FIELD": 1, "GRAND_TOTAL": 1}}, "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"),
+        ({"rejection_categories": {"OTHER_REVIEW": 1}}, "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"),
+    ),
+)
+def test_payment_request_refresh_exposes_one_safe_projection_gate(
+    projection: dict[str, object],
+    expected_code: str,
+) -> None:
+    assert DailyFundsRuntime._payment_request_refresh_projection_code(projection) == expected_code
 
 
 @pytest.mark.parametrize(("internal_code", "expected_code"), (

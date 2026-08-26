@@ -2155,6 +2155,38 @@ class DailyFundsRuntime:
             "PAYMENT_REQUEST_REFRESH_SOURCE_READ_FAILED",
         )
 
+    @staticmethod
+    def _payment_request_refresh_projection_code(projection: Mapping[str, Any]) -> str:
+        """Expose one values-free parser gate through the scheduled receipt.
+
+        The private projection already stores a finite rejection category.  A
+        single category identifies the next compatible parser repair without
+        leaking attachment content, source identity, or any financial value.
+        Mixed or unknown outcomes remain at the existing generic review code.
+        """
+
+        machine_code = projection.get("machine_code")
+        if machine_code == "PAYMENT_REQUEST_OBSERVATION_OCR_UNAVAILABLE":
+            return "PAYMENT_REQUEST_REFRESH_OCR_UNAVAILABLE"
+        if machine_code == "PAYMENT_REQUEST_OBSERVATION_DUPLICATE_AMBIGUOUS":
+            return "PAYMENT_REQUEST_REFRESH_DUPLICATE_NEEDS_REVIEW"
+
+        categories = projection.get("rejection_categories")
+        if not isinstance(categories, Mapping) or len(categories) != 1:
+            return "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"
+        category, count = next(iter(categories.items()))
+        if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
+            return "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"
+        category_codes = {
+            "TITLE_CONFIRMATION": "PAYMENT_REQUEST_REFRESH_TITLE_NEEDS_REVIEW",
+            "DATE_FIELD": "PAYMENT_REQUEST_REFRESH_DATE_NEEDS_REVIEW",
+            "GRAND_TOTAL_LABEL": "PAYMENT_REQUEST_REFRESH_GRAND_TOTAL_LABEL_NEEDS_REVIEW",
+            "GRAND_TOTAL": "PAYMENT_REQUEST_REFRESH_GRAND_TOTAL_NEEDS_REVIEW",
+            "WORKBOOK_LAYOUT": "PAYMENT_REQUEST_REFRESH_WORKBOOK_NEEDS_REVIEW",
+            "OCR_FORMAT": "PAYMENT_REQUEST_REFRESH_OCR_NEEDS_REVIEW",
+        }
+        return category_codes.get(category, "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW")
+
     def _payment_request_refresh_locked(self, *, now: datetime | None) -> dict[str, Any]:
         """Read one bounded DWS window and replace the independent snapshot."""
 
@@ -2213,7 +2245,7 @@ class DailyFundsRuntime:
                 status = projection.get("status")
                 if status == "VERIFIED":
                     return {"ok": True, "code": "PAYMENT_REQUEST_REFRESH_VERIFIED"}
-                return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"}
+                return {"ok": False, "code": self._payment_request_refresh_projection_code(projection)}
 
         projection = self._write_payment_request_observation(attachments)
         status = projection.get("status")
@@ -2221,7 +2253,7 @@ class DailyFundsRuntime:
             return {"ok": True, "code": "PAYMENT_REQUEST_REFRESH_VERIFIED"}
         if status == "NOT_AVAILABLE":
             return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_SOURCE_EMPTY"}
-        return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"}
+        return {"ok": False, "code": self._payment_request_refresh_projection_code(projection)}
 
     def raw_archive_audit(self) -> dict[str, Any]:
         """Audit acquired private raw bytes without reading DWS or publishing money.
