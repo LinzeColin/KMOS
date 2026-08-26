@@ -1760,7 +1760,11 @@ class DailyFundsRuntime:
             return "GRAND_TOTAL_LABEL"
         if code.startswith("PAYMENT_REQUEST_TOTAL"):
             return "GRAND_TOTAL"
-        if code.startswith("PAYMENT_REQUEST_OCR") or code.startswith("PAYMENT_REQUEST_IMAGE"):
+        if (
+            code.startswith("PAYMENT_REQUEST_OCR")
+            or code.startswith("PAYMENT_REQUEST_IMAGE")
+            or code.startswith("PAYMENT_REQUEST_PDF")
+        ):
             return "OCR_FORMAT"
         return "OTHER_REVIEW"
 

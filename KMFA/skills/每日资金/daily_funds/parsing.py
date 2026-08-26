@@ -2453,7 +2453,7 @@ def _payment_request_crop_texts(
 ) -> dict[str, tuple[str, ...]]:
     """Read only the four fixed visual cells needed by the report contract."""
 
-    if evidence.magic not in {"PNG", "JPEG", "BMP", "WEBP"}:
+    if evidence.magic not in {"PNG", "JPEG", "BMP", "WEBP", "PDF"}:
         raise ParseError("PAYMENT_REQUEST_IMAGE_UNSUPPORTED")
     try:
         from PIL import Image
@@ -2465,7 +2465,25 @@ def _payment_request_crop_texts(
         source = root / f"input{evidence.suffix}"
         source.write_bytes(payload)
         try:
-            with Image.open(source) as image:
+            image_path = source
+            if evidence.magic == "PDF":
+                try:
+                    page_count = _pdf_page_count(source, runner=runner)
+                except ParseError as exc:
+                    raise ParseError("PAYMENT_REQUEST_PDF_METADATA_INVALID") from exc
+                if page_count != 1:
+                    raise ParseError("PAYMENT_REQUEST_PDF_PAGE_AMBIGUOUS")
+                prefix = root / "payment-request-render"
+                _run_ocr_command(
+                    ["pdftoppm", "-png", "-r", "300", "-f", "1", "-l", "1", str(source), str(prefix)],
+                    runner=runner,
+                    failure_code="PAYMENT_REQUEST_PDF_RENDER_FAILED",
+                )
+                rendered = tuple(sorted(root.glob("payment-request-render-*.png")))
+                if len(rendered) != 1 or rendered[0].is_symlink() or not rendered[0].is_file():
+                    raise ParseError("PAYMENT_REQUEST_PDF_RENDER_FAILED")
+                image_path = rendered[0]
+            with Image.open(image_path) as image:
                 image.load()
                 width, height = image.size
                 if (
