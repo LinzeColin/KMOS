@@ -2591,9 +2591,13 @@ DAILY_FUNDS_CASHFLOW_OBSERVATION_FIELDS = frozenset({
     "schema_version", "generated_at", "parser_version", "source_coverage",
     "rejection_categories", "evidence_version", "points", "status", "machine_code",
 })
-DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v1"
-DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v1"
+DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v2"
+DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v2"
 DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_STATUSES = {"VERIFIED", "NEEDS_REVIEW", "NOT_AVAILABLE"}
+DAILY_FUNDS_PAYMENT_REQUEST_DATE_BASIS_LABELS = {
+    "DOCUMENT_DAY": "表内业务日期",
+    "MESSAGE_DAY": "群消息当天",
+}
 DAILY_FUNDS_PAYMENT_REQUEST_REJECTION_CATEGORY_LABELS = {
     "TITLE_CONFIRMATION": "标题确认",
     "DATE_FIELD": "日期字段",
@@ -4342,7 +4346,7 @@ def _daily_funds_payment_request_observation_view() -> dict[str, Any]:
     needs_review = {
         **unavailable,
         "status": "NEEDS_REVIEW",
-        "message": "待付款请示日表尚未完成标题、日期与总合计复核；不显示金额。",
+        "message": "待付款请示尚未完成固定版式、日期口径与总合计复核；不显示金额。",
     }
     payload = _read_daily_funds_json("payment_request_observation.json")
     if not isinstance(payload, dict) or set(payload) != DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_FIELDS:
@@ -4393,7 +4397,7 @@ def _daily_funds_payment_request_observation_view() -> dict[str, Any]:
     if status != "VERIFIED":
         return {
             **public_base,
-            "message": "待付款请示日表尚未完成标题、日期与总合计复核；不显示金额。"
+            "message": "待付款请示尚未完成固定版式、日期口径与总合计复核；不显示金额。"
             if status == "NEEDS_REVIEW" else "尚未形成已验证的待付款请示日表。",
         }
     if (
@@ -4410,13 +4414,16 @@ def _daily_funds_payment_request_observation_view() -> dict[str, Any]:
     points: list[dict[str, Any]] = []
     prior: date | None = None
     for row in payload["points"]:
-        if not isinstance(row, dict) or set(row) != {"business_date", "request_total_fen"}:
+        if not isinstance(row, dict) or set(row) != {"business_date", "date_basis", "request_total_fen"}:
             return needs_review
         business_date = _daily_funds_date(row.get("business_date"))
+        date_basis = row.get("date_basis")
         request_total = row.get("request_total_fen")
         if (
             business_date is None
             or prior is not None and business_date <= prior
+            or not isinstance(date_basis, str)
+            or date_basis not in DAILY_FUNDS_PAYMENT_REQUEST_DATE_BASIS_LABELS
             or not _daily_funds_is_integer(request_total)
             or request_total <= 0
         ):
@@ -4424,12 +4431,20 @@ def _daily_funds_payment_request_observation_view() -> dict[str, Any]:
         prior = business_date
         points.append({
             "business_date": business_date.isoformat(),
+            "date_basis": DAILY_FUNDS_PAYMENT_REQUEST_DATE_BASIS_LABELS[date_basis],
             "request_total_fen": request_total,
         })
+    point_date_bases = {point["date_basis"] for point in points}
+    if point_date_bases == {"表内业务日期"}:
+        message = "已按标题、表内业务日期与总合计复核的待付款请示；它不是账户余额或已完成付款。"
+    elif point_date_bases == {"群消息当天"}:
+        message = "已按群消息当天、固定总合计标签与三次 OCR 一致复核的待付款请示汇总；它不是账户余额或已完成付款。"
+    else:
+        message = "已按每个数据点标注的日期口径与总合计复核的待付款请示；它不是账户余额或已完成付款。"
     return {
         **public_base,
         "points": points,
-        "message": "已按标题、日期与总合计复核的待付款请示；它不是账户余额或已完成付款。",
+        "message": message,
     }
 
 

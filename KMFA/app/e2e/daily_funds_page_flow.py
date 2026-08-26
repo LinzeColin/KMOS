@@ -240,9 +240,9 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
         ],
     }
     payment_request_observation = {
-        "schema_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "schema_version": "kmfa.daily_funds.payment_request_observation.v2",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.payment_request_observation.v1",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v2",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
@@ -255,8 +255,8 @@ def _write_projection(root: Path, human_status: str, *, restored: bool = False) 
         "status": "VERIFIED",
         "machine_code": "PAYMENT_REQUEST_OBSERVATION_VERIFIED",
         "points": [
-            {"business_date": "2026-07-29", "request_total_fen": 1_600},
-            {"business_date": "2026-07-30", "request_total_fen": 2_400},
+            {"business_date": "2026-07-29", "date_basis": "DOCUMENT_DAY", "request_total_fen": 1_600},
+            {"business_date": "2026-07-30", "date_basis": "DOCUMENT_DAY", "request_total_fen": 2_400},
         ],
     }
     for name, payload in (

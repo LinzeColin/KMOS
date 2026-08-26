@@ -2303,6 +2303,7 @@ def test_payment_request_observation_requires_fixed_title_date_label_and_total_c
     )
     assert observation is not None
     assert observation.business_date.isoformat() == "2026-08-21"
+    assert observation.date_basis == "DOCUMENT_DAY"
     assert observation.request_total_fen == 8_039_763
     assert observation.parser_evidence.parser_version == PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION
     assert len(observation.layout_fingerprint) == 64
@@ -2341,6 +2342,38 @@ def test_payment_request_observation_requires_fixed_title_date_label_and_total_c
         mime="image/png",
         runner=non_candidate,
     ) is None
+
+
+def test_payment_request_message_strip_uses_the_exact_message_day() -> None:
+    image_module = pytest.importorskip("PIL.Image")
+    image = image_module.new("RGB", (1261, 262), "white")
+    stream = BytesIO()
+    image.save(stream, format="PNG")
+    payload = stream.getvalue()
+
+    def runner(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        assert region in {"strip_grand_total_label", "strip_grand_total"}
+        output = {
+            "strip_grand_total_label": "总合计",
+            "strip_grand_total": "80397.63",
+        }[region]
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    observation = parse_payment_request_observation(
+        filename="payment-request-strip.png",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 1, tzinfo=UTC),
+        mime="image/png",
+        runner=runner,
+    )
+
+    assert observation is not None
+    assert observation.business_date.isoformat() == "2026-08-21"
+    assert observation.date_basis == "MESSAGE_DAY"
+    assert observation.request_total_fen == 8_039_763
+    assert len(observation.layout_fingerprint) == 64
 
 
 def test_payment_request_observation_renders_a_single_page_scanned_pdf() -> None:
@@ -2410,6 +2443,7 @@ def test_runtime_payment_request_observation_exposes_verified_latest_request_onl
         total = 8_000 if source.attachment_sha256 == first.sha256 else 9_000
         return SimpleNamespace(
             business_date=received_at.date(),
+            date_basis="DOCUMENT_DAY",
             request_total_fen=total,
         )
 
@@ -2629,6 +2663,7 @@ def test_payment_request_refresh_keeps_a_newer_verified_report_when_an_older_att
         "parse_payment_request_observation",
         lambda **kwargs: SimpleNamespace(
             business_date=kwargs["received_at"].date(),
+            date_basis="DOCUMENT_DAY",
             request_total_fen=1,
         ),
     )
@@ -2703,6 +2738,7 @@ def test_payment_request_refresh_blocks_a_newer_attachment_failure_before_stale_
         "parse_payment_request_observation",
         lambda **kwargs: SimpleNamespace(
             business_date=kwargs["received_at"].date(),
+            date_basis="DOCUMENT_DAY",
             request_total_fen=1,
         ),
     )
@@ -2781,6 +2817,7 @@ def test_payment_request_refresh_blocks_a_newer_parse_rejection_before_stale_dat
             raise ParseError("PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING")
         return SimpleNamespace(
             business_date=kwargs["received_at"].date(),
+            date_basis="DOCUMENT_DAY",
             request_total_fen=1,
         )
 

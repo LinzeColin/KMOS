@@ -883,8 +883,9 @@ def test_deployment_defaults_legacy_and_policy_is_private_prefix_scoped():
         assert "KMFA_LIFECYCLE_ALLOW_LEGACY_FILESYSTEM_DELETE" not in compose
         assert "KMFA_S3_ALLOW_INSECURE_LOCAL:-0" in compose
         assert "KMFA_S3_SECRET_ACCESS_KEY:-" in compose
-        assert "configured_write_store" in compose
-        assert "s.schema_version()==4" in compose
+    assert "configured_write_store" in local_compose
+    assert "s.schema_version()==4" in local_compose
+    assert "urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=5)" in coolify_compose
     for config in (local_config, coolify_config):
         app_environment = config["services"]["app"]["environment"]
         worker = config["services"]["lifecycle-worker"]
