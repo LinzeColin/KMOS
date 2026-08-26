@@ -1,6 +1,15 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage109 P2 accepted locally - 2026-08-26
+## Current Gate - Stage109 P3 accepted locally - 2026-08-26
+
+- IDS-V0_1-STAGE109-P3 已完成本地机械验收；当前治理状态为 IDS-STAGE109 / IDS-STAGE109-P3 / IDS-V0_1-STAGE109-P3 / IDS-STAGE109-P4-GATE。P4 仅由新的独立 run 在冻结任务包门禁下承接。
+- P3 精确重放 P2 的五条非业务 reference-only 控制请求、每条三十五字段、P1 的三十三个控制引用、四组每条一百零一个字段、共五百零五个前序检查点；形成五条、每条四十二字段、共二百一十个专项场景检查点、五个控制视图、五条业务线白箱处理记录、两条人工确认门禁、二十条失败关闭与四条中文反馈。关键结论继续严格关联 evidence_id_ref 或 evidence_gap_ref；资料撤回、证据降级、索引版本变化和受影响报告保持未来报告状态复核形状；外部增强保持来源分离。
+- 已验证：P3 聚焦 8/8、Stage109 P1--P3 兼容 23/23、Stage088--Stage109 精确白箱链 990/990、Stage005 直接治理校验 valid=true；Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED。机器平面重渲染七个中文文件，文档预算、登记阻塞与双平面门禁通过。
+- 回执记录运行计数均为 0、运行标志均为 false，模型 Token 与 Agent 执行均为 0。P3 保留可恢复本地提交边界；main、release、正式全局上传、OVH 与生产继续由后续门禁承接。
+- 回滚只撤回 Stage109 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 PASS_IN_MEMORY_REPORT_IMPACT_ANALYSIS_CONTROL_SLICE_RUNTIME_DISABLED；Stage109 P1/P2、Stage108 Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：仅在新的独立 run 进入 IDS-STAGE109-P4-GATE，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage109 P2 accepted locally - 2026-08-26
 
 - IDS-V0_1-STAGE109-P2 已完成本地机械验收；当前治理状态为 IDS-STAGE109 / IDS-STAGE109-P2 / IDS-V0_1-STAGE109-P2 / IDS-STAGE109-P3-GATE。P3 仅由新的独立 run 在冻结任务包门禁下承接。
 - P2 固定五条非业务 reference-only 控制请求、每条三十五字段、P1 的三十三个控制引用、四组纯内存投影、每条一百零一个字段、共五百零五个控制检查点、三十五类失败关闭与四条中文反馈。关键结论继续严格关联 evidence_id_ref 或 evidence_gap_ref；证据等级、引用来源与页码、五项生成快照、报告状态影响、质量评分、导出审计、模板限制、重新生成和撤回保持可审阅控制形状。

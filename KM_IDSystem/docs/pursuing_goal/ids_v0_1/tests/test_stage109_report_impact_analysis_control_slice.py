@@ -393,71 +393,26 @@ class Stage109ReportImpactAnalysisPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE109-P2",
             "IDS-STAGE109-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE109",
+            "IDS-STAGE109-P3",
+            "IDS-V0_1-STAGE109-P3",
+            "IDS-STAGE109-P4-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
-            {phase1_current},
+            {phase1_current, phase2_current},
             status,
             plan,
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        if current == phase1_current:
+        if current in {phase1_current, phase2_current}:
             self.assertFalse(is_current_projection)
             return
         self.assertTrue(is_current_projection)
-        self.assertEqual(phase2_current, current)
-        self.assertEqual(
-            "REPORT_IMPACT_ANALYSIS_CONTROL_SLICE_RUNTIME_DISABLED",
-            status["evidence_status"],
-        )
-        self.assertIn("IDS-STAGE109-P3-GATE", plan["stop_condition"])
-        receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
-        self.assertEqual(
-            "PASS_IN_MEMORY_REPORT_IMPACT_ANALYSIS_CONTROL_SLICE_RUNTIME_DISABLED",
-            receipt["result"],
-        )
-        self.assertEqual("IDS-STAGE109-P3-GATE", receipt["next_gate"])
-        self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
-        self.assertTrue(all(value is False for value in receipt["runtime_flags"].values()))
-        self.assertTrue(receipt["validation"]["final_validation_recorded"])
-        final_validation = receipt["final_validation"]
-        self.assertEqual(8, final_validation["focused_test_count"])
-        self.assertEqual(
-            15, final_validation["stage109_phase1_to_phase2_compatibility_test_count"]
-        )
-        self.assertEqual(982, final_validation["stage088_to_stage109_chain_test_count"])
-        for field in (
-            "stage005_governance_valid",
-            "batch041_050_review_valid",
-            "batch051_060_review_valid",
-            "document_budget_valid",
-            "blocker_stop_valid",
-            "dual_plane_valid",
-            "stage109_required_acceptance_validation_passed",
-            "all_executed_validation_passed",
-        ):
-            with self.subTest(field=field):
-                self.assertTrue(final_validation[field])
-        acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual(
-            "P2 报告影响分析受控最小切片已完成",
-            acceptance_by_id["ACC-STAGE-109"],
-        )
-        for acceptance_id in (
-            "ACC-STAGE109-P2-01",
-            "ACC-STAGE109-P2-02",
-            "ACC-STAGE109-P2-03",
-        ):
-            with self.subTest(acceptance_id=acceptance_id):
-                self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-        self.assertEqual("已遵守", acceptance_by_id["ACC-STAGE109-P2-04"])
-        event_ids = {
-            json.loads(line)["event_id"]
-            for line in EVENTS.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        }
-        self.assertIn("EVT-IDS-V0_1-STAGE109-P2-20260826-001", event_ids)
+        self.assertEqual(phase3_current, current)
 
 
 if __name__ == "__main__":
