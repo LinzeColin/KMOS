@@ -3361,7 +3361,6 @@ class GitSparseWriter:
             for path in batch_paths:
                 self._raw_archive_batch_path(path)
 
-            metadata_repo = temp_root / "private-db-metadata"
             metadata_message_paths = []
             for occurrence_path in occurrence_paths:
                 year, month, day, message_id_hash, _ = self._raw_archive_occurrence_path(occurrence_path)
@@ -3373,17 +3372,26 @@ class GitSparseWriter:
                 *batch_paths,
                 *metadata_message_paths,
             )))
-            self._clone_sparse(
-                metadata_repo,
-                env=env,
-                ref=self.config.private_branch,
-                patterns=metadata_patterns,
-                audit_read=True,
-                commit_sha=commit_sha,
+
+            # The tree clone already pins this audit to ``commit_sha``.  Reuse
+            # that shallow checkout for the exact metadata paths instead of
+            # making a second clone and fetching the same pinned commit again.
+            # This preserves the snapshot proof while removing the slowest
+            # redundant transport sequence from a recovery audit.
+            selected_metadata_patterns = self._validated_sparse_patterns(
+                metadata_patterns,
+                allowed_roots=(SPARSE_PATH,),
             )
-            if self._git(["rev-parse", "HEAD"], cwd=metadata_repo, env=env, audit_read=True) != commit_sha:
+            self._git(
+                ["sparse-checkout", "set", "--no-cone", *selected_metadata_patterns],
+                cwd=tree_repo,
+                env=env,
+                audit_read=True,
+            )
+            if self._git(["rev-parse", "HEAD"], cwd=tree_repo, env=env, audit_read=True) != commit_sha:
                 raise IngestionError("GIT_READBACK_FAILED")
-            metadata_root = metadata_repo / SPARSE_PATH
+            self._assert_sparse_checkout_scope(tree_repo, allowed_roots=(SPARSE_PATH,))
+            metadata_root = tree_repo / SPARSE_PATH
             occurrences = tuple(
                 self._archive_occurrence_metadata(metadata_root, path)
                 for path in occurrence_paths
@@ -3491,16 +3499,7 @@ class GitSparseWriter:
         """
 
         roots = tuple(allowed_roots)
-        if not roots or any(root.is_absolute() or ".." in root.parts for root in roots):
-            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
-        selected = tuple(patterns) if patterns is not None else tuple(
-            f"{root.as_posix()}/" for root in roots
-        )
-        if not selected:
-            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
-        root_prefixes = tuple(root.as_posix() + "/" for root in roots)
-        if any(not any(pattern.startswith(prefix) for prefix in root_prefixes) for pattern in selected):
-            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        selected = self._validated_sparse_patterns(patterns, allowed_roots=roots)
         # A shallow clone normally fetches only the remote symbolic HEAD.  A
         # newly-created private repository can still have that HEAD pointing
         # at ``master`` even though this single-writer contract permits only
@@ -3543,6 +3542,27 @@ class GitSparseWriter:
         else:
             self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
         self._assert_sparse_checkout_scope(repo, allowed_roots=roots)
+
+    @staticmethod
+    def _validated_sparse_patterns(
+        patterns: Sequence[str] | None,
+        *,
+        allowed_roots: Sequence[Path],
+    ) -> tuple[str, ...]:
+        """Return exact sparse patterns constrained to approved private roots."""
+
+        roots = tuple(allowed_roots)
+        if not roots or any(root.is_absolute() or ".." in root.parts for root in roots):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        selected = tuple(patterns) if patterns is not None else tuple(
+            f"{root.as_posix()}/" for root in roots
+        )
+        if not selected:
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        root_prefixes = tuple(root.as_posix() + "/" for root in roots)
+        if any(not any(pattern.startswith(prefix) for prefix in root_prefixes) for pattern in selected):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        return selected
 
     def _prepare_sparse_clone_with_single_retry(
         self,
