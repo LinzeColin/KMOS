@@ -17,9 +17,10 @@ def test_component_restart_binds_exact_component_inside_the_same_runtime() -> No
     assert "inputs.mode == 'daily-funds-recovery-component-restart'" in step
     assert 'app.get("name") != "kmfa-kmos-p1"' in step
     assert 'app.get("build_pack") != "dockercompose"' in step
-    assert 'service.get("environment_id") != environment_id' in step
-    assert 'service.get("destination_id") != destination_id' in step
-    assert 'service.get("destination_type") != destination_type' in step
+    assert "def runtime_key(record: dict):" in step
+    assert 'for key in ("environment_id", "destination_id", "destination_type"):' in step
+    assert "target_runtime = runtime_key(app)" in step
+    assert "runtime_key(service) != target_runtime" in step
     assert "contains_daily_funds_component(compose)" in step
     assert "if len(matching_services) != 1" in step
     assert 'component.get("name") == "daily-funds"' in step
