@@ -269,6 +269,54 @@ class DailyFundsConfig:
 
         self._validate_runtime_paths()
 
+    def _validate_exact_dws_source(self) -> None:
+        """Validate only the independent exact-group DWS read contract.
+
+        The pending-payment snapshot reads no private Git or object storage.
+        Keeping this source validation separate prevents an unrelated archive
+        or publication credential fault from withholding an otherwise current
+        DWS operational view.
+        """
+
+        required = {
+            "DAILY_FUNDS_GROUP_ID": self.group_id,
+            "DAILY_FUNDS_SENDER_ID": self.sender_id,
+        }
+        missing = tuple(sorted(name for name, value in required.items() if not value))
+        if missing:
+            raise ConfigError("CONFIG_INVALID:" + ",".join(missing))
+        # The source gate accepts one opaque group ID and a small, static
+        # sender allowlist.  Group membership is never used as a runtime
+        # selector: every ID is supplied through the deployment configuration
+        # and rechecked again for each returned message.
+        if any(char.isspace() for char in self.group_id) or "," in self.group_id or ";" in self.group_id:
+            raise ConfigError("SOURCE_ID_NOT_UNIQUE")
+        if (
+            not self.sender_ids
+            or len(self.sender_ids) > 12
+            or self.sender_id not in self.sender_ids
+            or len(set(self.sender_ids)) != len(self.sender_ids)
+        ):
+            raise ConfigError("SOURCE_ID_LIST_INVALID")
+        for source_id in self.sender_ids:
+            if not source_id or any(char.isspace() for char in source_id) or "," in source_id or ";" in source_id:
+                raise ConfigError("SOURCE_ID_LIST_INVALID")
+        # A bundle is an optional cloud-recovery import.  When configured, it
+        # must still be a bounded base64 blob before any DWS invocation.
+        if self.dws_auth_bundle_b64:
+            try:
+                auth_bundle = base64.b64decode(self.dws_auth_bundle_b64, validate=True)
+            except Exception as exc:
+                raise ConfigError("DWS_AUTH_BUNDLE_BASE64_INVALID") from exc
+            if not auth_bundle or len(auth_bundle) > 8 * 1024 * 1024:
+                raise ConfigError("DWS_AUTH_BUNDLE_FORMAT_INVALID")
+        self._validate_runtime_paths()
+
+    def validate_live_payment_request_source(self) -> None:
+        """Validate the source-only contract for the public pending-payment view."""
+
+        self._validate_exact_dws_source()
+
     def validate(self, *, include_storage: bool = True) -> None:
         missing = self.missing(include_storage=include_storage)
         if missing:
@@ -315,40 +363,13 @@ class DailyFundsConfig:
                 or not all(marker in path for marker in ("/p/", "/n/", "/b/", "/o/"))
             ):
                 raise ConfigError("OCI_PAR_URL_INVALID")
-        # The source gate accepts one opaque group ID and a small, static
-        # sender allowlist.  Group membership is never used as a runtime
-        # selector: every ID is supplied through the deployment configuration
-        # and rechecked again for each returned message.
-        if any(char.isspace() for char in self.group_id) or "," in self.group_id or ";" in self.group_id:
-            raise ConfigError("SOURCE_ID_NOT_UNIQUE")
-        if (
-            not self.sender_ids
-            or len(self.sender_ids) > 12
-            or self.sender_id not in self.sender_ids
-            or len(set(self.sender_ids)) != len(self.sender_ids)
-        ):
-            raise ConfigError("SOURCE_ID_LIST_INVALID")
-        for source_id in self.sender_ids:
-            if not source_id or any(char.isspace() for char in source_id) or "," in source_id or ";" in source_id:
-                raise ConfigError("SOURCE_ID_LIST_INVALID")
         try:
             key = base64.b64decode(self.git_ssh_key_b64, validate=True)
         except Exception as exc:
             raise ConfigError("GIT_SSH_KEY_BASE64_INVALID") from exc
         if not key.startswith(b"-----BEGIN"):
             raise ConfigError("GIT_SSH_KEY_FORMAT_INVALID")
-        # A bundle is an optional cloud-recovery import.  The preferred path
-        # is a first-time device login performed inside this service's own
-        # cloud volume; making an exported bundle mandatory would reintroduce
-        # a hidden workstation dependency.
-        if self.dws_auth_bundle_b64:
-            try:
-                auth_bundle = base64.b64decode(self.dws_auth_bundle_b64, validate=True)
-            except Exception as exc:
-                raise ConfigError("DWS_AUTH_BUNDLE_BASE64_INVALID") from exc
-            if not auth_bundle or len(auth_bundle) > 8 * 1024 * 1024:
-                raise ConfigError("DWS_AUTH_BUNDLE_FORMAT_INVALID")
-        self._validate_runtime_paths()
+        self._validate_exact_dws_source()
 
     def redacted_fingerprint(self) -> str:
         """Evidence-only fingerprint; never returns values or credentials."""

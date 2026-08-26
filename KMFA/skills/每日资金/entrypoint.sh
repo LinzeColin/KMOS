@@ -94,6 +94,11 @@ python3 /opt/daily-funds/scripts/run_history_probe_broker.py >/dev/null 2>&1 &
 HISTORY_PROBE_BROKER_PID=$!
 python3 /opt/daily-funds/scripts/run_recovery_broker.py >/dev/null 2>&1 &
 RECOVERY_BROKER_PID=$!
+# A deployment gets one immediate, isolated page refresh; later runs are
+# handled by the offset cron line.  This DWS snapshot has its own process lock
+# and does not wait for the historical raw-archive reader.
+python3 /opt/daily-funds/scripts/run_daily_funds.py payment-request-refresh >> /var/log/daily-funds/cron.log 2>&1 &
+PAYMENT_REQUEST_REFRESH_PID=$!
 cron -f &
 CRON_PID=$!
 printf '%s\n' "$CRON_PID" > "$CRON_PID_FILE"
@@ -167,8 +172,8 @@ if python3 /opt/daily-funds/scripts/startup_raw_archive_audit_required.py >/dev/
 fi
 
 shutdown() {
-  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
-  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
+  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
+  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
   stop_startup_raw_archive_audit
   rm -f "$CRON_PID_FILE"
   exit 0
@@ -181,8 +186,8 @@ trap shutdown INT TERM
 while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null && kill -0 "$HISTORY_PROBE_BROKER_PID" 2>/dev/null && kill -0 "$RECOVERY_BROKER_PID" 2>/dev/null; do
   sleep 2
 done
-kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
-wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" 2>/dev/null || true
+kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
+wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
 stop_startup_raw_archive_audit
 rm -f "$CRON_PID_FILE"
 exit 1

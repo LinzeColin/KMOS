@@ -130,6 +130,16 @@ def test_raw_archive_audit_uses_the_same_fixed_values_free_cron_contract() -> No
     }
 
 
+def test_payment_request_refresh_uses_the_same_fixed_values_free_cron_contract() -> None:
+    event = cron_event("payment-request-refresh", "SUCCEEDED", "PAYMENT_REQUEST_REFRESH_VERIFIED")
+    assert event == {
+        "schema_version": CRON_EVENT_SCHEMA,
+        "job": "payment-request-refresh",
+        "outcome": "SUCCEEDED",
+        "machine_code": "PAYMENT_REQUEST_REFRESH_VERIFIED",
+    }
+
+
 @pytest.mark.parametrize("machine_code", (
     "RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE",
     "RAW_ARCHIVE_AUDIT_SOURCE_MISSING",

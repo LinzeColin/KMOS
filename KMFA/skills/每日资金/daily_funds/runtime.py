@@ -89,6 +89,12 @@ _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
 _PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v1"
+# The pending-payment view is an operational DWS snapshot, not a formal
+# account-balance publication.  A 31-day range makes the default page window
+# complete while keeping the exact source read bounded and independent from a
+# long-running historic raw-archive audit.
+_PAYMENT_REQUEST_REFRESH_WINDOW_DAYS = 31
+_PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS = 128
 _BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 _OPERATION_RECEIPT_JOBS = frozenset({
     "preflight",
@@ -99,6 +105,7 @@ _OPERATION_RECEIPT_JOBS = frozenset({
     "raw-coverage-repair",
     "raw-fact-replay",
     "poll",
+    "payment-request-refresh",
     "auth-probe",
     "keepalive",
     "backfill",
@@ -890,6 +897,38 @@ class DailyFundsRuntime:
                 fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
                 raise IngestionError("RAW_ARCHIVE_AUDIT_LOCK_HELD") from exc
+            locked = True
+            yield
+        finally:
+            try:
+                if locked:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
+    @contextmanager
+    def _payment_request_refresh_process_lock(self):
+        """Serialize the small exact-source pending-payment refresh.
+
+        This is intentionally separate from the historical raw-archive audit.
+        The page must remain fresh while a private historical read is running;
+        the snapshot never writes the formal publication path or the raw
+        archive, so it has no mutable-Git conflict with that audit.
+        """
+
+        self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(
+            self.config.state_dir / "payment_request_refresh.lock",
+            os.O_CREAT | os.O_RDWR,
+            0o600,
+        )
+        locked = False
+        try:
+            os.fchmod(descriptor, 0o600)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise IngestionError("PAYMENT_REQUEST_REFRESH_LOCK_HELD") from exc
             locked = True
             yield
         finally:
@@ -1985,6 +2024,94 @@ class DailyFundsRuntime:
         for attachment in attachments:
             accumulator.add(attachment)
         return accumulator.write()
+
+    def _clear_payment_request_observation(self) -> None:
+        """Make an interrupted live refresh visible instead of serving stale money.
+
+        A live DWS error gives no trustworthy replacement point.  The page
+        therefore removes the prior snapshot and presents the existing
+        values-free review state until the next exact-source refresh succeeds.
+        """
+
+        atomic_json_write(self.config.publication_dir / "payment_request_observation.json", {
+            "schema_version": _PAYMENT_REQUEST_OBSERVATION_SCHEMA,
+            "generated_at": iso_now(),
+            "parser_version": PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
+            "source_coverage": {
+                "eligible_documents": 0,
+                "parsed_documents": 0,
+                "rejected_documents": 0,
+                "distinct_business_days": 0,
+                "superseded_reports": 0,
+            },
+            "rejection_categories": {},
+            "evidence_version": None,
+            "status": "NEEDS_REVIEW",
+            "machine_code": "PAYMENT_REQUEST_OBSERVATION_REFRESH_UNAVAILABLE",
+            "points": [],
+        })
+
+    def payment_request_refresh(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Refresh the page's pending-payment trend from the exact DWS source.
+
+        This operational view uses only the configured group and static sender
+        allowlist.  It downloads source attachments into a private temporary
+        directory, derives the strict OCR observation in memory, and discards
+        the source bytes before returning.  It deliberately does not wait for
+        a historical raw-archive audit and never enters the account-balance,
+        D1, R2, OCI, or formal-publication lanes.
+        """
+
+        try:
+            self.config.validate_live_payment_request_source()
+            with self._payment_request_refresh_process_lock():
+                return self._payment_request_refresh_locked(now=now)
+        except ConfigError:
+            self._clear_payment_request_observation()
+            return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_FAILED"}
+        except IngestionError as exc:
+            if exc.code == "PAYMENT_REQUEST_REFRESH_LOCK_HELD":
+                return {"ok": False, "code": exc.code}
+            self._clear_payment_request_observation()
+            return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_FAILED"}
+
+    def _payment_request_refresh_locked(self, *, now: datetime | None) -> dict[str, Any]:
+        """Read one bounded DWS window and replace the independent snapshot."""
+
+        anchor = now or datetime.now(UTC)
+        if anchor.tzinfo is None or anchor.utcoffset() is None:
+            raise IngestionError("PAYMENT_REQUEST_REFRESH_CLOCK_INVALID")
+        anchor = anchor.astimezone(UTC)
+        client = self._dws_client()
+        page = client.collect_group_history_v2(
+            anchor - timedelta(days=_PAYMENT_REQUEST_REFRESH_WINDOW_DAYS),
+            anchor,
+        )
+        # Payment-request screenshots commonly have no formal account/flow
+        # family in their message envelope.  Keep both the declared and
+        # quarantined exact-source messages, then let the title gate decide
+        # whether each downloaded image is a real payment-request report.
+        messages = (*client.selected_messages(page), *client.quarantine_messages(page))
+        attachments: list[DownloadedAttachment] = []
+        seen_occurrences: set[tuple[str, int]] = set()
+        for message in messages:
+            message_id_hash = client.message_id_hash(message)
+            for index in range(client.attachment_count(message)):
+                occurrence = (message_id_hash, index)
+                if occurrence in seen_occurrences:
+                    raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_AMBIGUOUS")
+                seen_occurrences.add(occurrence)
+                if len(attachments) >= _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS:
+                    raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_LIMIT")
+                attachments.append(client.download(message, index))
+
+        projection = self._write_payment_request_observation(attachments)
+        status = projection.get("status")
+        if status == "VERIFIED":
+            return {"ok": True, "code": "PAYMENT_REQUEST_REFRESH_VERIFIED"}
+        if status == "NOT_AVAILABLE":
+            return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_SOURCE_EMPTY"}
+        return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"}
 
     def raw_archive_audit(self) -> dict[str, Any]:
         """Audit acquired private raw bytes without reading DWS or publishing money.

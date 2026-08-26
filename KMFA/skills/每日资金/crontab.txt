@@ -6,6 +6,9 @@ SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 */15 * * * * root /opt/daily-funds/scripts/run_cron_job.sh poll >> /var/log/daily-funds/cron.log 2>&1
+# The pending-payment page is a separate DWS operational snapshot.  It is
+# offset from the formal poll and continues while a historical raw audit runs.
+2,17,32,47 * * * * root /opt/daily-funds/scripts/run_cron_job.sh payment-request-refresh >> /var/log/daily-funds/cron.log 2>&1
 * * * * * root /opt/daily-funds/scripts/run_cron_job.sh auth-probe >> /var/log/daily-funds/cron.log 2>&1
 0 * * * * root /opt/daily-funds/scripts/run_cron_job.sh keepalive >> /var/log/daily-funds/cron.log 2>&1
 # Start each bounded historical batch five minutes after a live poll.  It has
