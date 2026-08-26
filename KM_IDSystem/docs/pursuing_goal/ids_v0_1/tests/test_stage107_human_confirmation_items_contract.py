@@ -260,7 +260,7 @@ class Stage107HumanConfirmationItemsPhase1Tests(unittest.TestCase):
         )
         self.assertFalse(rollback["actual_runtime_or_production_state_changed"])
 
-    def test_current_governance_accepts_only_predecessor_or_phase1_projection(self) -> None:
+    def test_current_governance_accepts_predecessor_phase1_or_phase2_projection(self) -> None:
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
@@ -277,6 +277,12 @@ class Stage107HumanConfirmationItemsPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE107-P1",
             "IDS-STAGE107-P2-GATE",
         )
+        phase2_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P2",
+            "IDS-V0_1-STAGE107-P2",
+            "IDS-STAGE107-P3-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -286,10 +292,10 @@ class Stage107HumanConfirmationItemsPhase1Tests(unittest.TestCase):
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        self.assertIn(current, {predecessor_current, phase1_current})
+        self.assertIn(current, {predecessor_current, phase1_current, phase2_current})
         if current == predecessor_current:
             self.assertFalse(is_current_projection)
-        else:
+        elif current == phase1_current:
             self.assertTrue(is_current_projection)
             receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
             self.assertEqual(
@@ -347,6 +353,8 @@ class Stage107HumanConfirmationItemsPhase1Tests(unittest.TestCase):
                 if line.strip()
             }
             self.assertIn("EVT-IDS-V0_1-STAGE107-P1-20260826-001", event_ids)
+        else:
+            self.assertTrue(is_current_projection)
 
 
 if __name__ == "__main__":

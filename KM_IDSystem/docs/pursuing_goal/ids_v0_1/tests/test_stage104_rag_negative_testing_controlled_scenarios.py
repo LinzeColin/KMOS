@@ -523,6 +523,12 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE107-P1",
             "IDS-STAGE107-P2-GATE",
         )
+        stage107_phase2_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P2",
+            "IDS-V0_1-STAGE107-P2",
+            "IDS-STAGE107-P3-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self, current, legacy, status, plan, ROADMAP
         )
@@ -554,6 +560,7 @@ class Stage104RagNegativeTestingPhase3Tests(unittest.TestCase):
             stage106_phase4_current,
             stage106_review_current,
             stage107_phase1_current,
+            stage107_phase2_current,
         }:
             self.assertTrue(is_current_projection)
         else:
