@@ -2566,10 +2566,9 @@ jobs:
       # public logs contain only finite target/pointer/deployment receipts.
       - name: 前进每日资金受控源码并重建
         if: inputs.mode == 'daily-funds-source-advance'
-        env:
-          EXPECTED_SOURCE_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
+          EXPECTED_SOURCE_REVISION="${GITHUB_SHA:-}"
           app_file="$RUNNER_TEMP/daily-funds-source-advance-app.json"
           active_file="$RUNNER_TEMP/daily-funds-source-advance-active.json"
           preflight_file="$RUNNER_TEMP/daily-funds-source-advance-preflight.json"
@@ -2639,6 +2638,8 @@ jobs:
 
           app = unwrap(load(sys.argv[1]))
           active = unwrap(load(sys.argv[2]))
+          if isinstance(active, dict):
+              active = active.get("deployments", active.get("items"))
           expected = sys.argv[4].strip().lower()
           if not isinstance(app, dict) or not isinstance(active, list):
               fail("CONTROL_RESPONSE_INVALID")
