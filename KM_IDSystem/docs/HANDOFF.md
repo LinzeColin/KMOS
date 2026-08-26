@@ -7,7 +7,8 @@
 - 每条场景固定 actor、time、reason、old value、new value、review result、review audit、重新复核与归档控制引用。evidence trust level、报告质量分和报告状态只保留未来 before/after／写回控制；外部增强保持外部来源身份，不能成为内部项目证据、替代证据绑定或关闭证据缺口。
 - 冻结 Stage113 任务包、Stage113 P1/P2 控制工件与 Stage112 Review 工件只构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 P3 未建立第二权威事实源。
 - 已验证：P3 聚焦 8/8、Stage112 P1--Review 与 Stage113 P1/P2/P3 前向治理套件 67/67、Stage005 直接治理校验 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、批次门禁 7/7、机器平面生成 7 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
-- 运行计数保持 0、运行标志保持 false；真实 OCR、复核队列、复核 UI、复核审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁；本 P3 只形成可恢复的本地提交，不执行新远端写入。
+- 运行计数保持 0、运行标志保持 false；真实 OCR、复核队列、复核 UI、复核审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁；P3 验收先形成可恢复的本地提交。
+- 2026-08-27 已按用户明确授权完成保全推送：`origin/codex/kmids-stage071-p1` 恢复点为 `160c00ebfc84fb15b53505d1e921dbb89589f2a9`，包含 Stage113 P2 与 P3；`main`、release、OVH 与生产边界保持原状。
 - 回滚只撤回本 P3 的范围说明、纯内存模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 PASS_IN_MEMORY_REVIEW_QUEUE_SCHEMA_CONTROL_SLICE_RUNTIME_DISABLED；Stage113 P1/P2、Stage112 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
 - 下一步：仅在新的独立 run 进入 IDS-STAGE113-P4-GATE，继续使用同一既有 scratch worktree 与开发分支。
 
