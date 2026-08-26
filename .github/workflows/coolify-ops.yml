@@ -2058,10 +2058,11 @@ jobs:
           echo "daily_funds_recovery_restart=REQUESTED"
 
       # A Docker Compose Application restart can leave a separately modelled
-      # Compose component untouched. Coolify can withhold the Application's
-      # raw compose content, so this action binds the fixed Application to a
-      # Service by its exact environment and destination. It then requires the
-      # fixed daily-funds service/container declaration and one component row.
+      # Compose component untouched. Coolify can serialize Application and
+      # Service compose content differently even when they share one runtime,
+      # so this action binds the fixed Application to the exact runtime tuple
+      # plus one fixed daily-funds service/container declaration. It then
+      # requires one component row before it can restart anything.
       - name: 精确重启每日资金组件
         if: inputs.mode == 'daily-funds-recovery-component-restart'
         run: |
@@ -2138,7 +2139,6 @@ jobs:
           environment_id = app.get("environment_id")
           destination_id = app.get("destination_id")
           destination_type = app.get("destination_type")
-          app_compose = compose_variants(app)
           if environment_id is None or destination_id is None or not isinstance(destination_type, str):
               fail("TARGET_RUNTIME_BINDING_UNAVAILABLE")
 
@@ -2154,8 +2154,6 @@ jobs:
               service_uuid = service.get("uuid")
               service_compose = compose_variants(service)
               if not isinstance(service_uuid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{6,128}", service_uuid):
-                  continue
-              if app_compose and app_compose.isdisjoint(service_compose):
                   continue
               if not any(contains_daily_funds_component(compose) for compose in service_compose):
                   continue
