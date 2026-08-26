@@ -178,9 +178,10 @@ services:
       args:
         SOURCE_COMMIT: "${SOURCE_COMMIT:-}"
     image: kmfa-app:coolify
-    container_name: kmfa-app
-    # See daily-funds: both sides of the values-free control contract must
-    # retain the same explicit runtime identity across a Coolify redeploy.
+    # Coolify owns the physical container identity for this public service.
+    # The stable Compose service name keeps routing and volume contracts intact,
+    # while a deployment can bring up its replacement before retiring the prior
+    # web process.
     user: "0:0"
     restart: always
     environment:

@@ -98,3 +98,18 @@ def test_app_healthcheck_uses_the_shallow_http_liveness_endpoint():
     assert "urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=5)" in body
     assert "open_structured_store" not in body
     assert "configured_write_store" not in body
+
+
+def test_public_app_uses_a_compose_scoped_runtime_identity():
+    """Coolify can replace the public web process without a global name clash."""
+
+    text = COMPOSE.read_text(encoding="utf-8")
+    match = re.search(
+        r"^  app:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|\\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    assert match, "compose 缺少 app 服务"
+    body = match.group("body")
+    assert "container_name:" not in body
+    assert re.search(r"^    expose:\n      - \"8000\"", body, flags=re.MULTILINE)
