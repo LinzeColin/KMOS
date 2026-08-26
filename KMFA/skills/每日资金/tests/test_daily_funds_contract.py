@@ -48,6 +48,7 @@ from daily_funds.ingestion import (
     GitSparseWriter,
     HistoryPoller,
     IngestionError,
+    KMFILE_METADATA_PATH,
     PersistedRawAttachment,
     RawArchiveAudit,
     RawMaterializer,
@@ -3927,7 +3928,7 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A coverage-proven archive may publish only a re-opened zero-fen pair."""
+    """An exact KMFile link may admit title-less bytes to the re-opened pair gate."""
 
     import daily_funds.runtime as runtime_module
 
@@ -3941,25 +3942,31 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
         "2026-07-30,甲,乙,001,t-1,10.00,\n"
     ).encode()
     account = DownloadedAttachment(
-        message={},
+        message={
+            "openMessageId": "replay-account",
+            "attachments": [{"fileId": "registered-account-file"}],
+        },
         message_id="replay-account",
         message_id_hash="a" * 64,
         message_at=moment,
         index=0,
-        filename="资金账户明细表_20260730.csv",
-        family=ACCOUNT_FAMILY,
+        filename="opaque-account.csv",
+        family=None,
         payload=account_payload,
         sha256=sha256(account_payload).hexdigest(),
         mime="text/csv",
     )
     transaction = DownloadedAttachment(
-        message={},
+        message={
+            "openMessageId": "replay-transaction",
+            "attachments": [{"fileId": "registered-transaction-file"}],
+        },
         message_id="replay-transaction",
         message_id_hash="b" * 64,
         message_at=moment,
         index=0,
-        filename="资金流水明细_20260730.csv",
-        family="资金流水明细",
+        filename="opaque-transaction.csv",
+        family=None,
         payload=transaction_payload,
         sha256=sha256(transaction_payload).hexdigest(),
         mime="text/csv",
@@ -3972,11 +3979,18 @@ def test_raw_fact_replay_reopens_exact_pair_before_publishing_latest_day(
         def __init__(self, _config):
             return None
 
+        @staticmethod
+        def kmfile_registered_attachment_keys():
+            return frozenset({
+                ("replay-account", "registered-account-file"),
+                ("replay-transaction", "registered-transaction-file"),
+            })
+
         def audit_raw_archive_metadata(self, *, on_attachment, commit_sha):
             assert commit_sha == "a" * 40
             for attachment in attachments:
                 on_attachment(PersistedRawAttachment(
-                    message={"title": attachment.family},
+                    message=attachment.message,
                     message_id=attachment.message_id,
                     message_id_hash=attachment.message_id_hash,
                     message_at=attachment.message_at,
@@ -4091,6 +4105,10 @@ def test_raw_fact_replay_keeps_quarantined_titleless_bytes_out_of_formal_pairing
     class ReplayWriter:
         def __init__(self, _config):
             return None
+
+        @staticmethod
+        def kmfile_registered_attachment_keys():
+            return frozenset()
 
         def audit_raw_archive_metadata(self, *, on_attachment, commit_sha):
             assert commit_sha == "a" * 40
@@ -4977,6 +4995,52 @@ def test_raw_archive_audit_records_only_readback_capability_and_never_publishes(
     assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_AUDITED"
     assert flow["source_discovery"] == {"state": "UNKNOWN"}
     assert "raw-archive-account" not in json.dumps(flow, ensure_ascii=False)
+
+
+def test_raw_archive_metadata_audit_censuses_authority_without_opening_historic_payloads(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Recovery may verify all source identities before replaying exact facts."""
+
+    import daily_funds.runtime as runtime_module
+
+    config = _config(tmp_path)
+    calls: list[str] = []
+
+    class ArchiveWriter:
+        def __init__(self, _config):
+            calls.append("init")
+
+        def audit_raw_archive_metadata(self):
+            calls.append("metadata")
+            return RawArchiveAudit(
+                commit_sha="a" * 40,
+                verified_attachments=(),
+                occurrence_count=2,
+                batch_count=1,
+                batch_occurrence_references=2,
+            )
+
+    runtime = DailyFundsRuntime(config)
+    monkeypatch.setattr(runtime_module, "GitSparseWriter", ArchiveWriter)
+    monkeypatch.setattr(
+        runtime,
+        "_inspect_attachment_capabilities",
+        lambda _attachments: pytest.fail("metadata audit must not OCR historic payloads"),
+    )
+
+    assert runtime.raw_archive_metadata_audit() == {
+        "ok": True,
+        "code": "RAW_ARCHIVE_AUDITED",
+    }
+    assert calls == ["init", "metadata"]
+    assert not (config.publication_dir / "current.json").exists()
+    with runtime.state.connection() as connection:
+        assert connection.execute("SELECT count(*) FROM capability_evidence").fetchone()[0] == 0
+        assert connection.execute("SELECT count(*) FROM capability_scope").fetchone()[0] == 0
+    flow = json.loads((config.publication_dir / "flow_state.json").read_text(encoding="utf-8"))
+    assert flow["business_flow"]["stage"] == "RAW_ARCHIVE_METADATA_AUDITED"
 
 
 def test_raw_archive_audit_reuses_only_same_version_receipts_after_fresh_raw_census(
@@ -6323,6 +6387,61 @@ def test_sparse_scope_validation_prunes_git_metadata(tmp_path: Path, monkeypatch
 
     assert Path(".") in observed_roots
     assert all(".git" not in root.parts for root in observed_roots)
+
+
+def test_kmfile_metadata_selects_only_exact_group_message_file_links(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """KMFile registration narrows a title-less candidate without naming a family."""
+
+    writer = GitSparseWriter(_config(tmp_path))
+    commit_sha = "c" * 40
+    manifest = KMFILE_METADATA_PATH / "fixture-group" / ".manifest.jsonl"
+    clone_calls: list[dict[str, object]] = []
+
+    def fake_git(args, **_kwargs):
+        if args[:2] == ["rev-parse", "HEAD"]:
+            return commit_sha
+        if args[:3] == ["ls-tree", "-r", "--name-only"]:
+            return manifest.as_posix()
+        return ""
+
+    def fake_clone(repo: Path, **kwargs) -> None:
+        clone_calls.append(dict(kwargs))
+        repo.mkdir(parents=True, exist_ok=True)
+        if repo.name == "private-kmfile-metadata":
+            target = repo / manifest
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
+                "\n".join((
+                    json.dumps({
+                        "conversation_id": writer.config.group_id,
+                        "message_id": "registered-message",
+                        "file_id": "registered-file",
+                    }),
+                    json.dumps({
+                        "conversation_id": "other-group",
+                        "message_id": "registered-message",
+                        "file_id": "other-file",
+                    }),
+                    json.dumps({
+                        "conversation_id": writer.config.group_id,
+                        "message_id": "missing-file",
+                    }),
+                )) + "\n",
+                encoding="utf-8",
+            )
+
+    monkeypatch.setattr(writer, "_git", fake_git)
+    monkeypatch.setattr(writer, "_clone_sparse", fake_clone)
+
+    assert writer.kmfile_registered_attachment_keys() == frozenset({
+        ("registered-message", "registered-file"),
+    })
+    assert len(clone_calls) == 2
+    assert all(call["allowed_roots"] == (KMFILE_METADATA_PATH,) for call in clone_calls)
+    assert clone_calls[1]["patterns"] == (manifest.as_posix(),)
 
 
 def test_sparse_writer_pins_a_sparse_checkout_to_an_exact_audited_commit(

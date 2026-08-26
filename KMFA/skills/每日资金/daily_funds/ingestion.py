@@ -33,6 +33,11 @@ UTC = timezone.utc
 BEIJING = ZoneInfo("Asia/Shanghai")
 
 SPARSE_PATH = Path("Private-KMDatabase/KMFA/daily_funds")
+# KMFile stores its DingTalk archival metadata in the same private authority.
+# It is a candidate index only: this worker never reads SMB files from it and
+# every admitted document still has to be re-opened from the immutable daily-
+# funds raw archive before parsing or publication.
+KMFILE_METADATA_PATH = Path("Private-KMDatabase/KMFile")
 DIRECT_BLOB_MAX_BYTES = 94_371_840
 CHUNK_BYTES = 48 * 1024 * 1024
 ALLOWED_SUFFIXES = frozenset({".csv", ".txt", ".xls", ".xlsx", ".xlsm"})
@@ -321,6 +326,27 @@ def _attachment_resource(attachment: Mapping[str, Any]) -> tuple[str, str] | Non
         # Untyped historical resource IDs are the legacy media representation.
         return "mediaId", media_id
     return None
+
+
+def _file_attachment_identity(message: Mapping[str, Any], *, index: int) -> tuple[str, str] | None:
+    """Return one exact DWS message/file identity without inferring a family.
+
+    KMFile manifests retain DingTalk's message and native ``fileId`` values.
+    That link is useful only when both values match the already source-gated
+    raw occurrence.  Embedded media is deliberately excluded because it does
+    not carry a KMFile file identity that can be compared without guessing.
+    """
+
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0:
+        return None
+    message_id = _message_field(message, ("openMessageId", "messageId", "message_id", "id"))
+    attachments = _attachments(message)
+    if not message_id or index >= len(attachments):
+        return None
+    resource = _attachment_resource(attachments[index])
+    if resource is None or resource[0] != "fileId":
+        return None
+    return message_id, resource[1]
 
 
 def _attachment_download_context(attachment: Mapping[str, Any]) -> tuple[str | None, str | None]:
@@ -2333,8 +2359,8 @@ class GitSparseWriter:
 
     This code is intentionally standalone rather than using the normal
     ``private_db_client`` read adapter.  It is the only module allowed to clone
-    the private repository, always narrows checkout to one path and never force
-    pushes.
+    the private repository, always narrows each checkout to one approved raw or
+    KMFile metadata path, and never force pushes.
     """
 
     def __init__(self, config: DailyFundsConfig, *, runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run):
@@ -2459,8 +2485,16 @@ class GitSparseWriter:
         return completed.stdout.strip()
 
     @staticmethod
-    def _assert_sparse_checkout_scope(repo: Path) -> None:
-        """The clone may materialize only the owner-approved sparse path."""
+    def _assert_sparse_checkout_scope(
+        repo: Path,
+        *,
+        allowed_roots: Sequence[Path] = (SPARSE_PATH,),
+    ) -> None:
+        """The clone may materialize only its explicit private metadata root."""
+
+        roots = tuple(allowed_roots)
+        if not roots or any(root.is_absolute() or ".." in root.parts for root in roots):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
 
         def reject_unreadable_path(_error: OSError) -> None:
             raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
@@ -2482,7 +2516,10 @@ class GitSparseWriter:
             for name in (*directories, *files):
                 path = current_path / name
                 relative = path.relative_to(repo)
-                if path.is_symlink() or (path.is_file() and not relative.is_relative_to(SPARSE_PATH)):
+                if path.is_symlink() or (
+                    path.is_file()
+                    and not any(relative.is_relative_to(root) for root in roots)
+                ):
                     raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
 
     def _assert_staged_scope(self, repo: Path, *, env: Mapping[str, str]) -> None:
@@ -2608,6 +2645,16 @@ class GitSparseWriter:
     # occurrences at a time from the same pinned Git tree.
     _RAW_ARCHIVE_READBACK_BATCH_SIZE = 16
 
+    # KMFile group manifests are metadata-only receipts.  The daily-funds
+    # worker reads at most one compact manifest per registered group and uses
+    # only exact group/message/file identities from them.  These bounds keep
+    # the candidate selector smaller than the raw archive it helps narrow.
+    _KMFILE_METADATA_MAX_MANIFESTS = 128
+    _KMFILE_METADATA_MAX_TREE_OUTPUT_BYTES = 512 * 1024
+    _KMFILE_METADATA_MAX_MANIFEST_BYTES = 512 * 1024
+    _KMFILE_METADATA_MAX_TOTAL_BYTES = 8 * 1024 * 1024
+    _KMFILE_METADATA_MAX_ROWS = 20_000
+
     # The raw-archive audit is strictly read-only.  A single Git/OpenSSH
     # transport interruption may be retried from a fresh sparse clone, but
     # raw-integrity, configuration and scope failures may never be retried or
@@ -2711,6 +2758,167 @@ class GitSparseWriter:
         if len(output.encode("utf-8", errors="ignore")) > self._RAW_ARCHIVE_MAX_TREE_OUTPUT_BYTES:
             raise IngestionError("RAW_ARCHIVE_CENSUS_LIMIT_EXCEEDED")
         return tuple(line for line in output.splitlines() if line)
+
+    @staticmethod
+    def _kmfile_manifest_path(path: str) -> Path:
+        """Validate one exact KMFile metadata manifest path from Git names."""
+
+        candidate = Path(path)
+        prefix = KMFILE_METADATA_PATH.parts
+        parts = candidate.parts
+        if (
+            not isinstance(path, str)
+            or path != candidate.as_posix()
+            or candidate.is_absolute()
+            or ".." in parts
+            or len(parts) != len(prefix) + 2
+            or parts[:len(prefix)] != prefix
+            or parts[-1] != ".manifest.jsonl"
+            or not parts[-2]
+        ):
+            raise IngestionError("GIT_READBACK_FAILED")
+        return candidate
+
+    def _kmfile_manifest_tree_paths(
+        self,
+        repo: Path,
+        *,
+        env: Mapping[str, str],
+        commit_sha: str,
+    ) -> tuple[str, ...]:
+        """List only compact KMFile manifest names, never their file payloads."""
+
+        output = self._git(
+            ["ls-tree", "-r", "--name-only", commit_sha, "--", KMFILE_METADATA_PATH.as_posix()],
+            cwd=repo,
+            env=env,
+            audit_read=True,
+            failure_code="GIT_ARCHIVE_READBACK_FAILED",
+        )
+        if len(output.encode("utf-8", errors="ignore")) > self._KMFILE_METADATA_MAX_TREE_OUTPUT_BYTES:
+            raise IngestionError("GIT_READBACK_FAILED")
+        paths = tuple(
+            line
+            for line in output.splitlines()
+            if line and Path(line).name == ".manifest.jsonl"
+        )
+        if len(paths) > self._KMFILE_METADATA_MAX_MANIFESTS:
+            raise IngestionError("GIT_READBACK_FAILED")
+        for path in paths:
+            self._kmfile_manifest_path(path)
+        return tuple(sorted(paths))
+
+    @staticmethod
+    def _kmfile_manifest_identifier(value: object) -> str | None:
+        """Accept one bounded opaque DingTalk identifier from private metadata."""
+
+        if not isinstance(value, str) or not value or len(value) > 2_048:
+            return None
+        if any(ord(character) < 32 for character in value):
+            return None
+        return value
+
+    def kmfile_registered_attachment_keys(self) -> frozenset[tuple[str, str]]:
+        """Return exact current KMFile message/file links for the configured group.
+
+        This reads only private KMFile manifests.  A returned identity is a
+        bounded candidate selector for a title-less raw attachment; it is not
+        a document-family assertion and it never carries a money value into
+        the daily-funds worker.
+        """
+
+        try:
+            return self._kmfile_registered_attachment_keys_once()
+        except IngestionError as exc:
+            if exc.code != "GIT_AUDIT_TRANSPORT_RETRYABLE":
+                raise
+        return self._kmfile_registered_attachment_keys_once()
+
+    def _kmfile_registered_attachment_keys_once(self) -> frozenset[tuple[str, str]]:
+        self.config.validate(include_storage=False)
+        if not self.config.state_dir.exists():
+            self.config.state_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="daily-funds-kmfile-metadata-", dir=self.config.state_dir) as temp:
+            temp_root = Path(temp)
+            key_path = self._write_deploy_key(temp_root, self.config.git_ssh_key_b64)
+            env = self._git_environment(temp_root, key_path)
+            tree_repo = temp_root / "private-kmfile-tree"
+            sentinel = (KMFILE_METADATA_PATH / ".daily-funds-candidate-sentinel").as_posix()
+            self._clone_sparse(
+                tree_repo,
+                env=env,
+                ref=self.config.private_branch,
+                patterns=(sentinel,),
+                allowed_roots=(KMFILE_METADATA_PATH,),
+                audit_read=True,
+                failure_code="GIT_ARCHIVE_READBACK_FAILED",
+            )
+            commit_sha = self._git(
+                ["rev-parse", "HEAD"],
+                cwd=tree_repo,
+                env=env,
+                audit_read=True,
+                failure_code="GIT_ARCHIVE_READBACK_FAILED",
+            )
+            manifest_paths = self._kmfile_manifest_tree_paths(
+                tree_repo,
+                env=env,
+                commit_sha=commit_sha,
+            )
+            if not manifest_paths:
+                return frozenset()
+
+            metadata_repo = temp_root / "private-kmfile-metadata"
+            self._clone_sparse(
+                metadata_repo,
+                env=env,
+                ref=self.config.private_branch,
+                patterns=manifest_paths,
+                allowed_roots=(KMFILE_METADATA_PATH,),
+                audit_read=True,
+                failure_code="GIT_ARCHIVE_READBACK_FAILED",
+                commit_sha=commit_sha,
+            )
+            if self._git(
+                ["rev-parse", "HEAD"],
+                cwd=metadata_repo,
+                env=env,
+                audit_read=True,
+                failure_code="GIT_ARCHIVE_READBACK_FAILED",
+            ) != commit_sha:
+                raise IngestionError("GIT_READBACK_FAILED")
+
+            total_bytes = 0
+            total_rows = 0
+            keys: set[tuple[str, str]] = set()
+            try:
+                for raw_path in manifest_paths:
+                    relative = self._kmfile_manifest_path(raw_path)
+                    manifest_path = RawMaterializer._safe_path(metadata_repo, relative)
+                    if manifest_path.is_symlink() or not manifest_path.is_file():
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    size_bytes = manifest_path.stat().st_size
+                    if size_bytes < 0 or size_bytes > self._KMFILE_METADATA_MAX_MANIFEST_BYTES:
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    total_bytes += size_bytes
+                    if total_bytes > self._KMFILE_METADATA_MAX_TOTAL_BYTES:
+                        raise IngestionError("GIT_READBACK_FAILED")
+                    for line in manifest_path.read_text(encoding="utf-8").splitlines():
+                        if not line.strip():
+                            continue
+                        total_rows += 1
+                        if total_rows > self._KMFILE_METADATA_MAX_ROWS:
+                            raise IngestionError("GIT_READBACK_FAILED")
+                        row = json.loads(line)
+                        if not isinstance(row, Mapping) or row.get("conversation_id") != self.config.group_id:
+                            continue
+                        message_id = self._kmfile_manifest_identifier(row.get("message_id"))
+                        file_id = self._kmfile_manifest_identifier(row.get("file_id"))
+                        if message_id is not None and file_id is not None:
+                            keys.add((message_id, file_id))
+            except (OSError, TypeError, ValueError, json.JSONDecodeError, IngestionError) as exc:
+                raise IngestionError("GIT_READBACK_FAILED") from exc
+            return frozenset(keys)
 
     @staticmethod
     def _archive_occurrence_metadata(root: Path, occurrence_path: str) -> _RawArchiveOccurrence:
@@ -3270,6 +3478,7 @@ class GitSparseWriter:
         env: Mapping[str, str],
         ref: str,
         patterns: Sequence[str] | None = None,
+        allowed_roots: Sequence[Path] = (SPARSE_PATH,),
         audit_read: bool = False,
         failure_code: str = "GIT_WRITE_FAILED",
         commit_sha: str | None = None,
@@ -3281,11 +3490,16 @@ class GitSparseWriter:
         publication callers always provide a narrow immutable path set.
         """
 
-        selected = tuple(patterns) if patterns is not None else (f"{SPARSE_PATH.as_posix()}/",)
+        roots = tuple(allowed_roots)
+        if not roots or any(root.is_absolute() or ".." in root.parts for root in roots):
+            raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
+        selected = tuple(patterns) if patterns is not None else tuple(
+            f"{root.as_posix()}/" for root in roots
+        )
         if not selected:
             raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
-        sparse_root = SPARSE_PATH.as_posix() + "/"
-        if any(not pattern.startswith(sparse_root) for pattern in selected):
+        root_prefixes = tuple(root.as_posix() + "/" for root in roots)
+        if any(not any(pattern.startswith(prefix) for prefix in root_prefixes) for pattern in selected):
             raise IngestionError("GIT_SPARSE_SCOPE_VIOLATION")
         # A shallow clone normally fetches only the remote symbolic HEAD.  A
         # newly-created private repository can still have that HEAD pointing
@@ -3328,7 +3542,7 @@ class GitSparseWriter:
             )
         else:
             self._git(["checkout", ref], cwd=repo, env=env, audit_read=audit_read, failure_code=failure_code)
-        self._assert_sparse_checkout_scope(repo)
+        self._assert_sparse_checkout_scope(repo, allowed_roots=roots)
 
     def _prepare_sparse_clone_with_single_retry(
         self,

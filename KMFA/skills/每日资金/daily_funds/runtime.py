@@ -25,6 +25,7 @@ from .ingestion import (
     HistoryPoller,
     IngestionError,
     PersistedRawAttachment,
+    _file_attachment_identity,
     _family,
     _message_timestamp,
 )
@@ -210,22 +211,43 @@ class _RawFactReplayAccumulator:
     hours-long OCR sweep.
     """
 
-    def __init__(self, runtime: "DailyFundsRuntime"):
+    def __init__(
+        self,
+        runtime: "DailyFundsRuntime",
+        *,
+        kmfile_registered_file_keys: Iterable[tuple[str, str]] = (),
+    ):
         self.runtime = runtime
         self.occurrence_count = 0
         self.parsed_occurrences = 0
         self.needs_review_occurrences = 0
+        self.kmfile_registered_candidates = 0
         self._by_day: dict[date, dict[str, list[_RawFactReplayCandidate]]] = {}
-
+        self._kmfile_registered_file_keys = frozenset(kmfile_registered_file_keys)
         self._declared_candidates: list[PersistedRawAttachment] = []
+        self._declared_occurrence_keys: set[tuple[str, int, str]] = set()
+
+    @staticmethod
+    def _occurrence_key(attachment: PersistedRawAttachment | DownloadedAttachment) -> tuple[str, int, str]:
+        return attachment.message_id_hash, attachment.index, attachment.sha256
+
+    def _matches_kmfile_registration(self, attachment: PersistedRawAttachment) -> bool:
+        identity = _file_attachment_identity(attachment.message, index=attachment.index)
+        return identity is not None and identity in self._kmfile_registered_file_keys
 
     def index_persisted(self, attachment: PersistedRawAttachment) -> None:
         """Keep only source-gated formal candidates from a metadata census."""
 
         self.occurrence_count += 1
-        if _family(attachment.message) not in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}:
+        declared_family = _family(attachment.message)
+        explicit_candidate = declared_family in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}
+        kmfile_candidate = declared_family is None and self._matches_kmfile_registration(attachment)
+        if not explicit_candidate and not kmfile_candidate:
             return
         self._declared_candidates.append(attachment)
+        self._declared_occurrence_keys.add(self._occurrence_key(attachment))
+        if kmfile_candidate:
+            self.kmfile_registered_candidates += 1
 
     @property
     def declared_candidates(self) -> tuple[PersistedRawAttachment, ...]:
@@ -240,7 +262,11 @@ class _RawFactReplayAccumulator:
         # remains available to the separate capability audit, but it cannot
         # manufacture a pair simply because its bytes happen to resemble a
         # supported spreadsheet.
-        if attachment.family not in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}:
+        declared_candidate = self._occurrence_key(attachment) in self._declared_occurrence_keys
+        if (
+            attachment.family not in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}
+            and not (attachment.family is None and declared_candidate)
+        ):
             raise IngestionError("GIT_READBACK_FAILED")
         inspection = self.runtime._inspect_attachment_capabilities((attachment,))
         integrity_failures = tuple(
@@ -2275,23 +2301,53 @@ class DailyFundsRuntime:
             with self._raw_archive_audit_process_lock():
                 return self._raw_archive_audit_locked()
         except IngestionError as exc:
-            if exc.code == "RAW_ARCHIVE_AUDIT_LOCK_HELD":
-                return self.status.write("处理中", exc.code)
-            # The precise private archive error remains in neither cron output
-            # nor the shared status projection.  The recovery broker receives
-            # only a fixed operational class, which remains an explicit
-            # non-pass and cannot be promoted to a parser, source-pair, or
-            # financial-publication receipt.
-            self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
-            status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
-            self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
-            return {
-                "ok": False,
-                "code": _RAW_ARCHIVE_AUDIT_FAILURE_PROJECTIONS.get(
-                    exc.code,
-                    "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
-                ),
-            }
+            return self._raw_archive_audit_failure(exc)
+
+    def raw_archive_metadata_audit(self) -> dict[str, Any]:
+        """Census the complete private raw authority before recovery replay.
+
+        Recovery needs a complete source-envelope, occurrence and immutable
+        batch census before it can repair coverage.  It does not need to OCR
+        every historic screenshot before the formal replay reopens the exact
+        account/transaction candidates that may reach publication.  Keeping
+        these two gates separate lets the recovery path make current verified
+        facts available without weakening byte-level validation for any fact
+        that reaches D1, R2 or OCI.
+        """
+
+        try:
+            self.config.validate(include_storage=False)
+        except ConfigError:
+            return self.status.write("需处理", "CONFIG_INVALID")
+        try:
+            with self._raw_archive_audit_process_lock():
+                audit = GitSparseWriter(self.config).audit_raw_archive_metadata()
+        except IngestionError as exc:
+            return self._raw_archive_audit_failure(exc)
+
+        if audit.occurrence_count <= 0 or audit.batch_count <= 0:
+            return self._raw_archive_audit_failure(IngestionError("SOURCE_MISSING"))
+        status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDITED")
+        self._write_flow_state(stage="RAW_ARCHIVE_METADATA_AUDITED", status=status)
+        return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
+
+    def _raw_archive_audit_failure(self, exc: IngestionError) -> dict[str, Any]:
+        if exc.code == "RAW_ARCHIVE_AUDIT_LOCK_HELD":
+            return self.status.write("处理中", exc.code)
+        # The precise private archive error remains in neither cron output nor
+        # the shared status projection.  A fixed operational class remains an
+        # explicit non-pass and cannot be promoted to a parser, source-pair or
+        # financial-publication receipt.
+        self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
+        status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
+        self._write_flow_state(stage="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW", status=status)
+        return {
+            "ok": False,
+            "code": _RAW_ARCHIVE_AUDIT_FAILURE_PROJECTIONS.get(
+                exc.code,
+                "RAW_ARCHIVE_AUDIT_NEEDS_REVIEW",
+            ),
+        }
 
     def _raw_archive_audit_locked(self) -> dict[str, Any]:
         """Run one full raw-archive audit while its process lock is held."""
@@ -2647,7 +2703,19 @@ class DailyFundsRuntime:
             raise IngestionError("RAW_FACT_REPLAY_NEEDS_REVIEW")
         anchor = anchor.astimezone(UTC)
         writer = GitSparseWriter(self.config)
-        accumulator = _RawFactReplayAccumulator(self)
+        try:
+            kmfile_registered_file_keys = writer.kmfile_registered_attachment_keys()
+        except IngestionError:
+            # KMFile registration narrows otherwise title-less candidates. It
+            # never authorises a financial fact, so a temporary metadata-read
+            # fault may not withhold an independently declared DWS report.
+            # The affected title-less items remain quarantined until the next
+            # replay can establish their exact message/file link.
+            kmfile_registered_file_keys = frozenset()
+        accumulator = _RawFactReplayAccumulator(
+            self,
+            kmfile_registered_file_keys=kmfile_registered_file_keys,
+        )
         # First re-open the complete source-gated raw metadata tree at one
         # immutable commit.  This verifies the 360-day authority without
         # downloading unrelated quarantine bytes into the formal fact lane.
