@@ -70,3 +70,26 @@ def test_worker_log_probe_is_read_only_and_values_free() -> None:
     assert "-X POST" not in step
     assert "-X PATCH" not in step
     assert "-X DELETE" not in step
+
+
+def test_app_log_probe_is_read_only_and_values_free() -> None:
+    workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
+    start = workflow.index("只读汇总 KMFA app 运行状态")
+    end = workflow.index("受控强制重建每日资金恢复目标", start)
+    step = workflow[start:end]
+
+    assert "daily-funds-app-logs" in workflow
+    assert "inputs.mode == 'daily-funds-app-logs'" in step
+    assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
+    assert "daily_funds_app_logs=MAIN_REF_REQUIRED" in step
+    assert "daily_funds_app_logs=APP_REQUIRED" in step
+    assert "daily_funds_app_logs=APP_INVALID" in step
+    assert '"$BASE/api/v1/applications/$APP/logs?lines=200&service=app"' in step
+    assert "summarize_coolify_logs.py" in step
+    assert "daily-funds-app-logs.out" in step
+    assert "trap 'rm -f" in step
+    assert "cat " not in step
+    assert "json.dumps" not in step
+    assert "-X POST" not in step
+    assert "-X PATCH" not in step
+    assert "-X DELETE" not in step
