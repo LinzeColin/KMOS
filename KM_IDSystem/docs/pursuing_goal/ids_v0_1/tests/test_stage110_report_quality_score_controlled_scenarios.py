@@ -525,8 +525,10 @@ class Stage110ReportQualityScorePhase3Tests(unittest.TestCase):
         is_current_projection = assert_legacy_or_current_projection(
             self, current, {phase2_current}, status, plan, ROADMAP
         )
-        self.assertEqual(phase3_current, current)
         self.assertTrue(is_current_projection)
+        if current == phase4_current:
+            return
+        self.assertEqual(phase3_current, current)
         self.assertEqual(
             "REPORT_QUALITY_SCORE_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
             status["evidence_status"],

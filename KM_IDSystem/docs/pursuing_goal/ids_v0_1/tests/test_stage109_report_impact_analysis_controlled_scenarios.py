@@ -522,6 +522,12 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
             "IDS-V0_1-STAGE110-P3",
             "IDS-STAGE110-P4-GATE",
         )
+        stage110_phase4_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P4",
+            "IDS-V0_1-STAGE110-P4",
+            "IDS-STAGE110-REVIEW-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -543,6 +549,7 @@ class Stage109ReportImpactAnalysisPhase3Tests(unittest.TestCase):
                 stage110_phase1_current,
                 stage110_phase2_current,
                 stage110_phase3_current,
+                stage110_phase4_current,
             },
         )
 

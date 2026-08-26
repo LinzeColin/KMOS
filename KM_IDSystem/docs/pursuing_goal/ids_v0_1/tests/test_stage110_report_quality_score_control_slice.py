@@ -384,11 +384,17 @@ class Stage110ReportQualityScorePhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE110-P3",
             "IDS-STAGE110-P4-GATE",
         )
+        phase4_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P4",
+            "IDS-V0_1-STAGE110-P4",
+            "IDS-STAGE110-REVIEW-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self, current, {phase1_current}, status, plan, ROADMAP
         )
         self.assertTrue(is_current_projection)
-        if current == phase3_current:
+        if current in {phase3_current, phase4_current}:
             return
         self.assertEqual(phase2_current, current)
         self.assertEqual(
