@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE109"
-current_phase_id: "IDS-STAGE109-P3"
-current_task_id: "IDS-V0_1-STAGE109-P3"
-next_gate_id: "IDS-STAGE109-P4-GATE"
+current_phase_id: "IDS-STAGE109-P4"
+current_task_id: "IDS-V0_1-STAGE109-P4"
+next_gate_id: "IDS-STAGE109-REVIEW-GATE"
 current_transition_history:
+  stage109_phase4_state:
+    current_stage_id: "IDS-STAGE109"
+    current_phase_id: "IDS-STAGE109-P4"
+    current_task_id: "IDS-V0_1-STAGE109-P4"
+    next_gate_id: "IDS-STAGE109-REVIEW-GATE"
   stage109_phase3_state:
     current_stage_id: "IDS-STAGE109"
     current_phase_id: "IDS-STAGE109-P3"
@@ -1935,22 +1940,22 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-109"
     objective: "依据冻结 Stage109 任务包完成报告影响分析的 P1 静态边界、后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审；引用资料更新、资料撤回、证据降级与索引版本变化保持受影响报告识别、报告状态影响、质量评分、导出审计和业务线白箱人工确认的受控边界。"
-    status: "phase3_completed_local"
+    status: "phase4_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE109-P4-GATE"
+    next_gate_id: "IDS-STAGE109-REVIEW-GATE"
     gate:
-      gate_id: "IDS-STAGE109-P3-GATE"
+      gate_id: "IDS-STAGE109-P4-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE109-P4-GATE"
+      next_gate_id: "IDS-STAGE109-REVIEW-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage109 任务包与 Stage108 Review 已复审报告快照控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 固定报告证据绑定、外部增强章节、人工确认项、关键结论 evidence_id/evidence_gap、证据等级、PDF 引用来源与页码、五项生成快照、引用资料更新、资料撤回、证据降级、索引版本变化、影响范围、受影响报告、报告状态影响、质量评分、导出审计、模板限制与重新生成／撤回说明的控制引用。"
-      - "P2 已固定五条非业务 reference-only 控制请求，机械投影报告证据绑定与章节输出、五项生成快照、报告影响分析与生命周期、外部增强与业务线白箱门禁四组纯内存记录；P3 精确重放 P2 的五条控制请求，形成五条、每条四十二字段、共二百一十个场景检查点、五个控制视图、五条业务线白箱处理记录、两条人工确认门禁、二十条失败关闭与四条中文反馈；P4 只交付控制记录、回滚说明与中文反馈。"
+      - "P2 已固定五条非业务 reference-only 控制请求，机械投影报告证据绑定与章节输出、五项生成快照、报告影响分析与生命周期、外部增强与业务线白箱门禁四组纯内存记录；P3 精确重放 P2 的五条控制请求，形成五条、每条四十二字段、共二百一十个场景检查点、五个控制视图、五条业务线白箱处理记录、两条人工确认门禁、二十条失败关闭与四条中文反馈；P4 已交付报告样例、报告快照、报告质量评分、报告影响分析、模板限制与业务线白箱人工确认各五条，以及重新生成与撤回说明两条，字段形状为 17/13/13/15/14/14，共三百八十八个 metadata-only 交付字段检查点、十七条失败关闭与四条中文反馈。"
       - "真实资料、人工确认、报告、PDF、快照、审计、数据库、模型、Agent、OVH、生产与正式全局上传保持零执行。"
     forbidden_actions:
       - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、原始元数据、真实证据账本、审计日志、数据库、物理索引或业务结论。"
-      - "执行人工确认、外部参考或模型推理评估、引用资料更新判断、证据降级判断、索引版本变化判断、受影响报告识别、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、质量评分、导出审计、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage109 P4 以后阶段。"
+      - "执行人工确认、外部参考或模型推理评估、引用资料更新判断、证据降级判断、索引版本变化判断、受影响报告识别、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、质量评分、导出审计、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage109 Review 以后阶段。"
     phases:
       - phase_id: "IDS-STAGE109-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -2101,29 +2106,67 @@ stages:
       - phase_id: "IDS-STAGE109-P4"
         name: "Phase 4 · 报告影响分析交付证据、回滚与中文反馈"
         objective: "交付报告样例、报告快照、质量评分、影响分析、模板限制、人工确认要求与重新生成／撤回说明的控制证据。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE109-REVIEW-GATE"
         gate:
           gate_id: "IDS-STAGE109-P4-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE109-REVIEW-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE109-P4"
             name: "报告影响分析交付证据"
             objective: "在授权后交付冻结任务包定义的控制证据、回滚说明与中文反馈。"
-            status: "not_started"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE109-P1"
               - "IDS-V0_1-STAGE109-P2"
               - "IDS-V0_1-STAGE109-P3"
+            acceptance_ids:
+              - "ACC-STAGE-109"
+              - "ACC-STAGE109-P4-01"
+              - "ACC-STAGE109-P4-02"
+              - "ACC-STAGE109-P4-03"
+              - "ACC-STAGE109-P4-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage109_report_impact_analysis_contract KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage109_report_impact_analysis_control_slice KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage109_report_impact_analysis_controlled_scenarios KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage109_report_impact_analysis_delivery"
+              - "Stage088--Stage109 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage109 P4 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage109 P4 聚焦 metadata-only 交付控制证据、Stage109 P1--P3 兼容、Stage088--Stage109 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage109 P4 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-109_报告影响分析.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE109_PHASE4_REPORT_IMPACT_ANALYSIS_DELIVERY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_delivery.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_delivery_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage109_report_impact_analysis_delivery.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage109-p4-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE109_PHASE3_REPORT_IMPACT_ANALYSIS_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_controlled_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage109_report_impact_analysis_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage109-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE109_PHASE2_REPORT_IMPACT_ANALYSIS_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage109_report_impact_analysis_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage109-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE109_PHASE1_REPORT_IMPACT_ANALYSIS_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage109_report_impact_analysis_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage109-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE108_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage108_report_snapshot_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage108_report_snapshot_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage108-review-local.json"
+            risk: "将 P3 场景、metadata-only 交付记录、测试、路线或机器事实误作真实报告、业务事实、审计或生产动作，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage109 P3 专项场景的本地零运行时状态；不改变 Stage109 P1/P2/P3、Stage108 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
     review:
       phase_id: "IDS-STAGE109-REVIEW"
       name: "Stage Review · 报告影响分析整阶段机械复审"
       objective: "在所有阶段工件完成后机械复审报告影响分析、证据绑定、来源语义、人工确认、状态影响、质量、审计与回滚边界。"
       status: "not_started"
-      entry_authorized: false
+      entry_authorized: true
       next_gate_id: "IDS-STAGE110-P1-GATE"
       gate:
         gate_id: "IDS-STAGE109-REVIEW-GATE"

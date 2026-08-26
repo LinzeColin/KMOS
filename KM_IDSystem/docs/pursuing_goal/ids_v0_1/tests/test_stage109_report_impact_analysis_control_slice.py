@@ -399,20 +399,26 @@ class Stage109ReportImpactAnalysisPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE109-P3",
             "IDS-STAGE109-P4-GATE",
         )
+        phase4_current = (
+            "IDS-STAGE109",
+            "IDS-STAGE109-P4",
+            "IDS-V0_1-STAGE109-P4",
+            "IDS-STAGE109-REVIEW-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
-            {phase1_current, phase2_current},
+            {phase1_current, phase2_current, phase3_current},
             status,
             plan,
             ROADMAP,
         )
         self.assertEqual(status["task"], plan["task"])
-        if current in {phase1_current, phase2_current}:
+        if current in {phase1_current, phase2_current, phase3_current}:
             self.assertFalse(is_current_projection)
             return
         self.assertTrue(is_current_projection)
-        self.assertEqual(phase3_current, current)
+        self.assertEqual(phase4_current, current)
 
 
 if __name__ == "__main__":
