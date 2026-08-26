@@ -481,8 +481,10 @@ class Stage110ReportQualityScorePhase4Tests(unittest.TestCase):
         is_current_projection = assert_legacy_or_current_projection(
             self, current, {phase3_current}, status, plan, ROADMAP
         )
-        self.assertEqual(phase4_current, current)
+        self.assertIn(current, {phase4_current, review_current})
         self.assertTrue(is_current_projection)
+        if current == review_current:
+            return
         self.assertEqual(
             "REPORT_QUALITY_SCORE_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             status["evidence_status"],
@@ -519,7 +521,6 @@ class Stage110ReportQualityScorePhase4Tests(unittest.TestCase):
             if line.strip()
         }
         self.assertIn("EVT-IDS-V0_1-STAGE110-P4-20260826-001", event_ids)
-        self.assertNotIn(review_current, {current})
 
 
 if __name__ == "__main__":
