@@ -16,12 +16,12 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
+        description: "list=资源与环境变量名 | deployment-identity=已配置源码身份(不等同于运行镜像) | enable-source-commit-build=仅开启 Coolify 构建源码身份并回读 | daily-funds-access-audit=仅 GET 审计每日资金 Access 能力 | public-dashboard=Owner 批准的 KMFA 无登录公开面 | daily-funds-history-probe-bridge=短时服务身份触发固定历史探针并自动撤销 | daily-funds-recovery-bridge=短时服务身份触发固定恢复链并自动撤销 | daily-funds-recovery-status-bridge=短时服务身份只读恢复状态并自动撤销 | daily-funds-projection-probe-bridge=短时服务身份核验 D1/R2/OCI 与只读投影 | daily-funds-recovery-restart=核验唯一 KMFA Docker Compose 目标后受控重启 | daily-funds-recovery-component-restart=精确映射唯一 daily-funds Compose 组件后重启 | daily-funds-recovery-force-rebuild=核验唯一 KMFA Compose 目标后按官方 force 部署重建 | daily-funds-source-advance=核验唯一 KMFA Compose 目标后将受控源码前进到当前 main 并重建 | daily-funds-history-probe-cleanup / daily-funds-recovery-cleanup / daily-funds-projection-probe-cleanup=按唯一 run tag 清理对应控制路径的遗留短时身份 | flags=非秘密开关的值(诊断用) | provision-backup-key=注入备份密钥 | redeploy=重新部署 | deployments=最近部署 | cancel-deployment=取消卡死的指定部署 | logs=容器日志 | testing-safe-mode=测试期安全态(清群机器人+投递关) | set-flag=改一个非秘密开关 | sync-access-aud=同步 Access audiences | sync-project-cost-secrets=同步项目成本只读源与工资密码 | sync-daily-funds-secrets=同步每日资金专用凭据 | project-cost-diagnostic=加密回传项目成本全量诊断 | sync-dingtalk=把钉钉凭据从仓库secret同步进Coolify"
         required: true
         type: choice
-        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-recovery-force-rebuild, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
+        options: [list, deployment-identity, enable-source-commit-build, daily-funds-access-audit, public-dashboard, daily-funds-history-probe-bridge, daily-funds-recovery-bridge, daily-funds-recovery-status-bridge, daily-funds-projection-probe-bridge, daily-funds-recovery-restart, daily-funds-recovery-component-restart, daily-funds-recovery-force-rebuild, daily-funds-source-advance, daily-funds-history-probe-cleanup, daily-funds-recovery-cleanup, daily-funds-projection-probe-cleanup, flags, set-flag, sync-access-aud, sync-project-cost-secrets, sync-daily-funds-secrets, project-cost-diagnostic, testing-safe-mode, delivery-personal-on, provision-backup-key, sync-dingtalk, redeploy, deployments, deployment-log, cancel-deployment, logs]
       app_uuid:
-        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-projection-probe-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-recovery-force-rebuild 必填；先用 list 查）"
+        description: "目标应用 uuid（enable-source-commit-build / provision-backup-key / redeploy / daily-funds-recovery-bridge / daily-funds-recovery-status-bridge / daily-funds-projection-probe-bridge / daily-funds-recovery-restart / daily-funds-recovery-component-restart / daily-funds-recovery-force-rebuild / daily-funds-source-advance 必填；先用 list 查）"
         required: false
         type: string
       command:
@@ -2556,4 +2556,294 @@ jobs:
             esac
           done
           echo "daily_funds_force_rebuild=TARGET_HEALTH_TIMEOUT"
+          exit 1
+
+      # A normal or force deployment can legitimately finish while the
+      # application remains pinned to its previous git_commit_sha.  Rebuilding
+      # that pin only recreates the old worker, so this is the one narrow
+      # recovery action allowed to advance the configured source to the
+      # dispatching main revision.  The revision itself stays runner-private;
+      # public logs contain only finite target/pointer/deployment receipts.
+      - name: 前进每日资金受控源码并重建
+        if: inputs.mode == 'daily-funds-source-advance'
+        env:
+          EXPECTED_SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          app_file="$RUNNER_TEMP/daily-funds-source-advance-app.json"
+          active_file="$RUNNER_TEMP/daily-funds-source-advance-active.json"
+          preflight_file="$RUNNER_TEMP/daily-funds-source-advance-preflight.json"
+          patch_file="$RUNNER_TEMP/daily-funds-source-advance-patch.json"
+          patch_response_file="$RUNNER_TEMP/daily-funds-source-advance-patch-response.json"
+          readback_file="$RUNNER_TEMP/daily-funds-source-advance-readback.json"
+          deploy_file="$RUNNER_TEMP/daily-funds-source-advance-deploy.json"
+          deployment_target_file="$RUNNER_TEMP/daily-funds-source-advance-deployment-target.json"
+          deployment_status_file="$RUNNER_TEMP/daily-funds-source-advance-deployment-status.json"
+          health_file="$RUNNER_TEMP/daily-funds-source-advance-health.json"
+          trap 'rm -f "$app_file" "$active_file" "$preflight_file" "$patch_file" "$patch_response_file" "$readback_file" "$deploy_file" "$deployment_target_file" "$deployment_status_file" "$health_file"' EXIT
+          test "${GITHUB_REF:-}" = "refs/heads/main" || { echo "daily_funds_source_advance=MAIN_REF_REQUIRED"; exit 1; }
+          test -n "${APP:-}" || { echo "daily_funds_source_advance=APP_REQUIRED"; exit 1; }
+          case "$APP" in *[!A-Za-z0-9_-]*) echo "daily_funds_source_advance=APP_INVALID"; exit 1 ;; esac
+          test -n "${BASE:-}" || { echo "daily_funds_source_advance=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${TOKEN:-}" || { echo "daily_funds_source_advance=CONFIG_UNAVAILABLE"; exit 1; }
+          test -n "${EXPECTED_SOURCE_REVISION:-}" || { echo "daily_funds_source_advance=SOURCE_REVISION_UNAVAILABLE"; exit 1; }
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$EXPECTED_SOURCE_REVISION"
+
+          fetch_json() {
+            local target="$1"
+            local endpoint="$2"
+            local code
+            code="$(curl -sS -o "$target" -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$endpoint" 2>/dev/null || true)"
+            test "$code" = "200" || { echo "daily_funds_source_advance=CONTROL_UNAVAILABLE"; exit 1; }
+          }
+
+          fetch_json "$app_file" "$BASE/api/v1/applications/$APP"
+          fetch_json "$active_file" "$BASE/api/v1/deployments/applications/$APP"
+          python3 - "$app_file" "$active_file" "$preflight_file" "$EXPECTED_SOURCE_REVISION" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_source_advance={code}")
+              raise SystemExit(1)
+
+          def load(path: str):
+              try:
+                  return json.loads(Path(path).read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError):
+                  fail("CONTROL_RESPONSE_INVALID")
+
+          def unwrap(payload):
+              while isinstance(payload, dict) and isinstance(payload.get("data"), (dict, list)):
+                  payload = payload["data"]
+              return payload
+
+          def normalize_path(value, allow_empty: bool):
+              if value is None:
+                  return "" if allow_empty else None
+              if not isinstance(value, str):
+                  return None
+              normalized = value.strip().replace("\\", "/")
+              while normalized.startswith("./"):
+                  normalized = normalized[2:]
+              normalized = normalized.lstrip("/")
+              if not normalized:
+                  return "" if allow_empty else None
+              parts = normalized.split("/")
+              if any(part in {"", ".", ".."} for part in parts):
+                  return None
+              return "/".join(parts)
+
+          app = unwrap(load(sys.argv[1]))
+          active = unwrap(load(sys.argv[2]))
+          expected = sys.argv[4].strip().lower()
+          if not isinstance(app, dict) or not isinstance(active, list):
+              fail("CONTROL_RESPONSE_INVALID")
+          if not re.fullmatch(r"[0-9a-f]{40}", expected):
+              fail("SOURCE_REVISION_INVALID")
+          if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
+              fail("TARGET_UNEXPECTED")
+          repository = str(app.get("git_repository") or "").rstrip("/")
+          if not (repository.endswith("LinzeColin/KMOS") or repository.endswith("LinzeColin/KMOS.git")):
+              fail("SOURCE_REPOSITORY_UNEXPECTED")
+          if app.get("git_branch") != "main":
+              fail("SOURCE_BRANCH_UNEXPECTED")
+          revision = app.get("git_commit_sha")
+          if not isinstance(revision, str) or re.fullmatch(r"[0-9a-f]{40}", revision.lower()) is None:
+              fail("SOURCE_REVISION_UNAVAILABLE")
+          command_fields = (
+              "docker_compose_custom_start_command",
+              "docker_compose_custom_build_command",
+          )
+          if any(app.get(field) not in (None, "") for field in command_fields):
+              fail("COMPOSE_COMMAND_CONFIGURED")
+          if (
+              normalize_path(app.get("base_directory"), allow_empty=True),
+              normalize_path(app.get("docker_compose_location"), allow_empty=False),
+          ) not in {
+              ("", "KMFA/deploy/coolify/docker-compose.yml"),
+              ("KMFA", "deploy/coolify/docker-compose.yml"),
+          }:
+              fail("COMPOSE_LOCATION_UNEXPECTED")
+          terminal = {
+              "finished", "success", "successful", "completed", "failed", "error",
+              "cancelled", "canceled", "cancelled_by_user", "cancelled-by-user",
+          }
+          if any(
+              not isinstance(record, dict)
+              or str(record.get("status") or "").strip().lower() not in terminal
+              for record in active
+          ):
+              fail("DEPLOYMENT_ALREADY_ACTIVE")
+          Path(sys.argv[3]).write_text(
+              json.dumps({"pointer_state": "CURRENT" if revision.lower() == expected else "ADVANCE"}),
+              encoding="utf-8",
+          )
+          Path(sys.argv[3]).chmod(0o600)
+          print("daily_funds_source_advance_target=VERIFIED")
+          PY
+
+          pointer_state="$(jq -er '.pointer_state' "$preflight_file" 2>/dev/null)" \
+            || { echo "daily_funds_source_advance=CONTROL_RESPONSE_INVALID"; exit 1; }
+          case "$pointer_state" in
+            ADVANCE)
+              EXPECTED_SOURCE_REVISION="$EXPECTED_SOURCE_REVISION" python3 - "$patch_file" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          Path(sys.argv[1]).write_text(
+              json.dumps({"git_commit_sha": os.environ["EXPECTED_SOURCE_REVISION"]}),
+              encoding="utf-8",
+          )
+          PY
+              patch_code="$(curl -sS -o "$patch_response_file" -w '%{http_code}' -X PATCH \
+                -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+                --data @"$patch_file" "$BASE/api/v1/applications/$APP" 2>/dev/null || true)"
+              test "$patch_code" = "200" || test "$patch_code" = "201" \
+                || { echo "daily_funds_source_advance=POINTER_NOT_ACCEPTED"; exit 1; }
+              fetch_json "$readback_file" "$BASE/api/v1/applications/$APP"
+              python3 - "$readback_file" "$EXPECTED_SOURCE_REVISION" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              print("daily_funds_source_advance=CONTROL_RESPONSE_INVALID")
+              raise SystemExit(1)
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          expected = sys.argv[2].strip().lower()
+          if (
+              not isinstance(payload, dict)
+              or not re.fullmatch(r"[0-9a-f]{40}", expected)
+              or str(payload.get("git_commit_sha") or "").strip().lower() != expected
+          ):
+              print("daily_funds_source_advance=POINTER_READBACK_UNAVAILABLE")
+              raise SystemExit(1)
+          print("daily_funds_source_advance_pointer=ADVANCED")
+          PY
+              ;;
+            CURRENT)
+              echo "daily_funds_source_advance_pointer=CURRENT"
+              ;;
+            *)
+              echo "daily_funds_source_advance=CONTROL_RESPONSE_INVALID"
+              exit 1
+              ;;
+          esac
+
+          deploy_code="$(curl -sS -o "$deploy_file" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deploy?uuid=$APP&force=true" 2>/dev/null || true)"
+          test "$deploy_code" = "200" || test "$deploy_code" = "201" || test "$deploy_code" = "202" \
+            || { echo "daily_funds_source_advance=DEPLOYMENT_NOT_ACCEPTED"; exit 1; }
+          python3 - "$deploy_file" "$deployment_target_file" "$APP" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          def fail(code: str) -> None:
+              print(f"daily_funds_source_advance={code}")
+              raise SystemExit(1)
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              fail("DEPLOYMENT_RESPONSE_INVALID")
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          deployments = payload.get("deployments") if isinstance(payload, dict) else None
+          if not isinstance(deployments, list) or len(deployments) != 1:
+              fail("DEPLOYMENT_RESPONSE_INVALID")
+          deployment = deployments[0]
+          if not isinstance(deployment, dict) or deployment.get("resource_uuid") != sys.argv[3]:
+              fail("DEPLOYMENT_TARGET_UNEXPECTED")
+          deployment_uuid = deployment.get("deployment_uuid")
+          if not isinstance(deployment_uuid, str) or not re.fullmatch(r"[A-Za-z0-9_-]{6,128}", deployment_uuid):
+              fail("DEPLOYMENT_RESPONSE_INVALID")
+          target = Path(sys.argv[2])
+          target.write_text(json.dumps({"deployment_uuid": deployment_uuid}), encoding="utf-8")
+          target.chmod(0o600)
+          print("daily_funds_source_advance_deployment=QUEUED")
+          PY
+          deployment_uuid="$(jq -er '.deployment_uuid' "$deployment_target_file" 2>/dev/null)" \
+            || { echo "daily_funds_source_advance=DEPLOYMENT_RESPONSE_INVALID"; exit 1; }
+
+          for attempt in $(seq 1 120); do
+            status_code="$(curl -sS -o "$deployment_status_file" -w '%{http_code}' \
+              -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/deployments/$deployment_uuid" 2>/dev/null || true)"
+            if test "$status_code" = "200"; then
+              deployment_state="$(python3 - "$deployment_status_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              print("INVALID")
+              raise SystemExit(0)
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          status = str(payload.get("status") or "").strip().lower() if isinstance(payload, dict) else ""
+          if status in {"finished", "success", "successful", "completed"}:
+              print("FINISHED")
+          elif status in {"failed", "error", "cancelled", "canceled", "cancelled_by_user", "cancelled-by-user"}:
+              print("FAILED")
+          else:
+              print("PENDING")
+          PY
+              )"
+              case "$deployment_state" in
+                FINISHED) break ;;
+                FAILED) echo "daily_funds_source_advance=DEPLOYMENT_FAILED"; exit 1 ;;
+                PENDING) ;;
+                *) echo "daily_funds_source_advance=DEPLOYMENT_STATUS_INVALID"; exit 1 ;;
+              esac
+            elif test "$status_code" != "404"; then
+              echo "daily_funds_source_advance=DEPLOYMENT_STATUS_UNAVAILABLE"
+              exit 1
+            fi
+            sleep 5
+          done
+          test "${deployment_state:-PENDING}" = "FINISHED" \
+            || { echo "daily_funds_source_advance=DEPLOYMENT_STATUS_TIMEOUT"; exit 1; }
+
+          for attempt in $(seq 1 24); do
+            fetch_json "$health_file" "$BASE/api/v1/applications/$APP"
+            app_health="$(python3 - "$health_file" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          try:
+              payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError):
+              print("INVALID")
+              raise SystemExit(0)
+          while isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+              payload = payload["data"]
+          if not isinstance(payload, dict):
+              print("INVALID")
+          elif payload.get("status") == "running:healthy":
+              print("HEALTHY")
+          else:
+              print("PENDING")
+          PY
+            )"
+            case "$app_health" in
+              HEALTHY) echo "daily_funds_source_advance=FINISHED"; exit 0 ;;
+              PENDING) sleep 5 ;;
+              *) echo "daily_funds_source_advance=TARGET_HEALTH_INVALID"; exit 1 ;;
+            esac
+          done
+          echo "daily_funds_source_advance=TARGET_HEALTH_TIMEOUT"
           exit 1
