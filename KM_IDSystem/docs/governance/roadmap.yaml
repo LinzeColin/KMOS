@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE109"
-current_phase_id: "IDS-STAGE109-REVIEW"
-current_task_id: "IDS-V0_1-STAGE109-REVIEW"
-next_gate_id: "IDS-STAGE110-P1-GATE"
+current_stage_id: "IDS-STAGE110"
+current_phase_id: "IDS-STAGE110-P1"
+current_task_id: "IDS-V0_1-STAGE110-P1"
+next_gate_id: "IDS-STAGE110-P2-GATE"
 current_transition_history:
+  stage110_phase1_state:
+    current_stage_id: "IDS-STAGE110"
+    current_phase_id: "IDS-STAGE110-P1"
+    current_task_id: "IDS-V0_1-STAGE110-P1"
+    next_gate_id: "IDS-STAGE110-P2-GATE"
   stage109_review_state:
     current_stage_id: "IDS-STAGE109"
     current_phase_id: "IDS-STAGE109-REVIEW"
@@ -1939,6 +1944,152 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE110"
+    name: "报告质量评分"
+    task_id: "IDS-V0_1-STAGE110"
+    acceptance_ids:
+      - "ACC-STAGE-110"
+    objective: "依据冻结 Stage110 任务包完成报告质量评分的 P1 静态边界，并为后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审保留单一权威、可测试、可回滚的控制入口。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE110-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE110-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE110-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage110 任务包与 Stage109 Review 已复审报告影响分析控制工件构成唯一控制上下文；来源文档、真实证据账本、已交付报告与业务线白箱人工复核继续承担业务事实权威。"
+      - "P1 固定 40 个未来控制引用、五项生成快照、四项质量指标控制引用、质量定义／公式／权重／阈值／分数／解释控制引用、PDF 引用来源与页码、报告状态影响、外部增强来源分离、人工确认、导出审计、模板限制与重新生成／撤回说明。"
+      - "质量公式、权重、阈值、指标值、分数与解释只在未来业务线白箱授权下定义或计算；P2、P3、P4 与整阶段 Review 保持未启动。"
+      - "真实资料、报告、PDF、快照、审计、数据库、模型、Agent、OVH、生产与正式全局上传保持零执行。"
+    forbidden_actions:
+      - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、原始元数据、真实证据账本、审计日志、数据库、物理索引、质量指标值、质量公式、质量分数或业务结论。"
+      - "执行人工确认、外部参考或模型推理评估、证据覆盖率或引用完整率计算、外部增强占比或证据缺口计算、质量公式／权重／阈值定义、报告质量评分、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、导出审计、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage110 P2 以后阶段。"
+    phases:
+      - phase_id: "IDS-STAGE110-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义报告证据绑定、外部增强章节、人工确认项、报告快照、影响分析、PDF 引用来源、data/index/evidence/model/generated_at snapshot 与报告质量评分的未来控制引用。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE110-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE110-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE110-P2-GATE"
+          github_upload_allowed: false
+        pass_conditions:
+          - "P1 固定 40 个未来控制引用、五项生成快照、四项质量指标及质量定义／公式／权重／阈值／分数／解释控制引用，报告证据绑定、PDF 引用来源与页码、外部增强来源边界、报告状态影响和交付控制保持可审阅。"
+          - "真实报告、PDF、快照、审计、人工确认、质量计算、业务结论与运行时保持后续授权范围。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE110-P1"
+            name: "报告质量评分静态合同"
+            objective: "依据冻结 Stage110 任务包和 Stage109 Review 已复审控制工件，固定报告质量评分的未来控制形状。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE109-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-110"
+              - "ACC-STAGE110-P1-01"
+              - "ACC-STAGE110-P1-02"
+              - "ACC-STAGE110-P1-03"
+              - "ACC-STAGE110-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage110_report_quality_score_contract"
+              - "Stage088--Stage110 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage110 P1 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage110 P1 聚焦静态质量评分合同白箱用例、Stage109 Review 兼容、Stage088--Stage110 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage110 P1 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-110_报告质量评分.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE110_PHASE1_REPORT_QUALITY_SCORE_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage110_report_quality_score_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage110_report_quality_score_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage110-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE109_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage109_report_impact_analysis_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage109_report_impact_analysis_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage109-review-local.json"
+            risk: "将质量控制引用、测试、路线或机器事实误作真实评分、业务事实、审计或生产动作，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage109 Review 的本地零运行时状态；不改变 Stage109 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE110-P2"
+        name: "Phase 2 · 实现、接入与最小可运行切片"
+        objective: "以 Stage110 P1 静态合同为前序，受控实现报告证据绑定、章节输出、快照保存、影响分析或报告质量评分切片，并记录 future report 的证据等级、引用页码、人工确认项与导出审计。"
+        status: "not_started"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE110-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE110-P2-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE110-P3-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE110-P2"
+            name: "报告质量评分受控最小切片"
+            objective: "在新的独立 run 中受控实现冻结任务包列出的报告质量评分最小切片。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE110-P1"
+      - phase_id: "IDS-STAGE110-P3"
+        name: "Phase 3 · 报告质量评分专项验证与异常场景"
+        objective: "验证关键结论 evidence_id/evidence_gap、资料撤回／证据降级／索引版本变化的报告状态影响及外部增强来源边界。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE110-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE110-P3-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE110-P4-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE110-P3"
+            name: "报告质量评分专项验证与异常场景"
+            objective: "在授权后验证冻结控制切片的报告质量评分边界。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE110-P1"
+              - "IDS-V0_1-STAGE110-P2"
+      - phase_id: "IDS-STAGE110-P4"
+        name: "Phase 4 · 报告质量评分交付证据、回滚与中文反馈"
+        objective: "交付报告样例、报告快照、报告质量评分、影响分析、模板限制、人工确认要求与重新生成／撤回说明的控制证据。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE110-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE110-P4-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE110-REVIEW-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE110-P4"
+            name: "报告质量评分交付证据"
+            objective: "在授权后交付冻结任务包定义的控制证据、回滚说明与中文反馈。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE110-P1"
+              - "IDS-V0_1-STAGE110-P2"
+              - "IDS-V0_1-STAGE110-P3"
+    review:
+      phase_id: "IDS-STAGE110-REVIEW"
+      name: "Stage Review · 报告质量评分整阶段机械复审"
+      objective: "在所有阶段工件完成后机械复审报告质量评分、证据绑定、来源语义、人工确认、状态影响、质量、审计与回滚边界。"
+      status: "not_started"
+      entry_authorized: false
+      next_gate_id: "IDS-STAGE111-P1-GATE"
+      gate:
+        gate_id: "IDS-STAGE110-REVIEW-GATE"
+        status: "pending"
+        next_gate_id: "IDS-STAGE111-P1-GATE"
+        github_upload_allowed: false
+      tasks:
+        - task_id: "IDS-V0_1-STAGE110-REVIEW"
+          name: "机械复审报告质量评分控制边界"
+          objective: "在授权后聚合 P1--P4 控制工件并复审单一权威、质量控制、来源边界、白箱门禁、失败关闭与回滚。"
+          status: "not_started"
+          dependencies:
+            - "IDS-V0_1-STAGE110-P1"
+            - "IDS-V0_1-STAGE110-P2"
+            - "IDS-V0_1-STAGE110-P3"
+            - "IDS-V0_1-STAGE110-P4"
   - stage_id: "IDS-STAGE109"
     name: "报告影响分析"
     task_id: "IDS-V0_1-STAGE109"

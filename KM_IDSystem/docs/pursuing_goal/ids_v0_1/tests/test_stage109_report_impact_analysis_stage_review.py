@@ -355,11 +355,19 @@ class Stage109ReportImpactAnalysisStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE109-REVIEW",
             "IDS-STAGE110-P1-GATE",
         )
+        stage110_phase1_current = (
+            "IDS-STAGE110",
+            "IDS-STAGE110-P1",
+            "IDS-V0_1-STAGE110-P1",
+            "IDS-STAGE110-P2-GATE",
+        )
         self.assertTrue(
             assert_legacy_or_current_projection(
                 self, current, {phase4_current}, status, plan, ROADMAP
             )
         )
+        if current == stage110_phase1_current:
+            return
         self.assertEqual(review_current, current)
         self.assertEqual(
             "REVIEWED_REPORT_IMPACT_ANALYSIS_RUNTIME_DISABLED",

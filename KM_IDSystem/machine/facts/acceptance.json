@@ -1,9 +1,34 @@
 {
-  "stage": "IDS-STAGE109",
-  "phase": "IDS-STAGE109-REVIEW",
-  "task": "IDS-V0_1-STAGE109-REVIEW",
-  "next_gate": "IDS-STAGE110-P1-GATE",
+  "stage": "IDS-STAGE110",
+  "phase": "IDS-STAGE110-P1",
+  "task": "IDS-V0_1-STAGE110-P1",
+  "next_gate": "IDS-STAGE110-P2-GATE",
   "items": [
+    {
+      "id": "ACC-STAGE-110",
+      "criteria": "Stage110 报告质量评分 P1 已形成可执行、可测试、可回滚的静态控制结构：报告证据绑定、外部增强来源边界、人工确认、五项生成快照、四项质量指标、质量定义／公式／权重／阈值／分数／解释、报告状态影响、导出审计、模板限制、重新生成、撤回和失败关闭均保留为未来控制引用。",
+      "status": "P1 静态报告质量评分合同已完成"
+    },
+    {
+      "id": "ACC-STAGE110-P1-01",
+      "criteria": "报告证据绑定、外部增强章节、人工确认项、PDF 引用来源与报告快照控制引用已定义。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE110-P1-02",
+      "criteria": "data/index/evidence/model/generated_at 五项生成快照与报告状态影响控制引用已定义。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE110-P1-03",
+      "criteria": "内部证据覆盖率、引用完整率、外部增强占比、证据缺口和质量评分的未来控制形状已定义。",
+      "status": "已通过"
+    },
+    {
+      "id": "ACC-STAGE110-P1-04",
+      "criteria": "真实质量计算、质量公式／权重／阈值、人工确认、业务资料、模型、Agent、OVH 与生产保持后续白箱授权和零运行时边界。",
+      "status": "已遵守"
+    },
     {
       "id": "ACC-STAGE-109",
       "criteria": "Stage109 报告影响分析 P1 静态合同、P2 纯内存受控最小切片、P3 纯内存专项场景、P4 metadata-only 交付控制证据与 Review 机械复审已形成可执行、可测试、可回滚的工程控制结构：报告证据绑定、外部增强来源语义、关键结论 evidence_id/evidence_gap、引用来源与页码、五项生成快照、引用资料更新、资料撤回、证据降级、索引版本变化、受影响报告、报告状态影响、质量评分、导出审计、模板限制、业务线白箱人工确认、重新生成与撤回、失败关闭和 P4→P3 回滚边界保持可审阅。",
