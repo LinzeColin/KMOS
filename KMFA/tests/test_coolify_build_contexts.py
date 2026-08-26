@@ -77,3 +77,24 @@ def test_shared_skills_reuses_existing_local_image_during_daily_funds_rollout():
     body = match.group("body")
     assert re.search(r"^    build:", body, flags=re.MULTILINE) is None
     assert 'image: "${KMFA_SKILLS_IMAGE:-kmfa-skills:coolify}"' in body
+
+
+def test_app_healthcheck_uses_the_shallow_http_liveness_endpoint():
+    """Web liveness stays independent from persisted business-state readiness.
+
+    The public health route is intentionally a shallow process probe.  A
+    schema or object-store review must appear in the protected business status
+    surface while the website itself remains reachable.
+    """
+
+    text = COMPOSE.read_text(encoding="utf-8")
+    match = re.search(
+        r"^  app:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:|\\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    assert match, "compose 缺少 app 服务"
+    body = match.group("body")
+    assert "urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=5)" in body
+    assert "open_structured_store" not in body
+    assert "configured_write_store" not in body
