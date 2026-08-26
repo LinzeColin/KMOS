@@ -2513,6 +2513,17 @@ def test_payment_request_workbook_requires_filename_day_detail_rows_and_grand_to
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ) is None
 
+    message_day_observation = parse_payment_request_workbook_observation(
+        filename="项目资金计划.xlsx",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    assert message_day_observation is not None
+    assert message_day_observation.business_date.isoformat() == "2026-08-21"
+    assert message_day_observation.date_basis == "MESSAGE_DAY"
+
     mismatched_payload = _payment_request_workbook_payload(grand_total="240.00")
     with pytest.raises(ParseError, match="PAYMENT_REQUEST_TOTAL_RECONCILIATION_MISSING"):
         parse_payment_request_workbook_observation(
@@ -2557,6 +2568,24 @@ def test_runtime_payment_request_workbook_does_not_depend_on_ocr(tmp_path: Path)
         "date_basis": "FILENAME_DAY",
         "request_total_fen": 25_000,
     }]
+
+
+def test_payment_request_compact_layouts_keep_the_existing_fixed_crops() -> None:
+    import daily_funds.parsing as parsing_module
+
+    sheet_layout, sheet_crops = parsing_module._payment_request_layout_and_crops(
+        width=320,
+        height=450,
+    )
+    strip_layout, strip_crops = parsing_module._payment_request_layout_and_crops(
+        width=480,
+        height=120,
+    )
+
+    assert sheet_layout == "SHEET"
+    assert sheet_crops == parsing_module._PAYMENT_REQUEST_SHEET_CROPS
+    assert strip_layout == "MESSAGE_STRIP"
+    assert strip_crops == parsing_module._PAYMENT_REQUEST_MESSAGE_STRIP_CROPS
 
 
 def test_runtime_payment_request_observation_exposes_verified_latest_request_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
