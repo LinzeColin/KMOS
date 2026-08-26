@@ -78,7 +78,7 @@ def test_recovery_runs_only_the_fixed_chain_and_persists_no_raw_result_fields(
         def __init__(self, actual_config: DailyFundsConfig) -> None:
             assert actual_config is config
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             calls.append("RAW_ARCHIVE_AUDIT")
             return {"ok": True, "code": "RAW_ARCHIVE_AUDITED", "private_raw": "must-not-escape"}
 
@@ -125,7 +125,7 @@ def test_recovery_resumes_a_valid_server_side_window_for_a_long_archive_audit(
         def __init__(self, _actual_config: DailyFundsConfig) -> None:
             return None
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
 
         def raw_coverage_repair(self, *, now: datetime):
@@ -161,7 +161,7 @@ def test_recovery_replaces_a_stale_durable_lease_with_the_worker_process_lock(
         def __init__(self, _actual_config: DailyFundsConfig) -> None:
             return None
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             calls.append("RAW_ARCHIVE_AUDIT")
             return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
 
@@ -204,7 +204,7 @@ def test_recovery_waits_for_an_active_worker_process_lock(
             nonlocal constructed
             constructed = True
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             calls.append("RAW_ARCHIVE_AUDIT")
             return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
 
@@ -255,7 +255,7 @@ def test_recovery_waits_for_a_runtime_lock_then_resumes_at_the_same_fixed_step(
         def __init__(self, _actual_config: DailyFundsConfig) -> None:
             return None
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             calls.append("RAW_ARCHIVE_AUDIT")
             return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
 
@@ -303,7 +303,7 @@ def test_recovery_classifies_no_complete_pair_without_exposing_runtime_result(
         def __init__(self, _actual_config: DailyFundsConfig) -> None:
             return None
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             return {"ok": True, "code": "RAW_ARCHIVE_AUDITED"}
 
         def raw_coverage_repair(self, *, now: datetime):
@@ -334,7 +334,7 @@ def test_recovery_preserves_the_runtime_configuration_classification(tmp_path: P
         def __init__(self, _actual_config: DailyFundsConfig) -> None:
             return None
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             return {"human_status": "需处理", "machine_code": "CONFIG_INVALID", "private_raw": "must-not-escape"}
 
     monkeypatch.setattr(recovery_module, "DailyFundsRuntime", FakeRuntime)
@@ -366,7 +366,7 @@ def test_recovery_projects_only_safe_raw_archive_failure_classes(
         def __init__(self, _actual_config: DailyFundsConfig) -> None:
             return None
 
-        def raw_archive_audit(self):
+        def raw_archive_metadata_audit(self):
             return {"ok": False, "code": audit_code, "private_raw": "must-not-escape"}
 
     monkeypatch.setattr(recovery_module, "DailyFundsRuntime", FakeRuntime)

@@ -296,7 +296,7 @@ class DailyFundsRecoveryBroker:
     @staticmethod
     def _run_step(runtime: DailyFundsRuntime, step: str) -> object:
         if step == "RAW_ARCHIVE_AUDIT":
-            return runtime.raw_archive_audit()
+            return runtime.raw_archive_metadata_audit()
         if step == "RAW_COVERAGE_REPAIR":
             return runtime.raw_coverage_repair(now=datetime.now(UTC))
         if step == "RAW_FACT_REPLAY":
@@ -441,10 +441,10 @@ def has_live_recovery_request(
 ) -> bool:
     """Return whether a valid unexpired recovery request owns the startup audit.
 
-    Recovery begins with the same full raw-archive audit that a container start
-    may otherwise enqueue. One valid live request therefore reserves that
-    audit for the recovery broker and keeps a rolling deployment from starting
-    a competing reader on the same worker volume.
+    Recovery begins with a complete raw-archive metadata audit before later
+    reopening formal candidates. One valid live request therefore reserves the
+    archive-audit lock for the recovery broker and keeps a rolling deployment
+    from starting a competing reader on the same worker volume.
     """
 
     moment = now or datetime.now(UTC)
