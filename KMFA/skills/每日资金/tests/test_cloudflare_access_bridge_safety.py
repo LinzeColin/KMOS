@@ -28,6 +28,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
+    inert_service_auth_policy_resource_ids,
     orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
@@ -544,6 +545,43 @@ def test_orphaned_policy_diagnostic_identifies_only_structural_categories(tmp_pa
 
     manager = _load_script()
     assert manager.main(["diagnose-orphaned-policy", "--policies", str(policies)]) == 0
+
+
+def test_inert_service_auth_policy_reconcile_requires_an_absent_token(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    _write(service_tokens, {"success": True, "result_info": {"total_pages": 1}, "result": []})
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": "legacy-control-policy",
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+    assert inert_service_auth_policy_resource_ids(service_tokens, policies) == {
+        "service_token_ids": (),
+        "policy_ids": (POLICY_ID,),
+    }
+
+    manager = _load_script()
+    material = tmp_path / "inert-policy.env"
+    assert manager.main([
+        "write-inert-service-auth-policy-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--output", str(material),
+    ]) == 0
+    assert stat.S_IMODE(material.stat().st_mode) == 0o600
+    assert POLICY_ID in material.read_text(encoding="utf-8")
+
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{"id": SERVICE_TOKEN_ID, "name": "unrelated"}],
+    })
+    with pytest.raises(AccessBridgeInputError):
+        inert_service_auth_policy_resource_ids(service_tokens, policies)
 
 
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
@@ -1187,12 +1225,14 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "write-orphaned-run-tag-env" in step
     assert "diagnose-orphaned-bridge" in step
     assert "diagnose-orphaned-policy" in step
+    assert "write-inert-service-auth-policy-env" in step
     assert "--retired-run-tag" in step
     assert "/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" in step
     assert "UNRECONCILABLE_${orphaned_diagnostic}" in step
     assert "RUN_LOOKUP_UNAVAILABLE" in step
     assert "RUN_NOT_COMPLETED" in step
     assert "RUN_IDENTITY_INVALID" in step
+    assert "LEGACY_POLICY_NOT_INERT" in step
     assert "owned-resource-state" in step
     assert "orphaned_bridge=RECONCILED" in step
     assert "request_cf DELETE" in step

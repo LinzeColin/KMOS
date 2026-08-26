@@ -1074,6 +1074,12 @@ jobs:
               --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
             case "$orphaned_diagnostic" in
               TOKEN_ABSENT|TOKEN_COMPLETED_RUN_CANDIDATE) ;;
+              POLICY_NAME_INVALID)
+                if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-inert-service-auth-policy-env \
+                  --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+                  --policies "$bridge_dir/control-app-policies-before.json" \
+                  --output "$bridge_dir/orphaned-resources.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_POLICY_NOT_INERT"; return 1; fi
+                ;;
               POLICY_*)
                 orphaned_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-orphaned-policy \
                   --policies "$bridge_dir/control-app-policies-before.json" 2>/dev/null || printf '%s' 'INPUT_INVALID')"
