@@ -141,6 +141,23 @@ def test_payment_request_refresh_uses_the_same_fixed_values_free_cron_contract()
 
 
 @pytest.mark.parametrize("machine_code", (
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PERMISSION_DENIED",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_ARGUMENT_INVALID",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_OUTPUT_INVALID",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PROVIDER_FAILED",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_TRANSPORT_UNAVAILABLE",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_INDEX_INVALID",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_UNSUPPORTED",
+    "PAYMENT_REQUEST_REFRESH_ATTACHMENT_CONTENT_INVALID",
+))
+def test_payment_request_refresh_safe_attachment_failure_classes_are_admitted_without_raw_detail(
+    machine_code: str,
+) -> None:
+    event = cron_event("payment-request-refresh", "NEEDS_ATTENTION", machine_code)
+    assert event["machine_code"] == machine_code
+
+
+@pytest.mark.parametrize("machine_code", (
     "RAW_ARCHIVE_AUDIT_TRANSPORT_UNAVAILABLE",
     "RAW_ARCHIVE_AUDIT_SOURCE_MISSING",
     "RAW_ARCHIVE_AUDIT_CENSUS_LIMIT",

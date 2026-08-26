@@ -2412,7 +2412,7 @@ def test_payment_request_refresh_reads_the_exact_dws_source_without_waiting_for_
 
     runtime = DailyFundsRuntime(_config(tmp_path))
     moment = datetime(2026, 8, 26, 1, tzinfo=UTC)
-    message = {"fixture": "exact-source-message"}
+    message = {"fixture": "exact-source-message", "createTime": "2026-08-26T01:00:00Z"}
     payload = b"\x89PNG\r\n\x1a\nrefresh"
     downloaded = DownloadedAttachment(
         message=message,
@@ -2556,6 +2556,7 @@ def test_payment_request_refresh_keeps_a_newer_verified_report_when_an_older_att
         sha256=sha256(payload).hexdigest(),
         mime="image/png",
     )
+    downloads: list[str] = []
 
     class MixedClient:
         @staticmethod
@@ -2580,6 +2581,7 @@ def test_payment_request_refresh_keeps_a_newer_verified_report_when_an_older_att
 
         @staticmethod
         def download(message: dict[str, object], _index: int) -> DownloadedAttachment:
+            downloads.append(str(message["openMessageId"]))
             if message is older:
                 raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED")
             return downloaded
@@ -2601,6 +2603,7 @@ def test_payment_request_refresh_keeps_a_newer_verified_report_when_an_older_att
     projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
     assert projection["status"] == "VERIFIED"
     assert projection["source_coverage"]["parsed_documents"] == 1
+    assert downloads == ["newer"]
 
 
 def test_payment_request_refresh_blocks_a_newer_attachment_failure_before_stale_data_can_publish(
@@ -2627,6 +2630,7 @@ def test_payment_request_refresh_blocks_a_newer_attachment_failure_before_stale_
         sha256=sha256(payload).hexdigest(),
         mime="image/png",
     )
+    downloads: list[str] = []
 
     class MixedClient:
         @staticmethod
@@ -2651,6 +2655,7 @@ def test_payment_request_refresh_blocks_a_newer_attachment_failure_before_stale_
 
         @staticmethod
         def download(message: dict[str, object], _index: int) -> DownloadedAttachment:
+            downloads.append(str(message["openMessageId"]))
             if message is newer:
                 raise IngestionError("ATTACHMENT_DOWNLOAD_FAILED")
             return downloaded
@@ -2672,6 +2677,88 @@ def test_payment_request_refresh_blocks_a_newer_attachment_failure_before_stale_
     projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
     assert projection["status"] == "NEEDS_REVIEW"
     assert projection["points"] == []
+    assert downloads == ["newer"]
+
+
+def test_payment_request_refresh_blocks_a_newer_parse_rejection_before_stale_data_can_publish(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A newer identified report must resolve before an older report is considered."""
+
+    import daily_funds.runtime as runtime_module
+
+    runtime = DailyFundsRuntime(replace(_config(tmp_path), ocr_enabled=True))
+    older = {"openMessageId": "older", "createTime": "2026-08-24T01:00:00Z"}
+    newer = {"openMessageId": "newer", "createTime": "2026-08-25T01:00:00Z"}
+
+    def attachment(message: dict[str, object], marker: bytes, key: str) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        return DownloadedAttachment(
+            message=message,
+            message_id=str(message["openMessageId"]),
+            message_id_hash=key * 64,
+            message_at=datetime.fromisoformat(str(message["createTime"]).replace("Z", "+00:00")),
+            index=0,
+            filename=f"{message['openMessageId']}.png",
+            family=None,
+            payload=payload,
+            sha256=sha256(payload).hexdigest(),
+            mime="image/png",
+        )
+
+    downloaded = {
+        "older": attachment(older, b"older-payment-request", "a"),
+        "newer": attachment(newer, b"newer-payment-request", "b"),
+    }
+    downloads: list[str] = []
+
+    class MixedClient:
+        @staticmethod
+        def collect_group_history_v2(_start: datetime, _end: datetime) -> DwsPage:
+            return DwsPage(messages=(older, newer), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page: DwsPage):
+            return (older, newer)
+
+        @staticmethod
+        def quarantine_messages(_page: DwsPage):
+            return ()
+
+        @staticmethod
+        def message_id_hash(message: dict[str, object]) -> str:
+            return "a" * 64 if message is older else "b" * 64
+
+        @staticmethod
+        def attachment_count(_message: dict[str, object]) -> int:
+            return 1
+
+        @staticmethod
+        def download(message: dict[str, object], _index: int) -> DownloadedAttachment:
+            identifier = str(message["openMessageId"])
+            downloads.append(identifier)
+            return downloaded[identifier]
+
+    def parse(**kwargs):
+        if kwargs["received_at"] == downloaded["newer"].message_at:
+            raise ParseError("PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING")
+        return SimpleNamespace(
+            business_date=kwargs["received_at"].date(),
+            request_total_fen=1,
+        )
+
+    monkeypatch.setattr(runtime, "_dws_client", MixedClient)
+    monkeypatch.setattr(runtime_module, "deterministic_ocr_runtime_ready", lambda: True)
+    monkeypatch.setattr(runtime_module, "parse_payment_request_observation", parse)
+
+    result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 1, tzinfo=UTC))
+
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_NEEDS_REVIEW"}
+    projection = json.loads((runtime.config.publication_dir / "payment_request_observation.json").read_text(encoding="utf-8"))
+    assert projection["status"] == "NEEDS_REVIEW"
+    assert projection["points"] == []
+    assert downloads == ["newer"]
 
 
 @pytest.mark.parametrize(("internal_code", "expected_code"), (
