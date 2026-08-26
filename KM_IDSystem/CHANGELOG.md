@@ -1,3 +1,10 @@
+## 2026-08-27 · Stage113 复核队列 Schema P4
+
+- 完成冻结 P4 metadata-only 交付控制证据：从 P3 的五条非业务、`reference-only` 场景派生复核队列样例、复核审计日志样例、中文 UI 流程说明、人工判断边界与业务线白箱确认各 `5` 条，以及回滚与重新复核说明 `2` 条；字段形状为 `17/13/13/15/14/14`，共 `388` 个检查点、`17` 类失败关闭与 `4` 条中文反馈。
+- `actor`、`time`、`reason`、`old value`、`new value`、`review result`、evidence trust level 与报告质量影响保持未来控制引用；外部增强保持来源分离，业务线白箱确认、版本化依据和可验证 `P4→P3` 回退目标保持前置。冻结任务包与前序控制工件继续构成工程控制上下文，来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 本地验收记录：P4 聚焦 `8/8`、Stage112 P1--Review 与 Stage113 P1/P2/P3/P4 选择的前向治理套件 `81/81`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 完成态止于 `IDS-STAGE113-REVIEW-GATE`，可回退到 `PASS_REVIEW_QUEUE_SCHEMA_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`。本 P4 只形成可恢复本地提交，不执行新增远端写入；正式全局上传、main、release、OVH 与生产继续由后续授权门禁承接。
+
 ## 2026-08-27 · Stage113 复核队列 Schema P3
 
 - 完成冻结 P3 纯内存专项异常场景：机械重放 P2 的五条非业务、reference-only 控制投影，保留每条 32 个输入字段、P1 的 29 个控制引用、4 组投影、每条 101 个字段与 505 个前序检查点；形成低质量 OCR、冲突资料、撤回资料、evidence trust level 与报告质量影响、外部增强不能替代内部证据五条每条 52 字段的场景，共 260 个场景检查点、5 个控制视图与 5 条业务线白箱处理记录。
