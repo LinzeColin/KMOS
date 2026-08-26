@@ -1,5 +1,12 @@
 # IDS / Industrial Data System Handoff
 
+## Current Checkpoint - Stage108 P4 draft preserved remotely - 2026-08-26
+
+- 用户授权的休眠前恢复检查点仅推送到既有开发分支 `codex/kmids-stage071-p1`；不创建 worktree、分支或 PR，不触及 `main`、release、OVH 或生产。
+- 当前本地治理真相仍为已本地验收的 `IDS-STAGE108-P3`，下一门禁仍是 `IDS-STAGE108-P4-GATE`。P4 的范围说明、纯内存交付模块、静态合同、聚焦用例和零运行时回执已形成草稿检查点，但尚未完成机器事实投影、治理路线、事件、中文视图与完整阶段验收，不能作为 P4 完成声明。
+- 已完成的最小检查：P4 模块与聚焦用例 `py_compile` 通过，聚焦测试 `8/8` 通过。该检查点没有读取业务资料、证据账本、报告、PDF、外部参考或模型推理；没有模型 Token、Agent、OVH、生产或正式全局上传执行。
+- 恢复时：继续在同一既有 `_scratch/KMOS-kmids-stage071-p1` worktree 与同一分支完成 P4 的治理投影和完整机械验收；如需回滚草稿，只撤回本检查点的五个 P4 草稿文件与本交接段，P3 的验收证据与既有远端检查点保持原状。
+
 ## Current Gate - Stage108 P3 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE108-P3` 已完成本地验收；当前治理状态为 `IDS-STAGE108 / IDS-STAGE108-P3 / IDS-V0_1-STAGE108-P3 / IDS-STAGE108-P4-GATE`。P4 由新的独立 run 在冻结任务包门禁下承接。
