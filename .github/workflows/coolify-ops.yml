@@ -2130,25 +2130,34 @@ jobs:
                   )
               )
 
+          def runtime_key(record: dict):
+              """Compare the same runtime even when API variants type IDs differently."""
+              values = []
+              for key in ("environment_id", "destination_id", "destination_type"):
+                  value = record.get(key)
+                  if value is None:
+                      return None
+                  normalized = str(value).strip()
+                  if not normalized:
+                      return None
+                  values.append(normalized.lower() if key == "destination_type" else normalized)
+              return tuple(values)
+
           app = unwrap(load(sys.argv[1]))
           services = unwrap(load(sys.argv[2]))
           if not isinstance(app, dict) or not isinstance(services, list):
               fail("CONTROL_RESPONSE_INVALID")
           if app.get("name") != "kmfa-kmos-p1" or app.get("build_pack") != "dockercompose":
               fail("TARGET_UNEXPECTED")
-          environment_id = app.get("environment_id")
-          destination_id = app.get("destination_id")
-          destination_type = app.get("destination_type")
-          if environment_id is None or destination_id is None or not isinstance(destination_type, str):
+          target_runtime = runtime_key(app)
+          if target_runtime is None:
               fail("TARGET_RUNTIME_BINDING_UNAVAILABLE")
 
           matching_services: list[str] = []
           for service in services:
               if (
                   not isinstance(service, dict)
-                  or service.get("environment_id") != environment_id
-                  or service.get("destination_id") != destination_id
-                  or service.get("destination_type") != destination_type
+                  or runtime_key(service) != target_runtime
               ):
                   continue
               service_uuid = service.get("uuid")
