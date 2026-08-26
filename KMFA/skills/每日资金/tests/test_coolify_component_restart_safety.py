@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from textwrap import dedent
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -109,6 +110,12 @@ def test_public_routing_audit_is_values_free_and_service_specific() -> None:
     assert "daily_funds_public_routing_target=" in step
     assert "daily_funds_public_routing_app_service_marker=" in step
     assert "daily_funds_public_routing_expected_domain=" in step
+    assert "nonlocal app_markers" not in step
+    python_start = step.index("python3 - \"$app_file\" \"$APP\" <<'PY'\n") + len(
+        "python3 - \"$app_file\" \"$APP\" <<'PY'\n"
+    )
+    python_end = step.index("\n          PY", python_start)
+    compile(dedent(step[python_start:python_end]), "<public-routing-audit>", "exec")
     assert "print(raw)" not in step
     assert "print(payload)" not in step
     assert "-X POST" not in step
