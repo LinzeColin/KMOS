@@ -1,3 +1,10 @@
+## 2026-08-27 · Stage114 复核工作流 P1
+
+- 完成冻结 P1 静态合同：固定 `26/4/5/5/7/20/4` 控制形状，覆盖二十六个未来输入输出控制引用、低 OCR 置信度／来源冲突／解析失败／证据风险四类未来入队路由、五个复核状态、五个动作标签、actor/time/reason/old_value/new_value/review result 审计、证据可信等级与报告质量／状态影响、失败关闭和中文反馈。
+- 冻结 Stage114 任务包与 Stage113 Review 控制工件保持为工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。状态转移、重新复核、归档、人工确认与实际影响保持后续白箱授权。
+- 本地验收记录：P1 聚焦 `6/6`、Stage112 Review 至 Stage114 P1 前向治理套件 `57/57`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 完成态止于 `IDS-STAGE114-P2-GATE`，可回退到 `PASS_REVIEWED_REVIEW_QUEUE_SCHEMA_RUNTIME_DISABLED`。本 P1 形成可恢复本地提交，不执行新增远端写入；正式全局上传、main、release、OVH 与生产继续由后续授权门禁承接。
+
 ## 2026-08-27 · Stage113 复核队列 Schema 整阶段机械复审
 
 - 完成冻结 Stage113 P1--P4 控制工件的纯内存机械复审：P1 固定 `29/4/5/7/4/19/4`，P2 固定 `5×32/4×101/505`，P3 固定 `5×52=260/5/5/5/15/4`，P4 固定 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17`。`actor`、`time`、`reason`、`old value`、`new value`、`review result`、证据可信等级与报告质量影响、外部增强来源分离、业务线白箱确认和 `P4→P3` 回退保持受控。

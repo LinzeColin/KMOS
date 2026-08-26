@@ -1,6 +1,17 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage113 Review accepted locally - 2026-08-27
+## Current Gate - Stage114 P1 accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE114-P1` 已完成冻结复核工作流范围、输入输出与边界确认；当前治理状态为 `IDS-STAGE114 / IDS-STAGE114-P1 / IDS-V0_1-STAGE114-P1 / IDS-STAGE114-P2-GATE`。Stage114 P2 仅由后续独立 run 在冻结任务包门禁下承接。
+- P1 固定 `26/4/5/5/7/20/4` 控制形状：二十六个未来输入输出控制引用、低 OCR 置信度／来源冲突／解析失败／证据风险四类未来入队路由、五个复核状态、五个动作标签、七个审计引用、二十类失败关闭与四条中文反馈。具体状态转移、重新复核、归档时机、人工确认、证据可信等级、报告质量与报告状态影响保持业务线白箱授权。
+- 冻结 Stage114 任务包与 Stage113 Review 控制工件构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P1 聚焦 `6/6`、Stage112 Review 至 Stage114 P1 选择的前向治理套件 `57/57`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 `0`、运行标志保持 `false`；真实资料、OCR、复核工作流、队列、UI、审计、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁。
+- 2026-08-27 的远端保全恢复点保持在 `origin/codex/kmids-stage071-p1@cae7da8b75922b0ea3b966ef8c02811b7af9d7ae`；Stage113 Review 与本 P1 的本地验收均未新增远端写入。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REVIEWED_REVIEW_QUEUE_SCHEMA_RUNTIME_DISABLED`；Stage113 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE114-P2-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage113 Review accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE113-REVIEW` 已完成冻结 P1--P4 复核队列 Schema 控制工件的本地机械复审；当前治理状态为 `IDS-STAGE113 / IDS-STAGE113-REVIEW / IDS-V0_1-STAGE113-REVIEW / IDS-STAGE114-P1-GATE`。Stage114 P1 仅由后续独立 run 在冻结任务包门禁下承接。
 - Review 固定复审 P1 的 `29/4/5/7/4/19/4`、P2 的 `5×32/4×101/505`、P3 的 `5×52=260/5/5/5/15/4` 与 P4 的 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17`。`actor`、`time`、`reason`、`old value`、`new value`、`review result`、证据可信等级与报告质量影响保持未来控制引用；外部增强来源分离、业务线白箱确认与版本化可验证 `P4→P3` 回退目标保持前置。
