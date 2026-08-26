@@ -5627,11 +5627,13 @@ def test_cloud_scheduler_uses_the_bundled_entrypoint_and_nonblocking_backfill_ca
     assert "AUTH_BROKER_PID" in entrypoint
     assert "run_history_probe_broker.py >/dev/null 2>&1" in entrypoint
     assert "HISTORY_PROBE_BROKER_PID" in entrypoint
-    assert "run_daily_funds.py payment-request-refresh >> /var/log/daily-funds/cron.log 2>&1" in entrypoint
+    assert 'CRON_LOG="/var/log/daily-funds/cron.log"' in entrypoint
+    assert 'tail -n 0 -F "$CRON_LOG" &' in entrypoint
+    assert "run_daily_funds.py payment-request-refresh >> \"$CRON_LOG\" 2>&1" in entrypoint
     assert "PAYMENT_REQUEST_REFRESH_PID" in entrypoint
     assert "STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS=800" in entrypoint
     assert "startup_raw_archive_audit_required.py >/dev/null 2>&1" in entrypoint
-    assert "run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1" in entrypoint
+    assert "run_daily_funds.py raw-archive-audit >> \"$CRON_LOG\" 2>&1" in entrypoint
     assert 'if [ "$RAW_ARCHIVE_AUDIT_RC" -eq 75 ]; then' in entrypoint
     assert 'sleep "$STARTUP_RAW_ARCHIVE_RETRY_DELAY_SECONDS"' in entrypoint
     assert "RAW_ARCHIVE_AUDIT_PID" in entrypoint

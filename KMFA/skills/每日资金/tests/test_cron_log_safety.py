@@ -261,3 +261,16 @@ def test_coolify_workflow_uses_the_values_free_summary() -> None:
     workflow = (ROOT.parents[2] / ".github" / "workflows" / "coolify-ops.yml").read_text(encoding="utf-8")
     assert "summarize_coolify_logs.py" in workflow
     assert "print(t[-6000:])" not in workflow
+
+
+def test_entrypoint_relays_only_new_values_free_cron_events_to_cloud_logs() -> None:
+    entrypoint = (ROOT / "entrypoint.sh").read_text(encoding="utf-8")
+
+    assert 'CRON_LOG="/var/log/daily-funds/cron.log"' in entrypoint
+    assert 'touch "$CRON_LOG"' in entrypoint
+    assert 'tail -n 0 -F "$CRON_LOG" &' in entrypoint
+    assert "CRON_LOG_RELAY_PID=$!" in entrypoint
+    assert 'run_daily_funds.py payment-request-refresh >> "$CRON_LOG" 2>&1' in entrypoint
+    assert 'run_daily_funds.py raw-archive-audit >> "$CRON_LOG" 2>&1' in entrypoint
+    assert 'kill -0 "$CRON_LOG_RELAY_PID"' in entrypoint
+    assert 'kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" "$CRON_LOG_RELAY_PID"' in entrypoint
