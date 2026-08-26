@@ -1,13 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage112 Review accepted locally - 2026-08-27
+## Current Gate - Stage113 P1 accepted locally - 2026-08-27
 
-- `IDS-V0_1-STAGE112-REVIEW` 已完成本地机械复审；当前治理状态为 `IDS-STAGE112 / IDS-STAGE112-REVIEW / IDS-V0_1-STAGE112-REVIEW / IDS-STAGE113-P1-GATE`。Stage113 仅由新的独立 run 在冻结任务包门禁下承接。
-- Review 复审 P1 的 `32/5/20/4`、P2 的 `5×34/4×100/500`、P3 的 `5×53=265/5/5/5/15/4` 与 P4 的 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17` 固定控制形状，覆盖关键结论证据绑定、导出审计身份、报告状态／质量／快照／审计、来源分离、业务线白箱门禁与 `P4→P3` 回退。
-- 冻结任务包、Stage112 P1--P4 与 Stage111 Review 工件只构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 Review 未建立第二权威事实源。
-- 已验证：Review 聚焦 `7/7`、Stage112 P1/P2/P3/P4 与 Stage111 Review 前向治理套件 `52/52`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
-- 回滚只撤回本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REPORT_EXPORT_AUDIT_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage112 P1--P4、Stage111 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
-- 下一步：仅在新的独立 run 进入 `IDS-STAGE113-P1-GATE`；当前分支在本地验收和单一提交完成后可作为休眠前恢复检查点同步。
+- `IDS-V0_1-STAGE113-P1` 已完成本地静态复核队列 Schema 合同验收；当前治理状态为 `IDS-STAGE113 / IDS-STAGE113-P1 / IDS-V0_1-STAGE113-P1 / IDS-STAGE113-P2-GATE`。P2 只由新的独立 run 在冻结任务包门禁下承接。
+- P1 固定 `29/4/5/7/4/19/4` 控制形状：二十九个未来控制引用、低 OCR／资料冲突／解析失败／证据风险四类未来入队触发、五个固定状态、七个审计引用、四项证据可信等级与报告质量／状态影响控制、十九类失败关闭和四条中文反馈。状态转换、归档、人工确认及任何真实影响继续保持业务线白箱授权边界。
+- 冻结 Stage113 任务包与 Stage112 Review 工件只构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 P1 未建立第二权威事实源。
+- 已验证：P1 聚焦 `6/6`、Stage112 P1--Review 与 Stage113 P1 前向治理套件 `51/51`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
+- 运行计数保持 `0`、运行标志保持 `false`；真实 OCR、复核队列、复核审计、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁；用户授权的既有开发分支恢复同步只作为休眠检查点。
+- 回滚只撤回本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REVIEWED_REPORT_EXPORT_AUDIT_RUNTIME_DISABLED`；Stage112 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE113-P2-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage112 Review accepted locally - 2026-08-27
 
 ## Superseded Gate - Stage112 P4 accepted locally - 2026-08-27
 

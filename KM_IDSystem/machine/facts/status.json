@@ -1,15 +1,15 @@
 {
   "version": "1.0.0",
-  "stage": "IDS-STAGE112",
-  "phase": "IDS-STAGE112-REVIEW",
-  "task": "IDS-V0_1-STAGE112-REVIEW",
-  "real_progress": "Stage112 报告导出审计已机械复审 P1--P4 的冻结控制工件：P1 32/5/20/4、P2 5×34/4×100/500、P3 5×53=265/5/5/5/15/4 与 P4 5/5/5/5/5/2、17/13/13/15/14/14、388/4/17 形状保持一致。",
-  "report_grade": "冻结 Stage112 任务包、Stage112 P1/P2/P3 控制工件与 Stage111 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。",
-  "business_verdict": "本 Review 只形成纯内存报告导出审计整阶段复审证据。关键结论维持 evidence_id 或 evidence_gap 的严格二选一；actor、time、report_id、evidence_snapshot 维持控制引用；报告状态、质量、快照、导出审计、外部增强来源分离、模板限制、人工确认、重新生成与撤回维持业务线白箱门禁与 P4→P3 可验证回退。",
-  "evidence_status": "REVIEWED_REPORT_EXPORT_AUDIT_RUNTIME_DISABLED",
+  "stage": "IDS-STAGE113",
+  "phase": "IDS-STAGE113-P1",
+  "task": "IDS-V0_1-STAGE113-P1",
+  "real_progress": "Stage113 复核队列 Schema P1 已固定二十九个未来控制引用、低 OCR／资料冲突／解析失败／证据风险四类触发、待复核／已确认／已拒绝／需补资料／已归档五个状态、七个审计引用、十九类失败关闭与四条中文反馈。",
+  "report_grade": "冻结 Stage113 任务包与 Stage112 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。",
+  "business_verdict": "本 P1 只形成复核队列 Schema 静态控制证据，保持 actor、time、reason、old_value、new_value、复核结果、证据可信等级与报告质量影响的未来控制引用；真实复核队列、审计、人工确认、证据或报告影响继续由后续白箱授权阶段管理。",
+  "evidence_status": "REVIEW_QUEUE_SCHEMA_CONTRACT_RUNTIME_DISABLED",
   "rendered_at": "2026-08-27",
   "migrated_from_legacy": "功能清单.md",
-  "next_gate": "IDS-STAGE113-P1-GATE",
+  "next_gate": "IDS-STAGE113-P2-GATE",
   "runtime_enabled": false,
   "push_allowed": false
 }
