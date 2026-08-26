@@ -27,10 +27,11 @@ from .ingestion import (
     PersistedRawAttachment,
     _family,
 )
-from .models import CashflowObservation, ParsedFacts, SourceRef, Transaction
+from .models import CashflowObservation, PaymentRequestObservation, ParsedFacts, SourceRef, Transaction
 from .parsing import (
     ACCOUNT_FAMILY,
     CASHFLOW_OBSERVATION_PARSER_VERSION,
+    PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
     PARSER_VERSION,
     ParseError,
     TRANSACTION_FAMILIES,
@@ -41,6 +42,7 @@ from .parsing import (
     parse_cashflow_observation,
     parse_generic_structured_attachment,
     parse_ocr_attachment,
+    parse_payment_request_observation,
 )
 from .publication import (
     D1Projection,
@@ -86,6 +88,7 @@ _RAW_COVERAGE_RECEIPT_SCHEMA = "kmfa.daily_funds.raw_coverage_receipt.v1"
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
+_PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observation.v1"
 _BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 _OPERATION_RECEIPT_JOBS = frozenset({
     "preflight",
@@ -388,6 +391,125 @@ class _CashflowObservationAccumulator:
         return payload
 
 
+class _PaymentRequestObservationAccumulator:
+    """Build the separate payment-request trend from exact-group screenshots.
+
+    A payment request is a pending operational outflow, not a bank balance and
+    not a completed cash movement.  The accumulator therefore owns its own
+    JSON projection and never feeds the formal reconciliation or the existing
+    receipt/payment cashflow view.
+    """
+
+    def __init__(self, runtime: "DailyFundsRuntime"):
+        self.runtime = runtime
+        self.eligible_shas: set[str] = set()
+        self.observations: list[tuple[datetime, PaymentRequestObservation]] = []
+        self.rejection_categories: dict[str, int] = {}
+        self.ocr_ready: bool | None = None
+
+    def add(self, attachment: DownloadedAttachment) -> None:
+        if (
+            not is_ocr_attachment(attachment.filename, payload=attachment.payload)
+            or attachment.sha256 in self.eligible_shas
+        ):
+            return
+        if not self.runtime.config.ocr_enabled:
+            return
+        if self.ocr_ready is None:
+            self.ocr_ready = deterministic_ocr_runtime_ready()
+        if not self.ocr_ready:
+            return
+        try:
+            observation = parse_payment_request_observation(
+                filename=attachment.filename,
+                payload=attachment.payload,
+                source=self.runtime._source_ref(attachment),
+                received_at=attachment.message_at,
+                mime=attachment.mime,
+            )
+        except ParseError as exc:
+            # ``None`` below is the only non-candidate outcome.  Once a
+            # fixed title cell has identified a payment request, every error
+            # remains visible as a values-free rejection rather than silently
+            # allowing an older amount to masquerade as today\'s report.
+            code = self.runtime._parse_failure_code(exc)
+            if code.startswith("PAYMENT_REQUEST_"):
+                self.eligible_shas.add(attachment.sha256)
+                category = self.runtime._payment_request_rejection_category(exc)
+                self.rejection_categories[category] = self.rejection_categories.get(category, 0) + 1
+            return
+        if observation is None:
+            return
+        self.eligible_shas.add(attachment.sha256)
+        self.observations.append((attachment.message_at, observation))
+
+    def write(self) -> dict[str, Any]:
+        source_fingerprint = (
+            sha256("\n".join(sorted(self.eligible_shas)).encode("ascii")).hexdigest()
+            if self.eligible_shas else None
+        )
+        coverage: dict[str, int] = {
+            "eligible_documents": len(self.eligible_shas),
+            "parsed_documents": len(self.observations),
+            "rejected_documents": sum(self.rejection_categories.values()),
+            "distinct_business_days": 0,
+            "superseded_reports": 0,
+        }
+        base: dict[str, Any] = {
+            "schema_version": _PAYMENT_REQUEST_OBSERVATION_SCHEMA,
+            "generated_at": iso_now(),
+            "parser_version": PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
+            "source_coverage": coverage,
+            "rejection_categories": self.rejection_categories,
+            "evidence_version": source_fingerprint[-12:] if source_fingerprint is not None else None,
+            "points": [],
+        }
+        if not self.eligible_shas:
+            payload = {**base, "status": "NOT_AVAILABLE", "machine_code": "PAYMENT_REQUEST_OBSERVATION_SOURCE_EMPTY"}
+            atomic_json_write(self.runtime.config.publication_dir / "payment_request_observation.json", payload)
+            return payload
+        if self.ocr_ready is False:
+            coverage["rejected_documents"] = len(self.eligible_shas)
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "PAYMENT_REQUEST_OBSERVATION_OCR_UNAVAILABLE"}
+            atomic_json_write(self.runtime.config.publication_dir / "payment_request_observation.json", payload)
+            return payload
+        if coverage["rejected_documents"]:
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "PAYMENT_REQUEST_OBSERVATION_PARSE_NEEDS_REVIEW"}
+            atomic_json_write(self.runtime.config.publication_dir / "payment_request_observation.json", payload)
+            return payload
+
+        latest_by_day: dict[date, tuple[datetime, PaymentRequestObservation]] = {}
+        for received_at, observation in self.observations:
+            prior = latest_by_day.get(observation.business_date)
+            if prior is not None:
+                if received_at <= prior[0]:
+                    payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "PAYMENT_REQUEST_OBSERVATION_DUPLICATE_AMBIGUOUS"}
+                    atomic_json_write(self.runtime.config.publication_dir / "payment_request_observation.json", payload)
+                    return payload
+                coverage["superseded_reports"] += 1
+            latest_by_day[observation.business_date] = (received_at, observation)
+        coverage["distinct_business_days"] = len(latest_by_day)
+        if not latest_by_day:
+            payload = {**base, "status": "NEEDS_REVIEW", "machine_code": "PAYMENT_REQUEST_OBSERVATION_PARSE_NEEDS_REVIEW"}
+            atomic_json_write(self.runtime.config.publication_dir / "payment_request_observation.json", payload)
+            return payload
+        points = [
+            {
+                "business_date": business_day.isoformat(),
+                "request_total_fen": observation.request_total_fen,
+            }
+            for business_day, (_received_at, observation) in sorted(latest_by_day.items())
+        ]
+        payload = {
+            **base,
+            "status": "VERIFIED",
+            "machine_code": "PAYMENT_REQUEST_OBSERVATION_VERIFIED",
+            "points": points,
+        }
+        atomic_json_write(self.runtime.config.publication_dir / "payment_request_observation.json", payload)
+        return payload
+
+
 class _RawArchiveAuditAccumulator:
     """Consume one fully verified raw attachment at a time.
 
@@ -400,6 +522,7 @@ class _RawArchiveAuditAccumulator:
     def __init__(self, runtime: "DailyFundsRuntime"):
         self.runtime = runtime
         self.cashflow = _CashflowObservationAccumulator(runtime)
+        self.payment_requests = _PaymentRequestObservationAccumulator(runtime)
         self.occurrence_count = 0
         self.capability_supported = 0
         self.capability_needs_review = 0
@@ -411,6 +534,7 @@ class _RawArchiveAuditAccumulator:
     def consume(self, attachment: DownloadedAttachment) -> None:
         self.occurrence_count += 1
         self.inbox.append((attachment.message_id_hash, attachment.index, attachment.sha256))
+        self.payment_requests.add(attachment)
         family = (
             attachment.family
             if attachment.family in TRANSACTION_FAMILIES | {ACCOUNT_FAMILY}
@@ -1572,6 +1696,23 @@ class DailyFundsRuntime:
             return "OCR_FORMAT"
         return "OTHER_REVIEW"
 
+    @classmethod
+    def _payment_request_rejection_category(cls, error: ParseError) -> str:
+        """Reduce payment-request OCR failures to a values-free public label."""
+
+        code = cls._parse_failure_code(error)
+        if code.startswith("PAYMENT_REQUEST_TITLE"):
+            return "TITLE_CONFIRMATION"
+        if code.startswith("PAYMENT_REQUEST_DATE"):
+            return "DATE_FIELD"
+        if code.startswith("PAYMENT_REQUEST_GRAND_TOTAL_LABEL"):
+            return "GRAND_TOTAL_LABEL"
+        if code.startswith("PAYMENT_REQUEST_TOTAL"):
+            return "GRAND_TOTAL"
+        if code.startswith("PAYMENT_REQUEST_OCR") or code.startswith("PAYMENT_REQUEST_IMAGE"):
+            return "OCR_FORMAT"
+        return "OTHER_REVIEW"
+
     def _inspect_attachment_capabilities(
         self,
         attachments: Iterable[DownloadedAttachment],
@@ -1829,6 +1970,22 @@ class DailyFundsRuntime:
             accumulator.add(attachment)
         return accumulator.write()
 
+    def _write_payment_request_observation(
+        self,
+        attachments: Iterable[DownloadedAttachment],
+    ) -> dict[str, Any]:
+        """Write the independent pending-payment-request projection.
+
+        The helper keeps the exact same raw-byte boundary as the archive audit
+        while making the chart-only payment-request contract directly
+        testable.  It never invokes the account/transaction publication path.
+        """
+
+        accumulator = _PaymentRequestObservationAccumulator(self)
+        for attachment in attachments:
+            accumulator.add(attachment)
+        return accumulator.write()
+
     def raw_archive_audit(self) -> dict[str, Any]:
         """Audit acquired private raw bytes without reading DWS or publishing money.
 
@@ -1884,6 +2041,7 @@ class DailyFundsRuntime:
         # The chart-only projection has its own OCR/footer gate and remains
         # separate from the formal account-balance publication path.
         accumulator.cashflow.write()
+        accumulator.payment_requests.write()
         if accumulator.integrity_failures:
             self.state.queue_incident("RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")
             status = self._status_from_current(fallback_code="RAW_ARCHIVE_AUDIT_NEEDS_REVIEW")

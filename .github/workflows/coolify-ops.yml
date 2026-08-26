@@ -1668,7 +1668,7 @@ jobs:
           PY
 
       # 每日资金是一条独立的数据面：不能借用项目成本或其他 KMFA 服务的
-      # 凭据。12 个运行必填值先在 GitHub Secret Store 完整存在才开始写
+      # 凭据。13 个运行必填值先在 GitHub Secret Store 完整存在才开始写
       # Coolify；可选 DWS client override 与 recovery bundle 只在显式配置时
       # 一并同步。Coolify 的 PATCH 只更新既有键、缺失键明确返回 404；因此
       # 对每个键先 PATCH，且仅在该 404 时 POST 创建。POST 因并发创建返回
@@ -1679,6 +1679,7 @@ jobs:
         env:
           DAILY_FUNDS_GROUP_ID: ${{ secrets.DAILY_FUNDS_GROUP_ID }}
           DAILY_FUNDS_SENDER_ID: ${{ secrets.DAILY_FUNDS_SENDER_ID }}
+          DAILY_FUNDS_SENDER_IDS: ${{ secrets.DAILY_FUNDS_SENDER_IDS }}
           DAILY_FUNDS_DWS_CLIENT_ID: ${{ secrets.DAILY_FUNDS_DWS_CLIENT_ID }}
           DAILY_FUNDS_DWS_AUTH_BUNDLE_B64: ${{ secrets.DAILY_FUNDS_DWS_AUTH_BUNDLE_B64 }}
           DAILY_FUNDS_GIT_SSH_KEY_B64: ${{ secrets.DAILY_FUNDS_GIT_SSH_KEY_B64 }}
@@ -1697,6 +1698,7 @@ jobs:
           required_keys=(
             DAILY_FUNDS_GROUP_ID
             DAILY_FUNDS_SENDER_ID
+            DAILY_FUNDS_SENDER_IDS
             DAILY_FUNDS_GIT_SSH_KEY_B64
             DAILY_FUNDS_CLOUDFLARE_API_TOKEN
             DAILY_FUNDS_CF_ACCOUNT_ID
@@ -1731,7 +1733,7 @@ jobs:
           import os
 
           required = (
-              "DAILY_FUNDS_GROUP_ID", "DAILY_FUNDS_SENDER_ID",
+              "DAILY_FUNDS_GROUP_ID", "DAILY_FUNDS_SENDER_ID", "DAILY_FUNDS_SENDER_IDS",
               "DAILY_FUNDS_GIT_SSH_KEY_B64",
               "DAILY_FUNDS_CLOUDFLARE_API_TOKEN", "DAILY_FUNDS_CF_ACCOUNT_ID",
               "DAILY_FUNDS_D1_DATABASE_ID", "DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID",
@@ -1777,7 +1779,7 @@ jobs:
           import sys
 
           required = {
-              "DAILY_FUNDS_GROUP_ID", "DAILY_FUNDS_SENDER_ID",
+              "DAILY_FUNDS_GROUP_ID", "DAILY_FUNDS_SENDER_ID", "DAILY_FUNDS_SENDER_IDS",
               "DAILY_FUNDS_GIT_SSH_KEY_B64",
               "DAILY_FUNDS_CLOUDFLARE_API_TOKEN", "DAILY_FUNDS_CF_ACCOUNT_ID",
               "DAILY_FUNDS_D1_DATABASE_ID", "DAILY_FUNDS_RESTORE_DRILL_D1_DATABASE_ID",
@@ -1808,7 +1810,7 @@ jobs:
               if counts[key] != 1:
                   print(f"{key} 回读失败：生产运行上下文不是恰好一条。")
                   sys.exit(1)
-          print("每日资金 12 个必填 secret 已通过 Coolify PATCH/POST 覆盖生产运行上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
+          print("每日资金 13 个必填 secret 已通过 Coolify PATCH/POST 覆盖生产运行上下文；可选 DWS 客户端覆盖和恢复包仅在显式配置时同步，值一致性待运行时验收。")
           PY
 
       - name: 测试期安全态——清空群机器人 + 关投递（去重后重写，杜绝同名残留）

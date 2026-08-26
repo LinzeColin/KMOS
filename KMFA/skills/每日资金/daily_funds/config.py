@@ -42,6 +42,30 @@ def _nonempty(env: Mapping[str, str], name: str, default: str = "") -> str:
     return str(env.get(name, default) or "").strip()
 
 
+def _source_id_list(
+    env: Mapping[str, str],
+    name: str,
+    *,
+    fallback: str,
+) -> tuple[str, ...]:
+    """Read one bounded, explicit sender allowlist.
+
+    The legacy one-sender value remains a valid deployment contract.  A
+    configured list is an explicit allowlist for one already-configured group;
+    it does not turn the collector into a group-member discovery scan.
+    """
+
+    raw = _nonempty(env, name)
+    if not raw:
+        return (fallback,) if fallback else ()
+    if any(character.isspace() for character in raw) or ";" in raw:
+        raise ConfigError("SOURCE_ID_LIST_INVALID")
+    values = tuple(item for item in raw.split(",") if item)
+    if not values or len(values) > 12 or len(set(values)) != len(values):
+        raise ConfigError("SOURCE_ID_LIST_INVALID")
+    return values
+
+
 def _flag(env: Mapping[str, str], name: str, default: bool) -> bool:
     value = _nonempty(env, name, "1" if default else "0").lower()
     if value in {"1", "true", "yes", "on"}:
@@ -134,6 +158,7 @@ class DailyFundsConfig:
     git_ssh_key_b64: str
     group_id: str
     sender_id: str
+    sender_ids: tuple[str, ...]
     dws_client_id: str
     dws_auth_bundle_b64: str
     cf_api_token: str
@@ -158,6 +183,7 @@ class DailyFundsConfig:
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "DailyFundsConfig":
         source = os.environ if env is None else env
+        sender_id = _nonempty(source, "DAILY_FUNDS_SENDER_ID")
         return cls(
             state_dir=Path(_nonempty(source, "DAILY_FUNDS_STATE_DIR", "/var/lib/kmfa/daily-funds-state")),
             publication_dir=Path(_nonempty(source, "DAILY_FUNDS_PUBLICATION_DIR", "/var/lib/kmfa/daily-funds-publication")),
@@ -169,7 +195,12 @@ class DailyFundsConfig:
             private_branch=_nonempty(source, "DAILY_FUNDS_PRIVATE_BRANCH", "main"),
             git_ssh_key_b64=_nonempty(source, "DAILY_FUNDS_GIT_SSH_KEY_B64"),
             group_id=_nonempty(source, "DAILY_FUNDS_GROUP_ID"),
-            sender_id=_nonempty(source, "DAILY_FUNDS_SENDER_ID"),
+            sender_id=sender_id,
+            sender_ids=_source_id_list(
+                source,
+                "DAILY_FUNDS_SENDER_IDS",
+                fallback=sender_id,
+            ),
             dws_client_id=_nonempty(source, "DAILY_FUNDS_DWS_CLIENT_ID"),
             dws_auth_bundle_b64=_nonempty(source, "DAILY_FUNDS_DWS_AUTH_BUNDLE_B64"),
             cf_api_token=_nonempty(source, "DAILY_FUNDS_CLOUDFLARE_API_TOKEN"),
@@ -284,13 +315,22 @@ class DailyFundsConfig:
                 or not all(marker in path for marker in ("/p/", "/n/", "/b/", "/o/"))
             ):
                 raise ConfigError("OCI_PAR_URL_INVALID")
-        # The source gate accepts one opaque group ID and one opaque sender ID
-        # only.  A comma/newline separated value is a common accidental way to
-        # turn a single-source contract into a multi-source scan; reject it
-        # rather than trying to interpret it.
-        for source_id in (self.group_id, self.sender_id):
-            if any(char.isspace() for char in source_id) or "," in source_id or ";" in source_id:
-                raise ConfigError("SOURCE_ID_NOT_UNIQUE")
+        # The source gate accepts one opaque group ID and a small, static
+        # sender allowlist.  Group membership is never used as a runtime
+        # selector: every ID is supplied through the deployment configuration
+        # and rechecked again for each returned message.
+        if any(char.isspace() for char in self.group_id) or "," in self.group_id or ";" in self.group_id:
+            raise ConfigError("SOURCE_ID_NOT_UNIQUE")
+        if (
+            not self.sender_ids
+            or len(self.sender_ids) > 12
+            or self.sender_id not in self.sender_ids
+            or len(set(self.sender_ids)) != len(self.sender_ids)
+        ):
+            raise ConfigError("SOURCE_ID_LIST_INVALID")
+        for source_id in self.sender_ids:
+            if not source_id or any(char.isspace() for char in source_id) or "," in source_id or ";" in source_id:
+                raise ConfigError("SOURCE_ID_LIST_INVALID")
         try:
             key = base64.b64decode(self.git_ssh_key_b64, validate=True)
         except Exception as exc:
@@ -316,6 +356,8 @@ class DailyFundsConfig:
         fields = (
             self.group_id,
             self.sender_id,
+            str(len(self.sender_ids)),
+            "\x1e".join(self.sender_ids),
             self.dws_client_id,
             hashlib.sha256(self.dws_auth_bundle_b64.encode("utf-8")).hexdigest(),
             self.cf_account_id,

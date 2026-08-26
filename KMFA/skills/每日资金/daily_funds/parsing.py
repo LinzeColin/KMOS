@@ -25,7 +25,15 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 from .contracts import ContractError, parse_amount_to_fen
-from .models import CashflowObservation, AccountSnapshot, ParsedFacts, ParserEvidence, SourceRef, Transaction
+from .models import (
+    CashflowObservation,
+    PaymentRequestObservation,
+    AccountSnapshot,
+    ParsedFacts,
+    ParserEvidence,
+    SourceRef,
+    Transaction,
+)
 
 ACCOUNT_FAMILY = "资金账户明细表"
 TRANSACTION_FAMILIES = frozenset({"资金流水明细", "资金明细"})
@@ -78,6 +86,11 @@ PARSER_VERSION = "kmfa.daily_funds.parser.v13"
 # segmenters still need to produce identical, footer-reconciled totals.
 # Chart admission never produces a formal account-balance publication.
 CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11"
+# This parser is deliberately a separate report family: the source image is a
+# daily payment-request sheet, not a bank statement and not a completed cash
+# receipt/payment flow.  It can expose one total only after three fixed OCR
+# segmentations agree on the title, business date, grand-total label and total.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v1"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2409,6 +2422,215 @@ def parse_cashflow_observation(
             evidence=evidence,
             cells=cells,
         ),
+    )
+
+
+_PAYMENT_REQUEST_OCR_PSMS = (6, 11, 12)
+_PAYMENT_REQUEST_MIN_WIDTH = 640
+_PAYMENT_REQUEST_MIN_HEIGHT = 900
+_PAYMENT_REQUEST_MAX_PIXELS = 16_000_000
+_PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS = 7
+_PAYMENT_REQUEST_CROPS = {
+    # These relative crops describe the frozen ``待付款请示明细表`` layout.
+    # The parser never searches arbitrary image text for a number: every
+    # accepted value must appear in the labelled grand-total cell.
+    "title": (0.00, 0.00, 0.65, 0.035),
+    "business_date": (0.65, 0.00, 0.95, 0.035),
+    "grand_total_label": (0.60, 0.985, 0.76, 1.00),
+    "grand_total": (0.74, 0.985, 0.87, 1.00),
+}
+_PAYMENT_REQUEST_DATE = re.compile(
+    r"(?P<year>20\d{2})\s*[-./]\s*(?P<month>\d{1,2})\s*[-./]\s*(?P<day>\d{1,2})"
+)
+_PAYMENT_REQUEST_AMOUNT = re.compile(r"\d+(?:\.\d{1,2})?")
+
+
+def _payment_request_crop_texts(
+    *,
+    payload: bytes,
+    evidence: ParserEvidence,
+    runner: Callable[..., Any],
+) -> dict[str, tuple[str, ...]]:
+    """Read only the four fixed visual cells needed by the report contract."""
+
+    if evidence.magic not in {"PNG", "JPEG", "BMP", "WEBP"}:
+        raise ParseError("PAYMENT_REQUEST_IMAGE_UNSUPPORTED")
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ParseError("OCR_RUNTIME_UNAVAILABLE") from exc
+
+    with tempfile.TemporaryDirectory(prefix="daily-funds-payment-request-") as temporary:
+        root = Path(temporary)
+        source = root / f"input{evidence.suffix}"
+        source.write_bytes(payload)
+        try:
+            with Image.open(source) as image:
+                image.load()
+                width, height = image.size
+                if (
+                    width < _PAYMENT_REQUEST_MIN_WIDTH
+                    or height < _PAYMENT_REQUEST_MIN_HEIGHT
+                    or width * height > _PAYMENT_REQUEST_MAX_PIXELS
+                ):
+                    raise ParseError("PAYMENT_REQUEST_IMAGE_DIMENSIONS_UNSUPPORTED")
+                rendered = image.convert("RGB")
+                regions: dict[str, Path] = {}
+                for name, (left, top, right, bottom) in _PAYMENT_REQUEST_CROPS.items():
+                    bounds = (
+                        int(width * left),
+                        int(height * top),
+                        int(width * right),
+                        int(height * bottom),
+                    )
+                    crop = rendered.crop(bounds)
+                    if crop.width < 8 or crop.height < 8:
+                        raise ParseError("PAYMENT_REQUEST_IMAGE_DIMENSIONS_UNSUPPORTED")
+                    scaled = crop.resize(
+                        (crop.width * 4, crop.height * 4),
+                        # Bicubic is the fixed rendering used by the
+                        # validated source profile.  It preserves the thin
+                        # Chinese glyph strokes in the title and footer cells
+                        # better than a sharpening-oriented resampler.
+                        resample=Image.Resampling.BICUBIC,
+                    )
+                    path = root / f"payment-{name}.png"
+                    scaled.save(path, format="PNG")
+                    regions[name] = path
+        except ParseError:
+            raise
+        except (OSError, ValueError) as exc:
+            raise ParseError("PAYMENT_REQUEST_IMAGE_INVALID") from exc
+
+        output: dict[str, tuple[str, ...]] = {}
+        for name, path in regions.items():
+            language = "eng" if name == "grand_total" else OCR_LANGUAGE
+            values: list[str] = []
+            for psm in _PAYMENT_REQUEST_OCR_PSMS:
+                command = [
+                    "tesseract", str(path), "stdout", "-l", language,
+                    "--psm", str(psm),
+                ]
+                if name == "grand_total":
+                    command.extend(("-c", "tessedit_char_whitelist=0123456789.,"))
+                values.append(_run_ocr_command(
+                    command,
+                    runner=runner,
+                    failure_code="PAYMENT_REQUEST_OCR_ENGINE_FAILED",
+                ).strip())
+            output[name] = tuple(values)
+        return output
+
+
+def _payment_request_date(value: str) -> date:
+    matches = tuple(_PAYMENT_REQUEST_DATE.finditer(value))
+    if len(matches) != 1:
+        raise ParseError("PAYMENT_REQUEST_DATE_INVALID")
+    match = matches[0]
+    try:
+        return date(
+            int(match.group("year")),
+            int(match.group("month")),
+            int(match.group("day")),
+        )
+    except ValueError as exc:
+        raise ParseError("PAYMENT_REQUEST_DATE_INVALID") from exc
+
+
+def _payment_request_amount(value: str) -> int:
+    matches = tuple(_PAYMENT_REQUEST_AMOUNT.findall(value))
+    if len(matches) != 1:
+        raise ParseError("PAYMENT_REQUEST_TOTAL_INVALID")
+    try:
+        amount = parse_amount_to_fen(matches[0])
+    except ContractError as exc:
+        raise ParseError("PAYMENT_REQUEST_TOTAL_INVALID") from exc
+    if amount <= 0:
+        raise ParseError("PAYMENT_REQUEST_TOTAL_INVALID")
+    return amount
+
+
+def _payment_request_consensus(values: tuple[object, ...], *, code: str) -> object:
+    if len(values) != len(_PAYMENT_REQUEST_OCR_PSMS) or any(value in (None, "") for value in values):
+        raise ParseError(code)
+    if len(set(values)) != 1:
+        raise ParseError(code)
+    return values[0]
+
+
+def parse_payment_request_observation(
+    *,
+    filename: str,
+    payload: bytes,
+    source: SourceRef,
+    received_at: datetime,
+    mime: str | None = None,
+    runner: Callable[..., Any] = subprocess.run,
+) -> PaymentRequestObservation | None:
+    """Return one verified daily payment-request total or ``None`` for other images.
+
+    A missing title is a non-candidate rather than a rejected payment report,
+    so unrelated exact-group images cannot erase a valid payment-request
+    projection.  Once all three title reads identify a payment request, every
+    remaining cell becomes mandatory and disagreement fails closed.
+    """
+
+    if not isinstance(received_at, datetime):
+        raise ParseError("PAYMENT_REQUEST_RECEIVED_AT_INVALID")
+    if not payload:
+        raise ParseError("CORRUPT_ATTACHMENT")
+    _validate_source(source, payload)
+    evidence = replace(
+        inspect_ocr_attachment_format(filename=filename, payload=payload, mime=mime),
+        parser_version=PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
+    )
+    regions = _payment_request_crop_texts(payload=payload, evidence=evidence, runner=runner)
+    title_votes = sum("付款" in value for value in regions["title"])
+    if title_votes == 0:
+        return None
+    if title_votes != len(_PAYMENT_REQUEST_OCR_PSMS):
+        raise ParseError("PAYMENT_REQUEST_TITLE_AMBIGUOUS")
+
+    business_date = _payment_request_consensus(
+        tuple(_payment_request_date(value) for value in regions["business_date"]),
+        code="PAYMENT_REQUEST_DATE_CONSENSUS_MISSING",
+    )
+    assert isinstance(business_date, date)
+    grand_total_label_votes = sum(
+        "总" in value and "合计" in value
+        for value in regions["grand_total_label"]
+    )
+    if grand_total_label_votes < 2:
+        raise ParseError("PAYMENT_REQUEST_GRAND_TOTAL_LABEL_MISSING")
+    request_total_fen = _payment_request_consensus(
+        tuple(_payment_request_amount(value) for value in regions["grand_total"]),
+        code="PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING",
+    )
+    assert isinstance(request_total_fen, int)
+
+    from zoneinfo import ZoneInfo
+
+    received_day = received_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+    lag_days = (received_day - business_date).days
+    if lag_days < 0 or lag_days > _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS:
+        raise ParseError("PAYMENT_REQUEST_DATE_OUT_OF_RANGE")
+    layout_fingerprint = sha256(
+        "\x1f".join((
+            "payment_request_observation.v1",
+            evidence.format,
+            evidence.magic,
+            *(
+                f"{name}:{left:.3f},{top:.3f},{right:.3f},{bottom:.3f}"
+                for name, (left, top, right, bottom) in _PAYMENT_REQUEST_CROPS.items()
+            ),
+        )).encode("utf-8")
+    ).hexdigest()
+    return PaymentRequestObservation(
+        business_date=business_date,
+        request_total_fen=request_total_fen,
+        source=source,
+        parser_evidence=evidence,
+        layout_fingerprint=layout_fingerprint,
     )
 
 
