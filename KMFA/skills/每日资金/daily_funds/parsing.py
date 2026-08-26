@@ -90,10 +90,11 @@ CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11
 # daily payment-request sheet, not a bank statement and not a completed cash
 # receipt/payment flow.  It can expose one total only after three fixed OCR
 # segmentations agree on the fixed fields required by its visual profile.  v2
-# adds the approved horizontal message-summary profile.  It records the exact
-# message day as its date basis because that compact profile has no visible
-# document-date cell.
-PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v2"
+# adds the approved horizontal message-summary profile.  v3 normalizes the
+# whitespace that deterministic Chinese OCR can place between the fixed
+# ``总合计`` glyphs.  It records the exact message day as its date basis
+# because that compact profile has no visible document-date cell.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v3"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2600,6 +2601,18 @@ def _payment_request_amount(value: str) -> int:
     return amount
 
 
+def _payment_request_has_grand_total_label(value: object) -> bool:
+    """Recognize the fixed label after removing OCR-inserted separators.
+
+    Tesseract may emit a valid Chinese footer as ``总 合 计`` or split it
+    across lines.  The layout remains fixed and every PSM still has to read
+    the same ordered label; this normalization only removes presentation
+    separators before that strict comparison.
+    """
+
+    return "总合计" in normalize_header(value)
+
+
 def _payment_request_consensus(values: tuple[object, ...], *, code: str) -> object:
     if len(values) != len(_PAYMENT_REQUEST_OCR_PSMS) or any(value in (None, "") for value in values):
         raise ParseError(code)
@@ -2616,7 +2629,7 @@ def _payment_request_layout_fingerprint(
 ) -> str:
     return sha256(
         "\x1f".join((
-            "payment_request_observation.v2",
+            "payment_request_observation.v3",
             layout,
             evidence.format,
             evidence.magic,
@@ -2657,7 +2670,7 @@ def parse_payment_request_observation(
     layout, regions = _payment_request_crop_texts(payload=payload, evidence=evidence, runner=runner)
     if layout == _PAYMENT_REQUEST_MESSAGE_STRIP_LAYOUT:
         grand_total_label_votes = sum(
-            "总" in value and "合计" in value
+            _payment_request_has_grand_total_label(value)
             for value in regions["strip_grand_total_label"]
         )
         if grand_total_label_votes == 0:
@@ -2696,7 +2709,7 @@ def parse_payment_request_observation(
     )
     assert isinstance(business_date, date)
     grand_total_label_votes = sum(
-        "总" in value and "合计" in value
+        _payment_request_has_grand_total_label(value)
         for value in regions["grand_total_label"]
     )
     if grand_total_label_votes < 2:
