@@ -18,6 +18,7 @@ def test_daily_funds_target_resolution_is_exact_main_only_and_nonleaking() -> No
     assert "inputs.mode == 'daily-funds-worker-logs'" in step
     assert "inputs.mode == 'daily-funds-recovery-bridge'" in step
     assert "inputs.mode == 'public-dashboard'" in step
+    assert "inputs.mode == 'sync-daily-funds-secrets'" in step
     assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
     assert '"$BASE/api/v1/applications"' in step
     assert 'application.get("name") == "kmfa-kmos-p1"' in step
