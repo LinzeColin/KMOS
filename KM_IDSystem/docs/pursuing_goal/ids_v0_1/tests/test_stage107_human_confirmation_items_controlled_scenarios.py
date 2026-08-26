@@ -529,16 +529,17 @@ class Stage107HumanConfirmationItemsPhase3Tests(unittest.TestCase):
             plan,
             ROADMAP,
         )
-        self.assertIn(
-            current,
-            {
-                phase1_current,
-                phase2_current,
-                phase3_current,
-                phase4_current,
-                review_current,
-            },
-        )
+        if not is_current_projection:
+            self.assertIn(
+                current,
+                {
+                    phase1_current,
+                    phase2_current,
+                    phase3_current,
+                    phase4_current,
+                    review_current,
+                },
+            )
         if current == phase3_current:
             self.assertTrue(is_current_projection)
             self.assertEqual(
@@ -548,8 +549,10 @@ class Stage107HumanConfirmationItemsPhase3Tests(unittest.TestCase):
             self.assertIn("IDS-STAGE107-P4-GATE", plan["stop_condition"])
         elif current in {phase4_current, review_current}:
             self.assertTrue(is_current_projection)
-        else:
+        elif current in {phase1_current, phase2_current}:
             self.assertFalse(is_current_projection)
+        else:
+            self.assertTrue(is_current_projection)
 
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
         self.assertEqual(self.module.PASS_RESULT, receipt["result"])

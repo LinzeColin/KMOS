@@ -1,6 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage107 Review accepted locally - 2026-08-26
+## Current Gate - Stage108 P1 accepted locally - 2026-08-26
+
+- `IDS-V0_1-STAGE108-P1` 已完成本地静态验收；当前治理状态为 `IDS-STAGE108 / IDS-STAGE108-P1 / IDS-V0_1-STAGE108-P1 / IDS-STAGE108-P2-GATE`。Stage108 P2 保持未启动，只能由新的独立 run 在冻结任务包定义的门禁下进入。
+- P1 固定 `24` 个未来控制引用、`data/index/evidence/model/generated_at` `5` 项报告生成快照、`7` 项报告交付控制、`23` 类失败关闭与 `4` 条中文反馈。报告证据绑定、外部增强来源语义、人工确认项、关键结论 `evidence_id/evidence_gap`、PDF 引用来源与页码、报告快照、影响、质量、导出审计、模板限制和重新生成／撤回保持为不透明控制引用。
+- 已验证：Stage108 P1 聚焦 `7/7`、Stage107 P1--Review 兼容 `38/38`、Stage088--Stage108 精确白箱链 `936/936`、Stage005 直接治理校验 `valid=true`；Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`。机器平面重渲染 `7` 个中文文件，文档预算、无登记阻塞与双平面检查通过。
+- 本 checkout 未包含 `scripts/lean_governance.py`，因此该语义检查记录为 `NOT_AVAILABLE`；上述阶段验收使用冻结任务包、聚焦白箱链、Stage005、两组批次门禁和机器平面检查形成直接证据，完整仓库绿未声明。
+- 回执记录运行计数均为 `0`、运行标志均为 `false`，模型 Token 与 Agent 执行均为 `0`。本 P1 没有新增远端写入；恢复检查点仍为既有开发分支 `codex/kmids-stage071-p1@223925fcac3613914b467dcab8352761c1cf1e43`，`main`、release、OVH 与生产继续由后续门禁承接。
+- 回滚只撤回 Stage108 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_REVIEWED_HUMAN_CONFIRMATION_ITEMS_RUNTIME_DISABLED`；Stage107 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub main/release、OVH 与应用状态保持原状。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE108-P2-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage107 Review accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE107-REVIEW` 已完成本地机械验收；当前治理状态为 `IDS-STAGE107 / IDS-STAGE107-REVIEW / IDS-V0_1-STAGE107-REVIEW / IDS-STAGE108-P1-GATE`。Stage108 保持未启动，只能由新的独立 run 在冻结任务包定义的门禁下进入。
 - Review 固定复核 P1 的 `25/6/5/21/4`、P2 的 `6×29/4×79/474/15/4`、P3 的 `6×39=234/5/6/6/15/4` 与 P4 的 `6/6/6/6/6/2`、`17/13/13/15/14/14`、`460/4/17`；关键结论 `evidence_id/evidence_gap` 二选一、外部增强的底层来源语义、报告状态影响、业务线白箱确认和 P4→P3 回退保持一致。

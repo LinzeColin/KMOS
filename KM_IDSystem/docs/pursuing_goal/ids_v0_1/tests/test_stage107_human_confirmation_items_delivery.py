@@ -8,6 +8,10 @@ import json
 from pathlib import Path
 import unittest
 
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import (
+    assert_legacy_or_current_projection,
+)
+
 
 ROOT = Path(__file__).resolve().parents[4]
 BASE = ROOT / "docs" / "pursuing_goal" / "ids_v0_1"
@@ -64,6 +68,7 @@ STATUS = ROOT / "machine" / "facts" / "status.json"
 PLAN = ROOT / "machine" / "facts" / "plan.json"
 ACCEPTANCE = ROOT / "machine" / "facts" / "acceptance.json"
 EVENTS = ROOT / "docs" / "governance" / "events.jsonl"
+ROADMAP = ROOT / "docs" / "governance" / "roadmap.yaml"
 
 
 def _load_module():
@@ -344,12 +349,23 @@ class Stage107HumanConfirmationItemsPhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE107-REVIEW",
             "IDS-STAGE108-P1-GATE",
         )
-        self.assertIn(current, {phase3_current, phase4_current, review_current})
+        is_current_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            {phase3_current},
+            status,
+            plan,
+            ROADMAP,
+        )
+        if not is_current_projection:
+            self.assertIn(current, {phase3_current, phase4_current, review_current})
         if current == phase3_current:
+            self.assertFalse(is_current_projection)
             self.assertEqual("HUMAN_CONFIRMATION_ITEMS_CONTROLLED_SCENARIOS_RUNTIME_DISABLED", status["evidence_status"])
             return
 
         if current == review_current:
+            self.assertTrue(is_current_projection)
             self.assertEqual(status["task"], plan["task"])
             self.assertEqual(
                 "REVIEWED_HUMAN_CONFIRMATION_ITEMS_RUNTIME_DISABLED",
@@ -368,6 +384,15 @@ class Stage107HumanConfirmationItemsPhase4Tests(unittest.TestCase):
             )
             return
 
+        if current != phase4_current:
+            self.assertTrue(is_current_projection)
+            self.assertTrue(RECEIPT.is_file())
+            receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+            self.assertEqual(self.module.PASS_RESULT, receipt["result"])
+            self.assertEqual("IDS-STAGE107-REVIEW-GATE", receipt["next_gate"])
+            return
+
+        self.assertTrue(is_current_projection)
         self.assertEqual(status["task"], plan["task"])
         self.assertTrue(RECEIPT.is_file())
         self.assertEqual(
