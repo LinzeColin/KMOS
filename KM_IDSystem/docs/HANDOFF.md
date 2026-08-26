@@ -1,6 +1,17 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage113 P4 accepted locally - 2026-08-27
+## Current Gate - Stage113 Review accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE113-REVIEW` 已完成冻结 P1--P4 复核队列 Schema 控制工件的本地机械复审；当前治理状态为 `IDS-STAGE113 / IDS-STAGE113-REVIEW / IDS-V0_1-STAGE113-REVIEW / IDS-STAGE114-P1-GATE`。Stage114 P1 仅由后续独立 run 在冻结任务包门禁下承接。
+- Review 固定复审 P1 的 `29/4/5/7/4/19/4`、P2 的 `5×32/4×101/505`、P3 的 `5×52=260/5/5/5/15/4` 与 P4 的 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17`。`actor`、`time`、`reason`、`old value`、`new value`、`review result`、证据可信等级与报告质量影响保持未来控制引用；外部增强来源分离、业务线白箱确认与版本化可验证 `P4→P3` 回退目标保持前置。
+- 冻结 Stage113 任务包、Stage113 P1--P4 控制工件与 Stage112 Review 工件构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。Review 未建立第二权威事实源。
+- 已验证：Review 聚焦 `7/7`、Stage112 Review 与 Stage113 P1--Review 选择的前向治理套件 `51/51`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 `0`、运行标志保持 `false`；真实 OCR、复核队列、复核 UI、复核审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁。
+- 2026-08-27 的保全推送恢复点保持在 `origin/codex/kmids-stage071-p1@cae7da8b75922b0ea3b966ef8c02811b7af9d7ae`；本 Review 不新增远端写入。
+- 回滚只撤回本 Review 的范围说明、纯内存复审模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REVIEW_QUEUE_SCHEMA_DELIVERY_EVIDENCE_RUNTIME_DISABLED`；Stage113 P1--P4、Stage112 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE114-P1-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage113 P4 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE113-P4` 已完成本地 metadata-only 复核队列 Schema 交付控制验收；当前治理状态为 `IDS-STAGE113 / IDS-STAGE113-P4 / IDS-V0_1-STAGE113-P4 / IDS-STAGE113-REVIEW-GATE`。Stage113 Review 由下一独立 run 在冻结任务包门禁下承接。
 - P4 机械承接 P3 的五条非业务、`reference-only` 场景及其 P2/P1 控制形状：形成复核队列样例、复核审计日志样例、中文 UI 流程说明、人工判断边界与业务线白箱确认各 `5` 条，以及回滚与重新复核说明 `2` 条；字段形状为 `17/13/13/15/14/14`，共 `388` 个 metadata-only 检查点、`17` 类失败关闭与 `4` 条中文反馈。
