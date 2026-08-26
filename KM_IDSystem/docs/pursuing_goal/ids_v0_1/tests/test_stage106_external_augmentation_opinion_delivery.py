@@ -574,6 +574,12 @@ class Stage106ExternalAugmentationOpinionPhase4Tests(unittest.TestCase):
             "IDS-V0_1-STAGE106-REVIEW",
             "IDS-STAGE107-P1-GATE",
         )
+        stage107_phase1_current = (
+            "IDS-STAGE107",
+            "IDS-STAGE107-P1",
+            "IDS-V0_1-STAGE107-P1",
+            "IDS-STAGE107-P2-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
             self,
             current,
@@ -654,7 +660,7 @@ class Stage106ExternalAugmentationOpinionPhase4Tests(unittest.TestCase):
                 if line.strip()
             }
             self.assertIn("EVT-IDS-V0_1-STAGE106-P4-20260826-001", event_ids)
-        elif current == review_current:
+        elif current in {review_current, stage107_phase1_current}:
             self.assertTrue(is_current_projection)
         else:
             self.assertIn(current, {phase1_current, phase2_current, phase3_current})

@@ -1,11 +1,16 @@
 schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
-current_stage_id: "IDS-STAGE106"
-current_phase_id: "IDS-STAGE106-REVIEW"
-current_task_id: "IDS-V0_1-STAGE106-REVIEW"
-next_gate_id: "IDS-STAGE107-P1-GATE"
+current_stage_id: "IDS-STAGE107"
+current_phase_id: "IDS-STAGE107-P1"
+current_task_id: "IDS-V0_1-STAGE107-P1"
+next_gate_id: "IDS-STAGE107-P2-GATE"
 current_transition_history:
+  stage107_phase1_state:
+    current_stage_id: "IDS-STAGE107"
+    current_phase_id: "IDS-STAGE107-P1"
+    current_task_id: "IDS-V0_1-STAGE107-P1"
+    next_gate_id: "IDS-STAGE107-P2-GATE"
   stage106_review_state:
     current_stage_id: "IDS-STAGE106"
     current_phase_id: "IDS-STAGE106-REVIEW"
@@ -1864,6 +1869,150 @@ current_transition_history:
 total_estimated_hours: 158
 completed_estimated_hours: 290
 stages:
+  - stage_id: "IDS-STAGE107"
+    name: "人工确认事项章节"
+    task_id: "IDS-V0_1-STAGE107"
+    acceptance_ids:
+      - "ACC-STAGE-107"
+    objective: "依据冻结 Stage107 任务包完成人工确认事项章节的 P1 静态边界、后续 P2 受控最小切片、P3 专项验证、P4 交付证据与整阶段复审；停机、焊接、热处理、吊装、设备改造与合同承诺保持业务线白箱人工确认前置，报告证据绑定、外部增强来源语义、引用来源与页码、生成快照、报告快照、影响分析与质量评分保持受控。"
+    status: "phase1_completed_local"
+    entry_authorized: true
+    next_gate_id: "IDS-STAGE107-P2-GATE"
+    gate:
+      gate_id: "IDS-STAGE107-P1-GATE"
+      status: "passed"
+      next_gate_id: "IDS-STAGE107-P2-GATE"
+      github_upload_allowed: false
+    pass_conditions:
+      - "冻结 Stage107 任务包与 Stage106 Review 已复审外部增强意见章节控制工件构成唯一控制上下文；来源文档、真实证据账本与业务线白箱人工复核继续承担业务事实权威。"
+      - "P1 固定人工确认事项章节、六类人工确认类别、报告证据绑定、关键结论 evidence_id/evidence_gap、引用来源与页码、外部增强来源语义、五项生成快照、报告快照、影响分析、质量评分与导出审计的控制引用。"
+      - "真实资料、人工确认、报告、PDF、快照、审计、数据库、模型、Agent、OVH、生产与正式全局上传保持零执行。"
+    forbidden_actions:
+      - "读取、创建、复制、移动、删除、修改、评估、生成、展示、导出、发布、撤回、写入或持久化任何真实业务资料、外部参考、报告、PDF、原始元数据、真实证据账本、审计日志、数据库、物理索引或业务结论。"
+      - "执行人工确认、外部参考或模型推理评估、报告生成、PDF 渲染、引用生成、快照保存、报告状态更新、质量评分、导出审计、模型调用、模型 Token、Agent、OVH、生产、正式全局上传、Stage107 P2 或后续阶段。"
+    phases:
+      - phase_id: "IDS-STAGE107-P1"
+        name: "Phase 1 · 范围、输入输出与边界确认"
+        objective: "只定义报告证据绑定、外部增强章节、人工确认事项、报告快照、影响分析、质量评分、PDF 引用来源与 data/index/evidence/model snapshot 的未来控制引用。"
+        status: "completed"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE107-P2-GATE"
+        gate:
+          gate_id: "IDS-STAGE107-P1-GATE"
+          status: "passed"
+          next_gate_id: "IDS-STAGE107-P2-GATE"
+          github_upload_allowed: false
+        pass_conditions:
+          - "P1 固定 25 个未来控制引用、停机/焊接/热处理/吊装/设备改造/合同承诺六类人工确认事项、五项生成快照、关键结论 evidence_id/evidence_gap 独立性、引用来源与页码及报告交付控制。"
+          - "人工确认、业务结论、报告/PDF、快照、审计与运行时保持后续授权范围。"
+        tasks:
+          - task_id: "IDS-V0_1-STAGE107-P1"
+            name: "人工确认事项章节静态合同"
+            objective: "依据冻结 Stage107 任务包和 Stage106 Review 已复审控制工件，固定人工确认事项章节的未来控制形状。"
+            status: "completed"
+            dependencies:
+              - "IDS-V0_1-STAGE106-REVIEW"
+            acceptance_ids:
+              - "ACC-STAGE-107"
+              - "ACC-STAGE107-P1-01"
+              - "ACC-STAGE107-P1-02"
+              - "ACC-STAGE107-P1-03"
+              - "ACC-STAGE107-P1-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage107_human_confirmation_items_contract"
+              - "Stage088--Stage107 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage107 P1 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage107 P1 聚焦静态合同白箱用例、Stage106 Review 兼容、Stage088--Stage107 精确白箱链、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage107 P1 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-107_人工确认事项章节.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_PHASE1_HUMAN_CONFIRMATION_ITEMS_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage107_human_confirmation_items_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage107-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE106_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage106_external_augmentation_opinion_stage_review_contract.json"
+              - "KM_IDSystem/machine/runs/2026-08-26-stage106-review-local.json"
+            risk: "将控制引用、人工确认类别、测试、路线或机器事实误作真实人工确认、报告、业务事实、审计或生产动作，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P1 的范围说明、静态合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage106 Review 的本地零运行时状态；不改变 Stage106 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、审计日志、数据库、GitHub、OVH 或应用状态。"
+      - phase_id: "IDS-STAGE107-P2"
+        name: "Phase 2 · 实现、接入与最小可运行切片"
+        objective: "以 Stage107 P1 静态合同为前序，受控投影报告证据绑定、章节输出、快照、影响分析、质量评分、证据等级、引用页码、人工确认项与导出审计。"
+        status: "not_started"
+        entry_authorized: true
+        next_gate_id: "IDS-STAGE107-P3-GATE"
+        gate:
+          gate_id: "IDS-STAGE107-P2-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE107-P3-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE107-P2"
+            name: "人工确认事项章节受控最小切片"
+            objective: "后续独立 run 中只实现冻结任务包定义的受控最小切片。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE107-P1"
+      - phase_id: "IDS-STAGE107-P3"
+        name: "Phase 3 · 人工确认事项章节专项验证与异常场景"
+        objective: "后续独立 run 中验证关键结论证据绑定、报告状态影响与外部增强来源边界。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE107-P4-GATE"
+        gate:
+          gate_id: "IDS-STAGE107-P3-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE107-P4-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE107-P3"
+            name: "人工确认事项章节专项验证与异常场景"
+            objective: "后续独立 run 中只验证冻结控制投影。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE107-P1"
+              - "IDS-V0_1-STAGE107-P2"
+      - phase_id: "IDS-STAGE107-P4"
+        name: "Phase 4 · 人工确认事项章节交付证据、回滚与中文反馈"
+        objective: "后续独立 run 中交付冻结任务包指定的报告样例、快照、质量评分、影响分析、模板限制、人工确认要求、重新生成与撤回控制证据。"
+        status: "not_started"
+        entry_authorized: false
+        next_gate_id: "IDS-STAGE107-REVIEW-GATE"
+        gate:
+          gate_id: "IDS-STAGE107-P4-GATE"
+          status: "pending"
+          next_gate_id: "IDS-STAGE107-REVIEW-GATE"
+          github_upload_allowed: false
+        tasks:
+          - task_id: "IDS-V0_1-STAGE107-P4"
+            name: "人工确认事项章节交付证据"
+            objective: "后续独立 run 中只形成可回滚的交付控制证据。"
+            status: "not_started"
+            dependencies:
+              - "IDS-V0_1-STAGE107-P1"
+              - "IDS-V0_1-STAGE107-P2"
+              - "IDS-V0_1-STAGE107-P3"
+    review:
+      phase_id: "IDS-STAGE107-REVIEW"
+      name: "Stage Review · 人工确认事项章节整阶段机械复审"
+      objective: "后续独立 run 中机械复审 Stage107 P1--P4 的人工确认事项、报告证据绑定、外部增强来源语义、快照、影响、质量、审计、人工确认与回滚边界。"
+      status: "not_started"
+      entry_authorized: false
+      next_gate_id: "IDS-STAGE108-P1-GATE"
+      gate:
+        gate_id: "IDS-STAGE107-REVIEW-GATE"
+        status: "pending"
+        next_gate_id: "IDS-STAGE108-P1-GATE"
+        github_upload_allowed: false
+      tasks:
+        - task_id: "IDS-V0_1-STAGE107-REVIEW"
+          name: "机械复审人工确认事项章节控制边界"
+          objective: "后续独立 run 中聚合 P1--P4 的冻结控制工件。"
+          status: "not_started"
+          dependencies:
+            - "IDS-V0_1-STAGE107-P1"
+            - "IDS-V0_1-STAGE107-P2"
+            - "IDS-V0_1-STAGE107-P3"
+            - "IDS-V0_1-STAGE107-P4"
   - stage_id: "IDS-STAGE106"
     name: "外部增强意见章节"
     task_id: "IDS-V0_1-STAGE106"
