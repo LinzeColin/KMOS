@@ -76,8 +76,18 @@ with target.open("w", encoding="utf-8") as handle:
 PY
 chmod 0600 "$CRON_ENV_FILE"
 
-python3 /opt/daily-funds/scripts/run_daily_funds.py preflight >> /var/log/daily-funds/cron.log 2>&1 || true
-python3 /opt/daily-funds/scripts/run_daily_funds.py runtime-audit >> /var/log/daily-funds/cron.log 2>&1 || true
+# The scheduler writes only fixed-schema, values-free cron events to this
+# file.  Relay newly appended events to container stdout so the Cloud control
+# plane can verify an actual refresh without reading any private state,
+# attachments, provider replies, or financial values.  Starting at byte zero
+# prevents a restarted worker from replaying historical records.
+CRON_LOG="/var/log/daily-funds/cron.log"
+touch "$CRON_LOG"
+tail -n 0 -F "$CRON_LOG" &
+CRON_LOG_RELAY_PID=$!
+
+python3 /opt/daily-funds/scripts/run_daily_funds.py preflight >> "$CRON_LOG" 2>&1 || true
+python3 /opt/daily-funds/scripts/run_daily_funds.py runtime-audit >> "$CRON_LOG" 2>&1 || true
 cp /opt/daily-funds/crontab.txt /etc/cron.d/daily-funds
 chmod 0644 /etc/cron.d/daily-funds
 
@@ -97,7 +107,7 @@ RECOVERY_BROKER_PID=$!
 # A deployment gets one immediate, isolated page refresh; later runs are
 # handled by the offset cron line.  This DWS snapshot has its own process lock
 # and does not wait for the historical raw-archive reader.
-python3 /opt/daily-funds/scripts/run_daily_funds.py payment-request-refresh >> /var/log/daily-funds/cron.log 2>&1 &
+python3 /opt/daily-funds/scripts/run_daily_funds.py payment-request-refresh >> "$CRON_LOG" 2>&1 &
 PAYMENT_REQUEST_REFRESH_PID=$!
 cron -f &
 CRON_PID=$!
@@ -135,7 +145,7 @@ run_startup_raw_archive_audit() {
   # before the replacement recovery broker resumes the same request.
   trap stop_startup_raw_archive_audit_child INT TERM
 
-  python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &
+  python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> "$CRON_LOG" 2>&1 &
   RAW_ARCHIVE_AUDIT_CHILD_PID=$!
   if wait "$RAW_ARCHIVE_AUDIT_CHILD_PID"; then
     RAW_ARCHIVE_AUDIT_RC=0
@@ -151,7 +161,7 @@ run_startup_raw_archive_audit() {
       exit 0
     fi
     RAW_ARCHIVE_AUDIT_CHILD_PID=""
-    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> /var/log/daily-funds/cron.log 2>&1 &
+    python3 /opt/daily-funds/scripts/run_daily_funds.py raw-archive-audit >> "$CRON_LOG" 2>&1 &
     RAW_ARCHIVE_AUDIT_CHILD_PID=$!
     wait "$RAW_ARCHIVE_AUDIT_CHILD_PID" || true
     RAW_ARCHIVE_AUDIT_CHILD_PID=""
@@ -172,8 +182,8 @@ if python3 /opt/daily-funds/scripts/startup_raw_archive_audit_required.py >/dev/
 fi
 
 shutdown() {
-  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
-  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
+  kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" "$CRON_LOG_RELAY_PID" 2>/dev/null || true
+  wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" "$CRON_LOG_RELAY_PID" 2>/dev/null || true
   stop_startup_raw_archive_audit
   rm -f "$CRON_PID_FILE"
   exit 0
@@ -183,11 +193,11 @@ trap shutdown INT TERM
 # PID 1 supervises every fixed component.  If either narrow control broker
 # exits, restart the isolated slice rather than silently keeping a partial
 # control plane beside the scheduled collector.
-while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null && kill -0 "$HISTORY_PROBE_BROKER_PID" 2>/dev/null && kill -0 "$RECOVERY_BROKER_PID" 2>/dev/null; do
+while kill -0 "$CRON_PID" 2>/dev/null && kill -0 "$AUTH_BROKER_PID" 2>/dev/null && kill -0 "$HISTORY_PROBE_BROKER_PID" 2>/dev/null && kill -0 "$RECOVERY_BROKER_PID" 2>/dev/null && kill -0 "$CRON_LOG_RELAY_PID" 2>/dev/null; do
   sleep 2
 done
-kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
-wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" 2>/dev/null || true
+kill -TERM "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" "$CRON_LOG_RELAY_PID" 2>/dev/null || true
+wait "$CRON_PID" "$AUTH_BROKER_PID" "$HISTORY_PROBE_BROKER_PID" "$RECOVERY_BROKER_PID" "$PAYMENT_REQUEST_REFRESH_PID" "$CRON_LOG_RELAY_PID" 2>/dev/null || true
 stop_startup_raw_archive_audit
 rm -f "$CRON_PID_FILE"
 exit 1
