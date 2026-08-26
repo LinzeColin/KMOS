@@ -2356,9 +2356,9 @@ def test_payment_request_message_strip_uses_the_exact_message_day() -> None:
         assert region in {"strip_grand_total_label", "strip_grand_total"}
         output = {
             "strip_grand_total_label": {
-                "6": "总 合 计",
-                "11": "总合 计",
-                "12": "总\n合\t计",
+                "6": "合 计",
+                "11": "合计",
+                "12": "合\n计",
             }[command[command.index("--psm") + 1]],
             "strip_grand_total": "80397.63",
         }[region]
@@ -2378,6 +2378,21 @@ def test_payment_request_message_strip_uses_the_exact_message_day() -> None:
     assert observation.date_basis == "MESSAGE_DAY"
     assert observation.request_total_fen == 8_039_763
     assert len(observation.layout_fingerprint) == 64
+
+    def unrecognized_footer_label(command, **_kwargs):
+        region = Path(command[1]).stem.removeprefix("payment-")
+        output = "小计" if region == "strip_grand_total_label" else "80397.63"
+        return SimpleNamespace(returncode=0, stdout=output, stderr="")
+
+    with pytest.raises(ParseError, match="PAYMENT_REQUEST_GRAND_TOTAL_LABEL_MISSING"):
+        parse_payment_request_observation(
+            filename="payment-request-strip.png",
+            payload=payload,
+            source=_source(payload),
+            received_at=datetime(2026, 8, 21, 1, tzinfo=UTC),
+            mime="image/png",
+            runner=unrecognized_footer_label,
+        )
 
 
 def test_payment_request_observation_renders_a_single_page_scanned_pdf() -> None:

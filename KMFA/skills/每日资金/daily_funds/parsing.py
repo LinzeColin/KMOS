@@ -91,10 +91,12 @@ CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11
 # receipt/payment flow.  It can expose one total only after three fixed OCR
 # segmentations agree on the fixed fields required by its visual profile.  v2
 # adds the approved horizontal message-summary profile.  v3 normalizes the
-# whitespace that deterministic Chinese OCR can place between the fixed
-# ``总合计`` glyphs.  It records the exact message day as its date basis
-# because that compact profile has no visible document-date cell.
-PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v3"
+# whitespace that deterministic Chinese OCR can place between label glyphs.
+# v4 accepts the two fixed footer-label forms emitted by that profile, while
+# retaining three-read OCR and amount consensus.  It records the exact message
+# day as its date basis because that compact profile has no visible
+# document-date cell.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v4"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2460,6 +2462,7 @@ _PAYMENT_REQUEST_DATE = re.compile(
     r"(?P<year>20\d{2})\s*[-./]\s*(?P<month>\d{1,2})\s*[-./]\s*(?P<day>\d{1,2})"
 )
 _PAYMENT_REQUEST_AMOUNT = re.compile(r"\d+(?:\.\d{1,2})?")
+_PAYMENT_REQUEST_MESSAGE_STRIP_GRAND_TOTAL_LABELS = frozenset({"总合计", "合计"})
 
 
 def _payment_request_layout_and_crops(
@@ -2613,6 +2616,17 @@ def _payment_request_has_grand_total_label(value: object) -> bool:
     return "总合计" in normalize_header(value)
 
 
+def _payment_request_message_strip_grand_total_label(value: object) -> str | None:
+    """Return the canonical footer label for the approved strip profile.
+
+    The compact DWS image contains one fixed footer cell that is rendered as
+    either ``总合计`` or ``合计``.  OCR-inserted separators are normalized,
+    then the complete cell label must match one of those two approved forms.
+    """
+
+    return "GRAND_TOTAL" if normalize_header(value) in _PAYMENT_REQUEST_MESSAGE_STRIP_GRAND_TOTAL_LABELS else None
+
+
 def _payment_request_consensus(values: tuple[object, ...], *, code: str) -> object:
     if len(values) != len(_PAYMENT_REQUEST_OCR_PSMS) or any(value in (None, "") for value in values):
         raise ParseError(code)
@@ -2629,7 +2643,7 @@ def _payment_request_layout_fingerprint(
 ) -> str:
     return sha256(
         "\x1f".join((
-            "payment_request_observation.v3",
+            "payment_request_observation.v4",
             layout,
             evidence.format,
             evidence.magic,
@@ -2669,14 +2683,13 @@ def parse_payment_request_observation(
     )
     layout, regions = _payment_request_crop_texts(payload=payload, evidence=evidence, runner=runner)
     if layout == _PAYMENT_REQUEST_MESSAGE_STRIP_LAYOUT:
-        grand_total_label_votes = sum(
-            _payment_request_has_grand_total_label(value)
-            for value in regions["strip_grand_total_label"]
+        _payment_request_consensus(
+            tuple(
+                _payment_request_message_strip_grand_total_label(value)
+                for value in regions["strip_grand_total_label"]
+            ),
+            code="PAYMENT_REQUEST_GRAND_TOTAL_LABEL_MISSING",
         )
-        if grand_total_label_votes == 0:
-            return None
-        if grand_total_label_votes != len(_PAYMENT_REQUEST_OCR_PSMS):
-            raise ParseError("PAYMENT_REQUEST_GRAND_TOTAL_LABEL_MISSING")
         request_total_fen = _payment_request_consensus(
             tuple(_payment_request_amount(value) for value in regions["strip_grand_total"]),
             code="PAYMENT_REQUEST_TOTAL_CONSENSUS_MISSING",
