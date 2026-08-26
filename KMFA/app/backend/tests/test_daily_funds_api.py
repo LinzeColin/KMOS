@@ -295,9 +295,9 @@ def _write_projection(root: Path) -> None:
     }
     (root / "cashflow_observation.json").write_text(json.dumps(cashflow_observation), encoding="utf-8")
     payment_request_observation = {
-        "schema_version": "kmfa.daily_funds.payment_request_observation.v3",
+        "schema_version": "kmfa.daily_funds.payment_request_observation.v4",
         "generated_at": "2026-07-30T12:05:00Z",
-        "parser_version": "kmfa.daily_funds.payment_request_observation.v3",
+        "parser_version": "kmfa.daily_funds.payment_request_observation.v4",
         "source_coverage": {
             "eligible_documents": 2,
             "parsed_documents": 2,
