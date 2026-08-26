@@ -88,7 +88,7 @@ _BACKFILL_BATCH_MAX_DAYS = 7
 # repair census bounded before it can download an unbounded provider reply.
 _RAW_COVERAGE_MAX_OCCURRENCES = 1024
 _RAW_COVERAGE_RECEIPT_KEY = "raw_coverage_360d_receipt"
-_RAW_COVERAGE_RECEIPT_SCHEMA = "kmfa.daily_funds.raw_coverage_receipt.v1"
+_RAW_COVERAGE_RECEIPT_SCHEMA = "kmfa.daily_funds.raw_coverage_receipt.v2"
 _FLOW_STATE_SCHEMA = "kmfa.daily_funds.flow_state.v1"
 _CASHFLOW_OBSERVATION_SCHEMA = "kmfa.daily_funds.cashflow_observation.v2"
 _CASHFLOW_OBSERVATION_MIN_DAYS = 2
@@ -212,12 +212,12 @@ class _RawFactReplayPair:
 class _RawFactReplayAccumulator:
     """Select declared source facts, then index only their fresh byte readback.
 
-    The raw coverage receipt is a complete source-envelope/occurrence/batch
-    census.  A formal replay has a narrower job: it must open every explicit
-    account or flow candidate from that pinned authority, while title-less raw
-    evidence stays quarantined.  Hydrating unrelated screenshots first is not
-    a stronger source proof and can turn a bounded recovery into an
-    hours-long OCR sweep.
+    The raw coverage receipt is a complete structural
+    source-envelope/occurrence/batch census.  A formal replay applies the
+    active source selector, then opens every explicit account or flow candidate
+    from that pinned authority while title-less raw evidence stays quarantined.
+    Hydrating unrelated screenshots first is not a stronger source proof and
+    can turn a bounded recovery into an hours-long OCR sweep.
     """
 
     def __init__(
@@ -227,6 +227,9 @@ class _RawFactReplayAccumulator:
         kmfile_registered_file_keys: Iterable[tuple[str, str]] = (),
     ):
         self.runtime = runtime
+        self._source_gate = DwsHistoryClient(runtime.config)
+        self.archive_occurrence_count = 0
+        self.out_of_scope_occurrence_count = 0
         self.occurrence_count = 0
         self.parsed_occurrences = 0
         self.needs_review_occurrences = 0
@@ -247,6 +250,14 @@ class _RawFactReplayAccumulator:
     def index_persisted(self, attachment: PersistedRawAttachment) -> None:
         """Keep only source-gated formal candidates from a metadata census."""
 
+        self.archive_occurrence_count += 1
+        try:
+            self._source_gate.assert_exact_source(attachment.message)
+        except IngestionError as exc:
+            if exc.code != "AMBIGUOUS_SOURCE":
+                raise
+            self.out_of_scope_occurrence_count += 1
+            return
         self.occurrence_count += 1
         declared_family = _family(attachment.message)
         explicit_candidate = declared_family in _EXPLICIT_FACT_FAMILIES | {_GENERIC_DOCUMENT_FAMILY}
@@ -597,6 +608,9 @@ class _RawArchiveAuditAccumulator:
 
     def __init__(self, runtime: "DailyFundsRuntime"):
         self.runtime = runtime
+        self._source_gate = DwsHistoryClient(runtime.config)
+        self.archive_occurrence_count = 0
+        self.out_of_scope_occurrence_count = 0
         self.cashflow = _CashflowObservationAccumulator(runtime)
         self.payment_requests = _PaymentRequestObservationAccumulator(runtime)
         self.occurrence_count = 0
@@ -608,6 +622,14 @@ class _RawArchiveAuditAccumulator:
         self.inbox: list[tuple[str, int, str]] = []
 
     def consume(self, attachment: DownloadedAttachment) -> None:
+        self.archive_occurrence_count += 1
+        try:
+            self._source_gate.assert_exact_source(attachment.message)
+        except IngestionError as exc:
+            if exc.code != "AMBIGUOUS_SOURCE":
+                raise
+            self.out_of_scope_occurrence_count += 1
+            return
         self.occurrence_count += 1
         self.inbox.append((attachment.message_id_hash, attachment.index, attachment.sha256))
         self.payment_requests.add(attachment)
@@ -2369,7 +2391,7 @@ class DailyFundsRuntime:
         # while that small group is resident; it cannot accidentally retain
         # the historic image corpus in memory.
         audit = writer.audit_raw_archive(on_attachment=accumulator.consume)
-        if accumulator.occurrence_count != audit.occurrence_count:
+        if accumulator.archive_occurrence_count != audit.occurrence_count:
             raise IngestionError("GIT_READBACK_FAILED")
 
         # The chart-only projection has its own OCR/footer gate and remains
@@ -2418,11 +2440,12 @@ class DailyFundsRuntime:
 
         A completed historical planner is not evidence that a later source
         replay still has every attachment occurrence in private Git.  This
-        bounded maintenance operation compares the exact 360-day DWS ledger
-        with the private raw occurrence identities, downloads only absences,
-        persists them through the normal fresh sparse-readback writer, and
-        rechecks coverage.  It never moves a funds publication pointer or
-        calls D1/R2/OCI.
+        bounded maintenance operation compares the exact current 360-day DWS
+        ledger with the active-source identities in the private raw archive,
+        downloads only absences, persists them through the normal fresh
+        sparse-readback writer, and rechecks coverage.  Historic source scopes
+        remain structurally audited without entering this receipt.  It never
+        moves a funds publication pointer or calls D1/R2/OCI.
         """
 
         try:
@@ -2454,7 +2477,23 @@ class DailyFundsRuntime:
             raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
         anchor = anchor.astimezone(UTC)
         writer = GitSparseWriter(self.config)
+        source_gate = DwsHistoryClient(self.config)
         archived: set[tuple[str, int]] = set()
+        archived_occurrences = 0
+
+        def collect_current_archived(attachment: PersistedRawAttachment) -> None:
+            nonlocal archived_occurrences
+            try:
+                source_gate.assert_exact_source(attachment.message)
+            except IngestionError as exc:
+                if exc.code != "AMBIGUOUS_SOURCE":
+                    raise
+                return
+            identity = (attachment.message_id_hash, attachment.index)
+            if identity in archived:
+                raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+            archived.add(identity)
+            archived_occurrences += 1
 
         metadata_audit = getattr(writer, "audit_raw_archive_metadata", None)
         audit_raw_identities = (
@@ -2463,15 +2502,15 @@ class DailyFundsRuntime:
             else writer.audit_raw_archive
         )
         try:
-            audit_raw_identities(
-                on_attachment=lambda attachment: archived.add((attachment.message_id_hash, attachment.index))
-            )
+            audit_raw_identities(on_attachment=collect_current_archived)
         except IngestionError as exc:
             # A first-ever exact source archive has no raw tree to audit.  It
             # is safe to continue with an empty identity set; every source
             # occurrence will then pass through the ordinary writer/readback.
             if exc.code != "SOURCE_MISSING":
                 raise
+        if archived_occurrences != len(archived):
+            raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
 
         client = self._dws_client()
         page = client.collect_group_history_v2(anchor - timedelta(days=_BACKFILL_WINDOW_DAYS), anchor)
@@ -2545,12 +2584,24 @@ class DailyFundsRuntime:
                     self.state.mark_inbox(occurrence_key, "ARCHIVED_CAPABILITY_RECORDED")
 
         verified: set[tuple[str, int]] = set()
-        final_audit = audit_raw_identities(
-            on_attachment=lambda attachment: verified.add((attachment.message_id_hash, attachment.index))
-        )
-        if (
-            final_audit.occurrence_count != len(verified)
-        ):
+        verified_occurrences = 0
+
+        def collect_current_verified(attachment: PersistedRawAttachment) -> None:
+            nonlocal verified_occurrences
+            try:
+                source_gate.assert_exact_source(attachment.message)
+            except IngestionError as exc:
+                if exc.code != "AMBIGUOUS_SOURCE":
+                    raise
+                return
+            identity = (attachment.message_id_hash, attachment.index)
+            if identity in verified:
+                raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
+            verified.add(identity)
+            verified_occurrences += 1
+
+        final_audit = audit_raw_identities(on_attachment=collect_current_verified)
+        if verified_occurrences != len(verified):
             raise IngestionError("RAW_COVERAGE_REPAIR_NEEDS_REVIEW")
         remaining = set(source) - verified
         if remaining:
@@ -2624,6 +2675,7 @@ class DailyFundsRuntime:
                     "verified_occurrences": verified_occurrences,
                     "raw_archive_occurrences": raw_archive_occurrences,
                     "raw_commit_sha": raw_commit_sha,
+                    "source_scope_marker": self._source_scope_marker(),
                 },
                 ensure_ascii=True,
                 sort_keys=True,
@@ -2631,8 +2683,28 @@ class DailyFundsRuntime:
             ),
         )
 
+    def _source_scope_marker(self) -> str:
+        """Bind private coverage evidence to the active exact source selector.
+
+        The marker is an internal state-only digest.  It never reaches the
+        public status, chart, publication, logs or workflow output.  A changed
+        group or sender allowlist therefore requires a fresh current-source
+        coverage repair before formal replay can continue.
+        """
+
+        canonical = json.dumps(
+            {
+                "group": self.config.group_id,
+                "senders": sorted(self.config.sender_ids),
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return sha256(canonical.encode("utf-8")).hexdigest()
+
     def _raw_coverage_receipt(self) -> Mapping[str, Any] | None:
-        """Return one structurally valid 360-day source-coverage receipt."""
+        """Return one current-source 360-day coverage receipt."""
 
         raw = self.state.get(_RAW_COVERAGE_RECEIPT_KEY)
         if raw is None:
@@ -2648,12 +2720,14 @@ class DailyFundsRuntime:
             "verified_occurrences",
             "raw_archive_occurrences",
             "raw_commit_sha",
+            "source_scope_marker",
         }:
             return None
         source_occurrences = payload.get("source_occurrences")
         verified_occurrences = payload.get("verified_occurrences")
         raw_archive_occurrences = payload.get("raw_archive_occurrences")
         raw_commit_sha = self._lower_hex(payload.get("raw_commit_sha"), 40)
+        source_scope_marker = self._lower_hex(payload.get("source_scope_marker"), 64)
         if (
             payload.get("schema_version") != _RAW_COVERAGE_RECEIPT_SCHEMA
             or payload.get("window_days") != _BACKFILL_WINDOW_DAYS
@@ -2669,6 +2743,7 @@ class DailyFundsRuntime:
             or raw_archive_occurrences < source_occurrences
             or raw_archive_occurrences > _RAW_COVERAGE_MAX_OCCURRENCES
             or raw_commit_sha is None
+            or source_scope_marker != self._source_scope_marker()
         ):
             return None
         return {
@@ -2725,17 +2800,17 @@ class DailyFundsRuntime:
             self,
             kmfile_registered_file_keys=kmfile_registered_file_keys,
         )
-        # First re-open the complete source-gated raw metadata tree at one
-        # immutable commit.  This verifies the 360-day authority without
-        # downloading unrelated quarantine bytes into the formal fact lane.
-        # Every declared account/flow candidate is then reopened below through
-        # the normal byte/hash/batch path before parsing.
+        # First re-open the complete structural raw metadata tree at one
+        # immutable commit.  The accumulator applies the active source selector
+        # before a candidate can enter the formal fact lane.  Every declared
+        # account/flow candidate is then reopened below through the normal
+        # byte/hash/batch path before parsing.
         audit = writer.audit_raw_archive_metadata(
             on_attachment=accumulator.index_persisted,
             commit_sha=str(receipt["raw_commit_sha"]),
         )
         if (
-            audit.occurrence_count != accumulator.occurrence_count
+            audit.occurrence_count != accumulator.archive_occurrence_count
             or audit.occurrence_count != receipt["raw_archive_occurrences"]
             or audit.commit_sha != receipt["raw_commit_sha"]
         ):
