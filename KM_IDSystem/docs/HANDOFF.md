@@ -1,6 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage112 P2 accepted locally - 2026-08-27
+## Current Gate - Stage112 P3 accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE112-P3` 已完成本地纯内存专项异常场景验收；当前治理状态为 `IDS-STAGE112 / IDS-STAGE112-P3 / IDS-V0_1-STAGE112-P3 / IDS-STAGE112-P4-GATE`。P4 由新的独立 run 在冻结任务包门禁下承接。
+- P3 机械重放 P2 的五条非业务、`reference-only` 控制投影：保留每条 `34` 个输入字段、P1 的 `32` 个控制引用、`4` 组投影、每条 `100` 个字段和 `500` 个前序检查点；形成五条每条 `53` 字段、共 `265` 个专项场景检查点、五个控制视图与五条业务线白箱处理记录。
+- 关键结论保持 `evidence_id_ref/evidence_gap_ref` 严格二选一；资料撤回、证据降级和索引版本变化只表达未来报告状态、质量、快照和导出审计复核控制；外部增强保持外部来源身份，不能作为内部项目依据、替代证据绑定或关闭证据缺口，最终结论继续由业务线白箱人工确认门禁承接。
+- 单一工程控制上下文保持冻结 Stage112 任务包、Stage112 P1/P2 控制工件与 Stage111 Review 控制工件；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 P3 形成纯内存控制场景与本地治理证据。
+- 已验证：Stage112 P3 聚焦 `8/8`、Stage112 P1/P2 与 Stage111 Review 前向兼容以及 Batch051-060 门禁共 `37/37`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`，模型 Token、Agent、OVH 与生产运行保持零执行。
+- 回滚仅撤回 Stage112 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更日志和本交接，返回 `PASS_IN_MEMORY_REPORT_EXPORT_AUDIT_CONTROL_SLICE_RUNTIME_DISABLED`；Stage112 P1/P2、Stage111 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub main/release、OVH 与应用状态保持原有边界。本 P3 没有新增远端推送。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE112-P4-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage112 P2 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE112-P2` 已完成本地纯内存受控最小切片验收；当前治理状态为 `IDS-STAGE112 / IDS-STAGE112-P2 / IDS-V0_1-STAGE112-P2 / IDS-STAGE112-P3-GATE`。P3 由新的独立 run 在冻结任务包门禁下承接。
 - P2 固定五条非业务、`reference-only` 控制请求，每条 `34` 个输入字段，完整承接 P1 的 `32` 个控制引用；四组纯内存投影覆盖审计身份与证据绑定、报告及五项生成快照、报告影响／质量／审计状态／保留、外部增强来源分离与业务线白箱门禁，每条 `100` 个字段、共 `500` 个检查点。

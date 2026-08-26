@@ -389,10 +389,12 @@ class Stage112ReportExportAuditPhase2Tests(unittest.TestCase):
             "IDS-STAGE112-P3-GATE",
         )
         is_current_projection = assert_legacy_or_current_projection(
-            self, current, {phase1_current}, status, plan, ROADMAP
+            self, current, {phase1_current, phase2_current}, status, plan, ROADMAP
         )
-        self.assertTrue(is_current_projection or current == phase1_current)
-        if not is_current_projection:
+        self.assertTrue(
+            is_current_projection or current in {phase1_current, phase2_current}
+        )
+        if is_current_projection or current != phase2_current:
             return
         self.assertEqual(phase2_current, current)
         self.assertEqual(
