@@ -8,7 +8,7 @@
 - 冻结 Stage113 任务包、Stage113 P1/P2/P3 控制工件与 Stage112 Review 工件构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。P4 未建立第二权威事实源。
 - 已验证：P4 聚焦 `8/8`、Stage112 P1--Review 与 Stage113 P1/P2/P3/P4 选择的前向治理套件 `81/81`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
 - 回执运行计数保持 `0`、运行标志保持 `false`；真实 OCR、复核队列、复核 UI、复核审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁。
-- 用户授权的保全推送已停在 P4 前恢复点 `origin/codex/kmids-stage071-p1@c98d5222e723a4515ae592bab72471db0e3a9e5b`；本 P4 只形成可恢复本地提交，不执行新增远端写入。
+- 2026-08-27 已按用户明确授权完成保全推送：`origin/codex/kmids-stage071-p1@2b96d380833dbe878dea9d65e9a17edef241c583` 包含 Stage113 P4；本次只写入开发分支，`main`、release、OVH 与生产边界保持原状。
 - 回滚只撤回本 P4 的范围说明、纯内存交付模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REVIEW_QUEUE_SCHEMA_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；Stage113 P1/P2/P3、Stage112 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
 - 下一步：仅在新的独立 run 进入 `IDS-STAGE113-REVIEW-GATE`，继续使用同一既有 scratch worktree 与开发分支。
 
