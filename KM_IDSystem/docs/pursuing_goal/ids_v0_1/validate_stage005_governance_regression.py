@@ -5345,6 +5345,11 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_delivery_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage107_human_confirmation_items_delivery.py",
     "KM_IDSystem/machine/runs/2026-08-26-stage107-p4-local.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_STAGE_REVIEW.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage107_human_confirmation_items_stage_review_contract.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage107_human_confirmation_items_stage_review.py",
+    "KM_IDSystem/machine/runs/2026-08-26-stage107-review-local.json",
     "KM_IDSystem/docs/HANDOFF.md",
     "KM_IDSystem/docs/governance/DEVELOPMENT_LEDGER.md",
     "KM_IDSystem/docs/governance/DELIVERY_PLAN.md",
@@ -22611,6 +22616,11 @@ def evaluate_current_state_consistency(
                 and roadmap.get("current_task_id") == "IDS-V0_1-STAGE107-P4"
                 and roadmap.get("next_gate_id") == "IDS-STAGE107-REVIEW-GATE"
             )
+            or (
+                roadmap.get("current_phase_id") == "IDS-STAGE107-REVIEW"
+                and roadmap.get("current_task_id") == "IDS-V0_1-STAGE107-REVIEW"
+                and roadmap.get("next_gate_id") == "IDS-STAGE108-P1-GATE"
+            )
         )
     ):
         roadmap_stages = roadmap.get("stages")
@@ -22794,6 +22804,7 @@ def evaluate_current_state_consistency(
         if roadmap.get("current_phase_id") in {
             "IDS-STAGE107-P3",
             "IDS-STAGE107-P4",
+            "IDS-STAGE107-REVIEW",
         }:
             phase3_valid = all(
                 (
@@ -22881,7 +22892,10 @@ def evaluate_current_state_consistency(
             "stage106_external_augmentation_opinion_stage_review_contract.json",
             "KM_IDSystem/machine/runs/2026-08-26-stage106-review-local.json",
         }
-        if roadmap.get("current_phase_id") == "IDS-STAGE107-P4":
+        if roadmap.get("current_phase_id") in {
+            "IDS-STAGE107-P4",
+            "IDS-STAGE107-REVIEW",
+        }:
             phase4_valid = all(
                 (
                     phase4.get("phase_id") == "IDS-STAGE107-P4",
@@ -22948,21 +22962,102 @@ def evaluate_current_state_consistency(
             )
         review = current_stage.get("review") if isinstance(current_stage, dict) else {}
         review = review if isinstance(review, dict) else {}
-        review_valid = pending_phase_valid(
-            review,
-            "IDS-V0_1-STAGE107-REVIEW",
-            gate_id="IDS-STAGE107-REVIEW-GATE",
-            next_gate_id="IDS-STAGE108-P1-GATE",
-            dependencies=[
-                "IDS-V0_1-STAGE107-P1",
-                "IDS-V0_1-STAGE107-P2",
-                "IDS-V0_1-STAGE107-P3",
-                "IDS-V0_1-STAGE107-P4",
-            ],
-            entry_authorized=(
-                roadmap.get("current_phase_id") == "IDS-STAGE107-P4"
-            ),
-        )
+        review_task = phase_task(review, "IDS-V0_1-STAGE107-REVIEW")
+        review_evidence = {
+            taskpack,
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE107_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage107_human_confirmation_items_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage107_human_confirmation_items_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage107_human_confirmation_items_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-review-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE107_PHASE4_HUMAN_CONFIRMATION_ITEMS_DELIVERY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage107_human_confirmation_items_delivery_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p4-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE107_PHASE3_HUMAN_CONFIRMATION_ITEMS_CONTROLLED_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage107_human_confirmation_items_controlled_scenarios_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p3-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE107_PHASE2_HUMAN_CONFIRMATION_ITEMS_CONTROL_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage107_human_confirmation_items_control_slice_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p2-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE107_PHASE1_HUMAN_CONFIRMATION_ITEMS_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage107_human_confirmation_items_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage107-p1-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE106_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage106_external_augmentation_opinion_stage_review_contract.json",
+            "KM_IDSystem/machine/runs/2026-08-26-stage106-review-local.json",
+        }
+        if roadmap.get("current_phase_id") == "IDS-STAGE107-REVIEW":
+            review_valid = all(
+                (
+                    review.get("phase_id") == "IDS-STAGE107-REVIEW",
+                    review.get("status") == "completed",
+                    review.get("entry_authorized") is True,
+                    review.get("next_gate_id") == "IDS-STAGE108-P1-GATE",
+                    isinstance(review.get("gate"), dict),
+                    review["gate"].get("gate_id") == "IDS-STAGE107-REVIEW-GATE",
+                    review["gate"].get("status") == "passed",
+                    review["gate"].get("next_gate_id") == "IDS-STAGE108-P1-GATE",
+                    review["gate"].get("github_upload_allowed") is False,
+                    review_task.get("task_id") == "IDS-V0_1-STAGE107-REVIEW",
+                    review_task.get("status") == "completed",
+                    review_task.get("dependencies")
+                    == [
+                        "IDS-V0_1-STAGE107-P1",
+                        "IDS-V0_1-STAGE107-P2",
+                        "IDS-V0_1-STAGE107-P3",
+                        "IDS-V0_1-STAGE107-P4",
+                    ],
+                    review_task.get("acceptance_ids")
+                    == [
+                        "ACC-STAGE-107",
+                        "ACC-STAGE107-REVIEW-01",
+                        "ACC-STAGE107-REVIEW-02",
+                        "ACC-STAGE107-REVIEW-03",
+                        "ACC-STAGE107-REVIEW-04",
+                    ],
+                    "python3 -B -m unittest -q "
+                    "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                    "test_stage107_human_confirmation_items_stage_review"
+                    in review_task.get("test_commands", []),
+                    isinstance(review_task.get("test_results"), str),
+                    bool(review_task.get("test_results")),
+                    review_evidence.issubset(
+                        {
+                            item
+                            for item in review_task.get("evidence_refs", [])
+                            if isinstance(item, str)
+                        }
+                    ),
+                )
+            )
+        else:
+            review_valid = pending_phase_valid(
+                review,
+                "IDS-V0_1-STAGE107-REVIEW",
+                gate_id="IDS-STAGE107-REVIEW-GATE",
+                next_gate_id="IDS-STAGE108-P1-GATE",
+                dependencies=[
+                    "IDS-V0_1-STAGE107-P1",
+                    "IDS-V0_1-STAGE107-P2",
+                    "IDS-V0_1-STAGE107-P3",
+                    "IDS-V0_1-STAGE107-P4",
+                ],
+                entry_authorized=(
+                    roadmap.get("current_phase_id") == "IDS-STAGE107-P4"
+                ),
+            )
         current_stage_valid = all(
             (
                 current_stage.get("task_id") == "IDS-V0_1-STAGE107",
@@ -22998,6 +23093,16 @@ def evaluate_current_state_consistency(
                         == "IDS-STAGE107-P4-GATE"
                         and current_stage["gate"].get("next_gate_id")
                         == "IDS-STAGE107-REVIEW-GATE"
+                    )
+                    or (
+                        roadmap.get("current_phase_id") == "IDS-STAGE107-REVIEW"
+                        and current_stage.get("status") == "completed_reviewed_local"
+                        and current_stage.get("next_gate_id")
+                        == "IDS-STAGE108-P1-GATE"
+                        and current_stage["gate"].get("gate_id")
+                        == "IDS-STAGE107-REVIEW-GATE"
+                        and current_stage["gate"].get("next_gate_id")
+                        == "IDS-STAGE108-P1-GATE"
                     )
                 ),
             )
@@ -23063,6 +23168,21 @@ def evaluate_current_state_consistency(
                         "next_gate_id": "IDS-STAGE107-REVIEW-GATE",
                     }
                 ),
+                (
+                    roadmap.get("current_phase_id")
+                    in {
+                        "IDS-STAGE107-P2",
+                        "IDS-STAGE107-P3",
+                        "IDS-STAGE107-P4",
+                    }
+                    or transitions.get("stage107_review_state")
+                    == {
+                        "current_stage_id": "IDS-STAGE107",
+                        "current_phase_id": "IDS-STAGE107-REVIEW",
+                        "current_task_id": "IDS-V0_1-STAGE107-REVIEW",
+                        "next_gate_id": "IDS-STAGE108-P1-GATE",
+                    }
+                ),
             )
         )
         batch_route_verified = (
@@ -23110,7 +23230,7 @@ def evaluate_current_state_consistency(
             "current_state_stage107_phase2_completed": phase2_valid,
             "current_state_stage107_phase3_completed": phase3_valid,
             "current_state_stage107_phase4_completed": phase4_valid,
-            "current_state_stage107_review_not_started": review_valid,
+            "current_state_stage107_review_valid": review_valid,
             "current_state_stage107_transition_history_preserved": transition_valid,
             "batch031_040_review_consistent": (
                 batch.get("batch_id") != "IDS-V0_1-BATCH-031-040"

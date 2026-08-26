@@ -1,5 +1,13 @@
 # IDS / Industrial Data System Handoff
 
+## Current Recovery Checkpoint - Stage107 Review in progress - 2026-08-26
+
+- 用户已授权将当前唯一开发分支作为恢复检查点同步到 GitHub。该检查点只保全 `codex/kmids-stage071-p1` 的本地在制工件；`main`、release、正式全局上传、OVH、生产、模型、Agent、业务资料与真实证据账本保持原状。
+- 当前在制范围为 Stage107 Review：范围说明、纯内存复审模块、静态合同、聚焦用例，以及对应的路线图、机器事实和治理验证器预置更新。范围仅复核既有 P1--P4 的固定 metadata-only 结构，运行计数与运行标志继续保持关闭。
+- 已完成的最小本地检查：Review 模块与用例可编译，聚焦 Review 用例 `6/6` 通过，工作区差异格式检查通过。此结果只覆盖当前在制工件，不构成整阶段验收。
+- 仍需完成：Review 事件与全零回执、Batch051--060 当前态投影、历史 P1--P4 兼容更新、Stage005 与连续白箱链验证、机器中文视图重渲染、文档/变更记录以及最终本地验收。Stage108 尚未启动。
+- 恢复动作：继续使用同一 worktree 与分支；先检查此检查点和下方 P4 已验收门禁，再完成冻结的 `IDS-STAGE107-REVIEW-GATE`。若需撤回在制范围，只撤回本检查点列出的 Review 工件，P1--P4 与 Stage106 Review 保持不变。
+
 ## Current Gate - Stage107 P4 accepted locally - 2026-08-26
 
 - `IDS-V0_1-STAGE107-P4` 已完成本地机械验收；当前治理状态为 `IDS-STAGE107 / IDS-STAGE107-P4 / IDS-V0_1-STAGE107-P4 / IDS-STAGE107-REVIEW-GATE`。Review 保持未启动，并由冻结任务包的后续独立 run 承接。
