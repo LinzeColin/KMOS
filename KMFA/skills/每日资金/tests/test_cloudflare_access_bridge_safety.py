@@ -943,6 +943,8 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "inputs.mode == 'daily-funds-recovery-bridge'" in step
     assert "inputs.mode == 'daily-funds-recovery-status-bridge'" in step
     assert "inputs.mode == 'daily-funds-projection-probe-bridge'" in step
+    assert "CONTROL_MODE: ${{ inputs.mode }}" in step
+    assert 'case "${CONTROL_MODE:-}" in' in step
     assert 'GITHUB_REF:-}" = "refs/heads/main"' in step
     assert "access/service_tokens" in step
     assert "/access/apps/${CF_ACCESS_APP_ID}/policies" in step
@@ -997,6 +999,11 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "daily-funds-projection-probe-cleanup" in workflow
     assert "inputs.bridge_run_tag" in workflow
     assert "RUN_TAG_INVALID" in workflow
+    cleanup_start = workflow.index("清理指定每日资金控制路径的短时 Access 身份")
+    cleanup_end = workflow.find("\n      - name:", cleanup_start + 1)
+    cleanup_step = workflow[cleanup_start:] if cleanup_end == -1 else workflow[cleanup_start:cleanup_end]
+    assert "CONTROL_MODE: ${{ inputs.mode }}" in cleanup_step
+    assert 'case "${CONTROL_MODE:-}" in' in cleanup_step
 
 
 def test_workflow_recovery_restart_is_main_only_and_target_verified() -> None:
