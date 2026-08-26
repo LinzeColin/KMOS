@@ -2538,14 +2538,13 @@ jobs:
               value = raw
 
           strings: list[str] = []
-          app_markers = 0
+          app_markers = [0]
 
           def visit(item) -> None:
-              nonlocal app_markers
               if isinstance(item, str):
                   strings.append(item)
                   if item.strip().lower() == "app":
-                      app_markers += 1
+                      app_markers[0] += 1
                   return
               if isinstance(item, list):
                   for entry in item:
@@ -2556,23 +2555,23 @@ jobs:
               for key, entry in item.items():
                   normalized_key = str(key).strip().lower()
                   if normalized_key == "app":
-                      app_markers += 1
+                      app_markers[0] += 1
                   if (
                       normalized_key in {"service", "service_name", "name"}
                       and isinstance(entry, str)
                       and entry.strip().lower() == "app"
                   ):
-                      app_markers += 1
+                      app_markers[0] += 1
                   visit(entry)
 
           visit(value)
           expected_domain_present = any(EXPECTED_DOMAIN in text.lower() for text in strings)
           print("daily_funds_public_routing_target=VERIFIED")
           print("daily_funds_public_routing_field_shape=" + shape)
-          print("daily_funds_public_routing_app_service_marker=" + ("PRESENT" if app_markers else "ABSENT"))
+          print("daily_funds_public_routing_app_service_marker=" + ("PRESENT" if app_markers[0] else "ABSENT"))
           print("daily_funds_public_routing_expected_domain=" + ("PRESENT" if expected_domain_present else "ABSENT"))
           print("daily_funds_public_routing=" + (
-              "READY" if app_markers and expected_domain_present
+              "READY" if app_markers[0] and expected_domain_present
               else "DOMAIN_ABSENT" if not expected_domain_present
               else "APP_SERVICE_BINDING_UNRESOLVED"
           ))
