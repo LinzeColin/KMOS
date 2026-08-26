@@ -25,6 +25,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token,
     control_application_payload,
     control_application_policy_state,
+    diagnose_legacy_service_auth_resources,
     diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
@@ -607,6 +608,7 @@ def test_legacy_service_auth_reconcile_requires_a_completed_exact_bridge_token(t
     })
 
     assert legacy_service_auth_run_tag(service_tokens, policies) == "312-1"
+    assert diagnose_legacy_service_auth_resources(service_tokens, policies) == "EXACT"
     with pytest.raises(AccessBridgeInputError):
         legacy_service_auth_resource_ids(service_tokens, policies)
     assert legacy_service_auth_resource_ids(
@@ -631,6 +633,15 @@ def test_legacy_service_auth_reconcile_requires_a_completed_exact_bridge_token(t
         "--policies", str(policies), "--retired-run-tag", "312-1", "--output", str(material),
     ]) == 0
     assert SERVICE_TOKEN_ID in material.read_text(encoding="utf-8")
+
+    payload = json.loads(service_tokens.read_text(encoding="utf-8"))
+    payload["result"][0]["duration"] = "24h"
+    _write(service_tokens, payload)
+    assert diagnose_legacy_service_auth_resources(service_tokens, policies) == "TOKEN_DURATION_UNEXPECTED"
+    assert manager.main([
+        "diagnose-legacy-service-auth", "--service-tokens", str(service_tokens),
+        "--policies", str(policies),
+    ]) == 0
 
 
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
@@ -1276,6 +1287,7 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "diagnose-orphaned-policy" in step
     assert "write-inert-service-auth-policy-env" in step
     assert "if python3 \"KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py\" write-inert-service-auth-policy-env" in step
+    assert "diagnose-legacy-service-auth" in step
     assert "write-legacy-service-auth-run-tag-env" in step
     assert "write-legacy-service-auth-resource-env" in step
     assert "--retired-run-tag" in step
@@ -1284,7 +1296,7 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "RUN_LOOKUP_UNAVAILABLE" in step
     assert "RUN_NOT_COMPLETED" in step
     assert "RUN_IDENTITY_INVALID" in step
-    assert "LEGACY_TOKEN_NOT_RECONCILABLE" in step
+    assert "LEGACY_${legacy_diagnostic}" in step
     assert "LEGACY_RUN_LOOKUP_UNAVAILABLE" in step
     assert "LEGACY_RUN_NOT_COMPLETED" in step
     assert "LEGACY_RUN_IDENTITY_INVALID" in step
