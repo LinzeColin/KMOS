@@ -1,6 +1,17 @@
 # IDS / Industrial Data System Handoff
 
-## Current Gate - Stage113 P2 accepted locally - 2026-08-27
+## Current Gate - Stage113 P3 accepted locally - 2026-08-27
+
+- IDS-V0_1-STAGE113-P3 已完成本地纯内存复核队列 Schema 专项异常场景验收；当前治理状态为 IDS-STAGE113 / IDS-STAGE113-P3 / IDS-V0_1-STAGE113-P3 / IDS-STAGE113-P4-GATE。P4 只由新的独立 run 在冻结任务包门禁下承接。
+- P3 机械重放 P2 的五条非业务、reference-only 控制请求，保留每条 32 个输入字段、P1 的 29 个控制引用、四组投影、每条 101 个字段与 505 个前序检查点；形成低质量 OCR、冲突资料、撤回资料、evidence trust level 与报告质量影响、外部增强不能替代内部证据五条专项场景，每条 52 个字段、共 260 个检查点、五个控制视图和五条业务线白箱处理记录。
+- 每条场景固定 actor、time、reason、old value、new value、review result、review audit、重新复核与归档控制引用。evidence trust level、报告质量分和报告状态只保留未来 before/after／写回控制；外部增强保持外部来源身份，不能成为内部项目证据、替代证据绑定或关闭证据缺口。
+- 冻结 Stage113 任务包、Stage113 P1/P2 控制工件与 Stage112 Review 工件只构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。本 P3 未建立第二权威事实源。
+- 已验证：P3 聚焦 8/8、Stage112 P1--Review 与 Stage113 P1/P2/P3 前向治理套件 67/67、Stage005 直接治理校验 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、批次门禁 7/7、机器平面生成 7 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
+- 运行计数保持 0、运行标志保持 false；真实 OCR、复核队列、复核 UI、复核审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。正式全局上传、main 与 release 保持后续授权门禁；本 P3 只形成可恢复的本地提交，不执行新远端写入。
+- 回滚只撤回本 P3 的范围说明、纯内存模块、合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 PASS_IN_MEMORY_REVIEW_QUEUE_SCHEMA_CONTROL_SLICE_RUNTIME_DISABLED；Stage113 P1/P2、Stage112 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 IDS-STAGE113-P4-GATE，继续使用同一既有 scratch worktree 与开发分支。
+
+## Superseded Gate - Stage113 P2 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE113-P2` 已完成本地纯内存复核队列 Schema 受控最小切片验收；当前治理状态为 `IDS-STAGE113 / IDS-STAGE113-P2 / IDS-V0_1-STAGE113-P2 / IDS-STAGE113-P3-GATE`。P3 只由新的独立 run 在冻结任务包门禁下承接。
 - P2 固定五条非业务、`reference-only` 控制请求：每条 `32` 个输入字段，承接 P1 的 `29` 个控制引用；四组纯内存投影覆盖复核 Schema／入队工作流／固定状态、actor/time/reason/old_value/new_value 与复核审计、证据风险／证据可信等级／报告质量／报告状态未来写回、中文复核原因／外部增强来源分离／业务线白箱门禁。每条 `101` 个字段、共 `505` 个检查点。

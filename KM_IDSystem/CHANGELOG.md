@@ -1,3 +1,10 @@
+## 2026-08-27 · Stage113 复核队列 Schema P3
+
+- 完成冻结 P3 纯内存专项异常场景：机械重放 P2 的五条非业务、reference-only 控制投影，保留每条 32 个输入字段、P1 的 29 个控制引用、4 组投影、每条 101 个字段与 505 个前序检查点；形成低质量 OCR、冲突资料、撤回资料、evidence trust level 与报告质量影响、外部增强不能替代内部证据五条每条 52 字段的场景，共 260 个场景检查点、5 个控制视图与 5 条业务线白箱处理记录。
+- 每条场景固定 actor、time、reason、old value、new value、review result 与 review audit 的未来控制引用。evidence trust level、报告质量分与报告状态保持 future before/after／写回控制；外部增强保留外部来源身份，不能成为内部项目证据、替代证据绑定或关闭证据缺口；业务线白箱确认继续作为未来真实动作的前置。
+- 本地验收记录：P3 聚焦 8/8、Stage112 P1--Review 与 Stage113 P1/P2/P3 选择的前向治理套件 67/67、Stage005 治理回归 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、批次门禁 7/7、机器平面生成 7 个中文文件。运行计数保持 0、运行标志保持 false；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 完成态止于 IDS-STAGE113-P4-GATE，可回退到 PASS_IN_MEMORY_REVIEW_QUEUE_SCHEMA_CONTROL_SLICE_RUNTIME_DISABLED。本 P3 只形成可恢复本地提交，不执行新远端写入；正式全局上传、main、release、OVH 与生产继续由后续授权门禁承接。
+
 ## 2026-08-27 · Stage113 复核队列 Schema P2
 
 - 完成冻结 P2 纯内存受控最小切片：固定 `5` 条非业务、`reference-only` 控制请求，每条 `32` 个输入字段，承接 P1 的 `29` 个控制引用；四组投影每条 `101` 个字段、共 `505` 个检查点，覆盖复核 Schema／工作流／UI／审计、证据风险与报告状态未来写回、中文复核原因、外部增强来源分离与业务线白箱门禁。

@@ -2,10 +2,15 @@ schema_version: "codexproject.roadmap.v1"
 roadmap_kind: "product"
 project_id: "KM_IDSystem"
 current_stage_id: "IDS-STAGE113"
-current_phase_id: "IDS-STAGE113-P2"
-current_task_id: "IDS-V0_1-STAGE113-P2"
-next_gate_id: "IDS-STAGE113-P3-GATE"
+current_phase_id: "IDS-STAGE113-P3"
+current_task_id: "IDS-V0_1-STAGE113-P3"
+next_gate_id: "IDS-STAGE113-P4-GATE"
 current_transition_history:
+  stage113_phase3_state:
+    current_stage_id: "IDS-STAGE113"
+    current_phase_id: "IDS-STAGE113-P3"
+    current_task_id: "IDS-V0_1-STAGE113-P3"
+    next_gate_id: "IDS-STAGE113-P4-GATE"
   stage113_phase2_state:
     current_stage_id: "IDS-STAGE113"
     current_phase_id: "IDS-STAGE113-P2"
@@ -2030,23 +2035,24 @@ stages:
     acceptance_ids:
       - "ACC-STAGE-113"
     objective: "依据冻结 Stage113 任务包与 Stage112 Review 控制工件，完成复核队列 Schema 的 P1 静态控制合同、P2 受控最小切片、P3 异常场景验证、P4 交付控制证据与整阶段机械复审，固定四类入队触发、五个复核状态、复核审计字段、证据可信等级与报告质量影响控制，以及业务线白箱门禁与回滚形状。"
-    status: "phase2_completed_local"
+    status: "phase3_completed_local"
     entry_authorized: true
-    next_gate_id: "IDS-STAGE113-P3-GATE"
+    next_gate_id: "IDS-STAGE113-P4-GATE"
     gate:
-      gate_id: "IDS-STAGE113-P2-GATE"
+      gate_id: "IDS-STAGE113-P3-GATE"
       status: "passed"
-      next_gate_id: "IDS-STAGE113-P3-GATE"
+      next_gate_id: "IDS-STAGE113-P4-GATE"
       github_upload_allowed: false
     pass_conditions:
       - "冻结 Stage113 任务包与 Stage112 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。"
       - "P1 固定二十九个未来复核队列 Schema 控制引用、低 OCR／资料冲突／解析失败／证据风险四类触发、待复核／已确认／已拒绝／需补资料／已归档五个状态、七个未来复核审计引用、证据可信等级与报告质量影响控制、十九类失败关闭与四条中文反馈。"
       - "P2 固定五条非业务、reference-only 控制请求，每条三十二个输入字段、四组纯内存投影、每条一百零一个字段、合计五百零五个检查点；Schema、工作流、UI、审计、证据风险与报告状态写回均保持未来控制标签。"
+      - "P3 机械重放 P2 的五条控制请求，形成低质量 OCR、冲突资料、撤回资料、evidence trust level 与报告质量影响、外部增强来源分离五条专项场景；每条五十二个字段、合计二百六十个检查点、五个控制视图和五条业务线白箱处理记录。"
       - "复核状态转换、归档、人工确认、证据可信等级变更、报告质量分或报告状态变更均保持业务线白箱人工复核的后续授权。"
       - "真实资料、OCR、冲突、解析、证据风险、复核队列、审计、数据库、模型 Token、Agent、OVH、生产与正式上传保持零运行时边界。"
     stop_conditions:
       - "读取、创建、复制、移动、删除、修改、评估、展示、入队、复核、归档、写入或持久化任何真实业务资料、OCR 结果、冲突、解析结果、证据账本、报告、审计日志、数据库、证据可信等级、报告质量分、报告状态或业务结论。"
-      - "执行真实队列 schema migration、队列入队、复核状态转换、审计写入、人工确认、证据或报告影响、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage113 P3 及以后阶段。"
+      - "执行真实队列 schema migration、队列入队、复核状态转换、审计写入、人工确认、证据或报告影响、模型调用、模型 Token、Agent、OVH、生产、正式全局上传或 Stage113 P4 及以后阶段。"
     phases:
       - phase_id: "IDS-STAGE113-P1"
         name: "Phase 1 · 范围、输入输出与边界确认"
@@ -2147,19 +2153,19 @@ stages:
       - phase_id: "IDS-STAGE113-P3"
         name: "Phase 3 · 复核队列 Schema 专项验证与异常场景"
         objective: "验证低质量 OCR、冲突资料、撤回资料与外部增强替代内部证据等复核控制场景，以及 actor、time、reason、old/new value 和证据可信等级／报告质量影响控制。"
-        status: "not_started"
+        status: "completed"
         entry_authorized: true
         next_gate_id: "IDS-STAGE113-P4-GATE"
         gate:
           gate_id: "IDS-STAGE113-P3-GATE"
-          status: "pending"
+          status: "passed"
           next_gate_id: "IDS-STAGE113-P4-GATE"
           github_upload_allowed: false
         tasks:
           - task_id: "IDS-V0_1-STAGE113-P3"
             name: "验证复核队列 Schema 异常场景与白箱门禁"
-            objective: "在独立授权 run 中承接 P1/P2 控制工件。"
-            status: "not_started"
+            objective: "在独立授权 run 中机械重放 P1/P2 控制工件，验证低质量 OCR、冲突资料、撤回资料、actor/time/reason/old/new、evidence trust level、报告质量和外部增强来源分离的未来控制场景。"
+            status: "completed"
             dependencies:
               - "IDS-V0_1-STAGE113-P1"
               - "IDS-V0_1-STAGE113-P2"
@@ -2169,11 +2175,39 @@ stages:
               - "ACC-STAGE113-P3-02"
               - "ACC-STAGE113-P3-03"
               - "ACC-STAGE113-P3-04"
+            test_commands:
+              - "python3 -B -m unittest -q KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.test_stage113_review_queue_schema_controlled_scenarios"
+              - "Stage112 Review、Stage113 P1/P2/P3 兼容、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage113 P3 receipt"
+              - "python3 -B KM_IDSystem/machine/tools/render_human.py --root KM_IDSystem"
+            test_results: "Stage113 P3 聚焦纯内存复核队列 Schema 专项异常场景、P1/P2 前向兼容、Stage112 Review 前向兼容、Stage005 治理回归、Batch041-050、Batch051-060 与中文视图门禁的最终本地结果记录于 Stage113 P3 receipt；结果只证明冻结控制工件、失败关闭、治理兼容和零运行时边界。"
+            evidence_refs:
+              - "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/stages/STAGE-113_复核队列Schema.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE113_PHASE3_REVIEW_QUEUE_SCHEMA_CONTROLLED_SCENARIOS.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage113_review_queue_schema_controlled_scenarios.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage113_review_queue_schema_controlled_scenarios_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage113_review_queue_schema_controlled_scenarios.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage113-p3-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE113_PHASE2_REVIEW_QUEUE_SCHEMA_CONTROL_SLICE.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage113_review_queue_schema_control_slice.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage113_review_queue_schema_control_slice_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage113_review_queue_schema_control_slice.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage113-p2-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE113_PHASE1_REVIEW_QUEUE_SCHEMA_SCOPE_BOUNDARY.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage113_review_queue_schema_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage113_review_queue_schema_contract.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage113-p1-local.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE112_STAGE_REVIEW.md"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage112_report_export_audit_stage_review.py"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage112_report_export_audit_stage_review_contract.json"
+              - "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage112_report_export_audit_stage_review.py"
+              - "KM_IDSystem/machine/runs/2026-08-27-stage112-review-local.json"
+            risk: "将纯内存专项场景、控制视图、白箱处理记录或机器事实误作真实 OCR、真实资料、真实复核队列、审计、证据可信等级、报告质量、报告状态或业务结论，会绕开单一权威与业务线白箱门禁。"
+            rollback: "只回滚本 P3 的范围说明、纯内存场景模块、合同、聚焦用例、machine run、机器事实投影、治理路线和生成中文视图，恢复到 Stage113 P2 的本地零运行时状态；不改变 Stage113 P1/P2、Stage112 P1--P4/Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 或应用状态。"
       - phase_id: "IDS-STAGE113-P4"
         name: "Phase 4 · 复核队列 Schema 交付证据、回滚与中文反馈"
         objective: "交付复核队列样例、复核审计日志和 UI 流程说明，记录需人工判断的边界并提供复核回滚和重新复核说明。"
         status: "not_started"
-        entry_authorized: false
+        entry_authorized: true
         next_gate_id: "IDS-STAGE113-REVIEW-GATE"
         gate:
           gate_id: "IDS-STAGE113-P4-GATE"

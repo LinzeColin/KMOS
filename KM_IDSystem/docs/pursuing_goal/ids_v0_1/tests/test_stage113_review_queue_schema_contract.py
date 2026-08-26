@@ -258,10 +258,23 @@ class Stage113ReviewQueueSchemaPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE113-P2",
             "IDS-STAGE113-P3-GATE",
         )
-        is_legacy = assert_legacy_or_current_projection(
-            self, current, {phase1_current, phase2_current}, status, plan, ROADMAP
+        phase3_current = (
+            "IDS-STAGE113",
+            "IDS-STAGE113-P3",
+            "IDS-V0_1-STAGE113-P3",
+            "IDS-STAGE113-P4-GATE",
         )
-        self.assertTrue(is_legacy or current in {phase1_current, phase2_current})
+        is_legacy = assert_legacy_or_current_projection(
+            self,
+            current,
+            {phase1_current, phase2_current, phase3_current},
+            status,
+            plan,
+            ROADMAP,
+        )
+        self.assertTrue(
+            is_legacy or current in {phase1_current, phase2_current, phase3_current}
+        )
         if is_legacy or current != phase1_current:
             return
         self.assertEqual(
