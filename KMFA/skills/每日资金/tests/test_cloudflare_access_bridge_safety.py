@@ -29,6 +29,8 @@ from daily_funds.access_bridge import (  # noqa: E402
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
     inert_service_auth_policy_resource_ids,
+    legacy_service_auth_resource_ids,
+    legacy_service_auth_run_tag,
     orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
@@ -582,6 +584,53 @@ def test_inert_service_auth_policy_reconcile_requires_an_absent_token(tmp_path: 
     })
     with pytest.raises(AccessBridgeInputError):
         inert_service_auth_policy_resource_ids(service_tokens, policies)
+
+
+def test_legacy_service_auth_reconcile_requires_a_completed_exact_bridge_token(tmp_path: Path) -> None:
+    service_tokens = tmp_path / "service-tokens.json"
+    policies = tmp_path / "policies.json"
+    resource_name = "kmfa-daily-funds-history-probe-312-1"
+    _write(service_tokens, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{"id": SERVICE_TOKEN_ID, "name": resource_name, "duration": "60m"}],
+    })
+    _write(policies, {
+        "success": True,
+        "result_info": {"total_pages": 1},
+        "result": [{
+            "id": POLICY_ID,
+            "name": "legacy-control-policy",
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": SERVICE_TOKEN_ID}}],
+        }],
+    })
+
+    assert legacy_service_auth_run_tag(service_tokens, policies) == "312-1"
+    with pytest.raises(AccessBridgeInputError):
+        legacy_service_auth_resource_ids(service_tokens, policies)
+    assert legacy_service_auth_resource_ids(
+        service_tokens,
+        policies,
+        retired_run_tag="312-1",
+    ) == {
+        "service_token_ids": (SERVICE_TOKEN_ID,),
+        "policy_ids": (POLICY_ID,),
+    }
+
+    manager = _load_script()
+    tag_material = tmp_path / "legacy-run-tag.env"
+    assert manager.main([
+        "write-legacy-service-auth-run-tag-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--output", str(tag_material),
+    ]) == 0
+    assert stat.S_IMODE(tag_material.stat().st_mode) == 0o600
+    material = tmp_path / "legacy-resources.env"
+    assert manager.main([
+        "write-legacy-service-auth-resource-env", "--service-tokens", str(service_tokens),
+        "--policies", str(policies), "--retired-run-tag", "312-1", "--output", str(material),
+    ]) == 0
+    assert SERVICE_TOKEN_ID in material.read_text(encoding="utf-8")
 
 
 def test_orphaned_resource_reconcile_preserves_a_policy_while_its_token_exists(tmp_path: Path) -> None:
@@ -1226,13 +1275,19 @@ def test_workflow_bridge_is_manual_main_only_fixed_route_and_cleanup_scoped() ->
     assert "diagnose-orphaned-bridge" in step
     assert "diagnose-orphaned-policy" in step
     assert "write-inert-service-auth-policy-env" in step
+    assert "if python3 \"KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py\" write-inert-service-auth-policy-env" in step
+    assert "write-legacy-service-auth-run-tag-env" in step
+    assert "write-legacy-service-auth-resource-env" in step
     assert "--retired-run-tag" in step
     assert "/actions/runs/${orphaned_run_id}/attempts/${orphaned_run_attempt}" in step
     assert "UNRECONCILABLE_${orphaned_diagnostic}" in step
     assert "RUN_LOOKUP_UNAVAILABLE" in step
     assert "RUN_NOT_COMPLETED" in step
     assert "RUN_IDENTITY_INVALID" in step
-    assert "LEGACY_POLICY_NOT_INERT" in step
+    assert "LEGACY_TOKEN_NOT_RECONCILABLE" in step
+    assert "LEGACY_RUN_LOOKUP_UNAVAILABLE" in step
+    assert "LEGACY_RUN_NOT_COMPLETED" in step
+    assert "LEGACY_RUN_IDENTITY_INVALID" in step
     assert "owned-resource-state" in step
     assert "orphaned_bridge=RECONCILED" in step
     assert "request_cf DELETE" in step

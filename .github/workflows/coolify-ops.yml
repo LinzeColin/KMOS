@@ -1066,6 +1066,7 @@ jobs:
             # pair. Retire that pair only after the exact originating Actions
             # attempt completed and its Cloudflare shape matches the bridge.
             local orphaned_run_tag=""
+            local orphaned_legacy_policy=0
             request_cf GET "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/access/service_tokens?per_page=1000" "$bridge_dir/orphaned-service-token-list.json"
             if [ "$REQUEST_EXIT" -ne 0 ] || [ "$REQUEST_STATUS" != "200" ]; then return 1; fi
             local orphaned_diagnostic
@@ -1075,10 +1076,36 @@ jobs:
             case "$orphaned_diagnostic" in
               TOKEN_ABSENT|TOKEN_COMPLETED_RUN_CANDIDATE) ;;
               POLICY_NAME_INVALID)
-                if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-inert-service-auth-policy-env \
+                if python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-inert-service-auth-policy-env \
                   --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
                   --policies "$bridge_dir/control-app-policies-before.json" \
-                  --output "$bridge_dir/orphaned-resources.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_POLICY_NOT_INERT"; return 1; fi
+                  --output "$bridge_dir/orphaned-resources.env"; then
+                  orphaned_legacy_policy=1
+                else
+                  if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-legacy-service-auth-run-tag-env \
+                    --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+                    --policies "$bridge_dir/control-app-policies-before.json" \
+                    --output "$bridge_dir/orphaned-run-tag.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_TOKEN_NOT_RECONCILABLE"; return 1; fi
+                  unset CF_ACCESS_ORPHANED_RUN_TAG
+                  . "$bridge_dir/orphaned-run-tag.env"
+                  if [[ ! "${CF_ACCESS_ORPHANED_RUN_TAG:-}" =~ ^[1-9][0-9]{0,31}-[1-9][0-9]{0,15}$ ]]; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_RUN_TAG_INVALID"; return 1; fi
+                  orphaned_run_tag="$CF_ACCESS_ORPHANED_RUN_TAG"
+                  local legacy_run_id="${orphaned_run_tag%-*}"
+                  local legacy_run_attempt="${orphaned_run_tag##*-}"
+                  local legacy_run_state
+                  if ! legacy_run_state="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${legacy_run_id}/attempts/${legacy_run_attempt}" --jq '[.status, .run_attempt, .path, .head_branch, .event] | @tsv' 2>/dev/null)"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_RUN_LOOKUP_UNAVAILABLE"; return 1; fi
+                  local legacy_status observed_legacy_attempt legacy_workflow_path legacy_branch legacy_event
+                  IFS=$'\t' read -r legacy_status observed_legacy_attempt legacy_workflow_path legacy_branch legacy_event <<< "$legacy_run_state"
+                  if [ "$legacy_status" != "completed" ]; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_RUN_NOT_COMPLETED"; return 1; fi
+                  if [ "$observed_legacy_attempt" != "$legacy_run_attempt" ] || [ "$legacy_workflow_path" != ".github/workflows/coolify-ops.yml@main" ] || [ "$legacy_branch" != "main" ] || [ "$legacy_event" != "workflow_dispatch" ]; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_RUN_IDENTITY_INVALID"; return 1; fi
+                  unset CF_ACCESS_ORPHANED_RUN_TAG
+                  if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-legacy-service-auth-resource-env \
+                    --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
+                    --policies "$bridge_dir/control-app-policies-before.json" \
+                    --retired-run-tag "$orphaned_run_tag" \
+                    --output "$bridge_dir/orphaned-resources.env"; then echo "${CONTROL_LABEL}_orphaned_bridge=LEGACY_TOKEN_NOT_RECONCILABLE"; return 1; fi
+                  orphaned_legacy_policy=1
+                fi
                 ;;
               POLICY_*)
                 orphaned_diagnostic="$(python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" diagnose-orphaned-policy \
@@ -1088,7 +1115,7 @@ jobs:
                 ;;
               *) echo "${CONTROL_LABEL}_orphaned_bridge=UNRECONCILABLE_${orphaned_diagnostic}"; return 1 ;;
             esac
-            if ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
+            if [ "$orphaned_legacy_policy" != "1" ] && ! python3 "KMFA/skills/每日资金/scripts/manage_cloudflare_access_bridge.py" write-orphaned-resource-env \
               --service-tokens "$bridge_dir/orphaned-service-token-list.json" \
               --policies "$bridge_dir/control-app-policies-before.json" \
               --output "$bridge_dir/orphaned-resources.env"; then

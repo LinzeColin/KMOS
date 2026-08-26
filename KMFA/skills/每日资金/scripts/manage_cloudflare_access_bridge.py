@@ -32,6 +32,8 @@ from daily_funds.access_bridge import (  # noqa: E402
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
     inert_service_auth_policy_resource_ids,
+    legacy_service_auth_resource_ids,
+    legacy_service_auth_run_tag,
     orphaned_bridge_run_tag,
     orphaned_bridge_resource_ids,
     owned_bridge_resource_ids,
@@ -268,6 +270,17 @@ def main(argv: list[str] | None = None) -> int:
     inert_policy.add_argument("--policies", required=True)
     inert_policy.add_argument("--output", required=True)
 
+    legacy_resources = subparsers.add_parser("write-legacy-service-auth-resource-env")
+    legacy_resources.add_argument("--service-tokens", required=True)
+    legacy_resources.add_argument("--policies", required=True)
+    legacy_resources.add_argument("--retired-run-tag", required=True)
+    legacy_resources.add_argument("--output", required=True)
+
+    legacy_tag = subparsers.add_parser("write-legacy-service-auth-run-tag-env")
+    legacy_tag.add_argument("--service-tokens", required=True)
+    legacy_tag.add_argument("--policies", required=True)
+    legacy_tag.add_argument("--output", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -417,6 +430,25 @@ def main(argv: list[str] | None = None) -> int:
             _write_owned_resource_material(
                 _private_output(parser, args),
                 inert_service_auth_policy_resource_ids(args.service_tokens, args.policies),
+            )
+        elif args.command == "write-legacy-service-auth-resource-env":
+            _write_owned_resource_material(
+                _private_output(parser, args),
+                legacy_service_auth_resource_ids(
+                    args.service_tokens,
+                    args.policies,
+                    retired_run_tag=args.retired_run_tag,
+                ),
+            )
+        elif args.command == "write-legacy-service-auth-run-tag-env":
+            _write_shell_material(
+                _private_output(parser, args),
+                {
+                    "CF_ACCESS_ORPHANED_RUN_TAG": legacy_service_auth_run_tag(
+                        args.service_tokens,
+                        args.policies,
+                    ),
+                },
             )
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
