@@ -39,11 +39,13 @@ from .parsing import (
     attachment_capability_metadata,
     deterministic_ocr_runtime_ready,
     is_ocr_attachment,
+    is_payment_request_workbook_candidate,
     parse_attachment,
     parse_cashflow_observation,
     parse_generic_structured_attachment,
     parse_ocr_attachment,
     parse_payment_request_observation,
+    parse_payment_request_workbook_observation,
 )
 from .publication import (
     D1Projection,
@@ -400,7 +402,7 @@ class _CashflowObservationAccumulator:
 
 
 class _PaymentRequestObservationAccumulator:
-    """Build the separate payment-request trend from exact-group screenshots.
+    """Build the separate payment-request trend from exact-group sources.
 
     A payment request is a pending operational outflow, not a bank balance and
     not a completed cash movement.  The accumulator therefore owns its own
@@ -427,40 +429,59 @@ class _PaymentRequestObservationAccumulator:
         return bool(self.eligible_shas)
 
     def add(self, attachment: DownloadedAttachment) -> None:
-        if (
-            not is_ocr_attachment(attachment.filename, payload=attachment.payload)
-            or attachment.sha256 in self.eligible_shas
-        ):
+        if attachment.sha256 in self.eligible_shas:
             return
-        if not self.runtime.config.ocr_enabled:
+        is_ocr_source = is_ocr_attachment(attachment.filename, payload=attachment.payload)
+        is_workbook_source = is_payment_request_workbook_candidate(attachment.filename)
+        if not is_ocr_source and not is_workbook_source:
             return
-        if self.ocr_ready is None:
-            self.ocr_ready = deterministic_ocr_runtime_ready()
-        if not self.ocr_ready:
-            return
-        try:
-            observation = parse_payment_request_observation(
-                filename=attachment.filename,
-                payload=attachment.payload,
-                source=self.runtime._source_ref(attachment),
-                received_at=attachment.message_at,
-                mime=attachment.mime,
-            )
-        except ParseError as exc:
-            # ``None`` below is the only non-candidate outcome.  Once a
-            # fixed title cell has identified a payment request, every error
-            # remains visible as a values-free rejection rather than silently
-            # allowing an older amount to masquerade as today\'s report.
-            code = self.runtime._parse_failure_code(exc)
-            if code.startswith("PAYMENT_REQUEST_"):
-                self.eligible_shas.add(attachment.sha256)
-                category = self.runtime._payment_request_rejection_category(exc)
-                self.rejection_categories[category] = self.rejection_categories.get(category, 0) + 1
-            return
+        if is_ocr_source:
+            if not self.runtime.config.ocr_enabled:
+                return
+            if self.ocr_ready is None:
+                self.ocr_ready = deterministic_ocr_runtime_ready()
+            if not self.ocr_ready:
+                return
+            try:
+                observation = parse_payment_request_observation(
+                    filename=attachment.filename,
+                    payload=attachment.payload,
+                    source=self.runtime._source_ref(attachment),
+                    received_at=attachment.message_at,
+                    mime=attachment.mime,
+                )
+            except ParseError as exc:
+                observation = self._record_rejection(attachment, exc)
+        else:
+            try:
+                observation = parse_payment_request_workbook_observation(
+                    filename=attachment.filename,
+                    payload=attachment.payload,
+                    source=self.runtime._source_ref(attachment),
+                    received_at=attachment.message_at,
+                    mime=attachment.mime,
+                )
+            except ParseError as exc:
+                observation = self._record_rejection(attachment, exc)
         if observation is None:
             return
         self.eligible_shas.add(attachment.sha256)
         self.observations.append((attachment.message_at, observation))
+
+    def _record_rejection(
+        self,
+        attachment: DownloadedAttachment,
+        error: ParseError,
+    ) -> PaymentRequestObservation | None:
+        """Persist a values-free candidate failure and retain no source fields."""
+
+        code = self.runtime._parse_failure_code(error)
+        if not code.startswith("PAYMENT_REQUEST_"):
+            return None
+        self.eligible_shas.add(attachment.sha256)
+        category = self.runtime._payment_request_rejection_category(error)
+        self.rejection_categories[category] = self.rejection_categories.get(category, 0) + 1
+        return None
 
     def write(self) -> dict[str, Any]:
         source_fingerprint = (
@@ -1750,7 +1771,7 @@ class DailyFundsRuntime:
 
     @classmethod
     def _payment_request_rejection_category(cls, error: ParseError) -> str:
-        """Reduce payment-request OCR failures to a values-free public label."""
+        """Reduce payment-request parser failures to a values-free public label."""
 
         code = cls._parse_failure_code(error)
         if code.startswith("PAYMENT_REQUEST_TITLE"):
@@ -1761,6 +1782,8 @@ class DailyFundsRuntime:
             return "GRAND_TOTAL_LABEL"
         if code.startswith("PAYMENT_REQUEST_TOTAL"):
             return "GRAND_TOTAL"
+        if code.startswith("PAYMENT_REQUEST_WORKBOOK"):
+            return "WORKBOOK_LAYOUT"
         if (
             code.startswith("PAYMENT_REQUEST_OCR")
             or code.startswith("PAYMENT_REQUEST_IMAGE")

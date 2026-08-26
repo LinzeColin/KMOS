@@ -95,9 +95,13 @@ CASHFLOW_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.cashflow_observation.v11
 # v5 accepts the two fixed footer-label forms emitted by that profile, while
 # retaining three-read OCR and amount consensus.  It fixes the Tesseract engine
 # and DPI used for its rendered cells, so the production image is interpreted
-# independently of the package default.  It records the exact message day as
-# its date basis because that compact profile has no visible document-date cell.
-PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v5"
+# independently of the package default.  v6 adds the separately constrained
+# structured payment-plan workbook route: a frozen filename family, one exact
+# request identifier column, one payee column, one payment column, a filename
+# business day, and one matching grand-total row are all required.  It records
+# the filename day explicitly instead of treating a plan as an account balance
+# or a completed payment.
+PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION = "kmfa.daily_funds.payment_request_observation.v6"
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _OCCURRENCE_PATH = re.compile(
@@ -2464,6 +2468,14 @@ _PAYMENT_REQUEST_DATE = re.compile(
 )
 _PAYMENT_REQUEST_AMOUNT = re.compile(r"\d+(?:\.\d{1,2})?")
 _PAYMENT_REQUEST_MESSAGE_STRIP_GRAND_TOTAL_LABELS = frozenset({"总合计", "合计"})
+_PAYMENT_REQUEST_WORKBOOK_SUFFIXES = frozenset({".xls", ".xlsx", ".xlsm"})
+_PAYMENT_REQUEST_WORKBOOK_TITLE_MARKERS = frozenset({"资金计划", "付款请示", "待付款"})
+_PAYMENT_REQUEST_WORKBOOK_TOTAL_LABELS = frozenset({"合计", "总计", "总合计"})
+_PAYMENT_REQUEST_WORKBOOK_HEADER_ALIASES: Mapping[str, tuple[str, ...]] = {
+    "request_id": ("申请编号", "付款申请编号", "请示编号"),
+    "payee": ("收款单位", "收款户名", "收款账户"),
+    "payment": ("本周支付", "本次支付", "本周付款"),
+}
 
 
 def _payment_request_layout_and_crops(
@@ -2650,7 +2662,7 @@ def _payment_request_layout_fingerprint(
 ) -> str:
     return sha256(
         "\x1f".join((
-            "payment_request_observation.v5",
+            "payment_request_observation.v6",
             layout,
             evidence.format,
             evidence.magic,
@@ -2660,6 +2672,172 @@ def _payment_request_layout_fingerprint(
             ),
         )).encode("utf-8")
     ).hexdigest()
+
+
+def is_payment_request_workbook_candidate(filename: str) -> bool:
+    """Recognize the one declared structured payment-plan filename family."""
+
+    suffix = Path(filename).suffix.lower()
+    stem = normalize_header(Path(filename).stem)
+    return suffix in _PAYMENT_REQUEST_WORKBOOK_SUFFIXES and any(
+        marker in stem for marker in _PAYMENT_REQUEST_WORKBOOK_TITLE_MARKERS
+    )
+
+
+def _payment_request_workbook_column(
+    headers: Iterable[str],
+    *,
+    aliases: tuple[str, ...],
+    code: str,
+) -> str:
+    normalized = {normalize_header(header): header for header in headers}
+    matches = [
+        normalized[normalized_alias]
+        for alias in aliases
+        if (normalized_alias := normalize_header(alias)) in normalized
+    ]
+    if len(matches) != 1:
+        raise ParseError(code)
+    return matches[0]
+
+
+def _payment_request_workbook_amount(value: object, *, code: str) -> int:
+    try:
+        amount = _amount_to_fen(value)
+    except ContractError as exc:
+        raise ParseError(code) from exc
+    if amount < 0:
+        raise ParseError(code)
+    return amount
+
+
+def _payment_request_workbook_layout_fingerprint(
+    *,
+    evidence: ParserEvidence,
+    request_column: str,
+    payee_column: str,
+    payment_column: str,
+) -> str:
+    return sha256(
+        "\x1f".join((
+            "payment_request_workbook_observation.v6",
+            evidence.format,
+            evidence.magic,
+            normalize_header(request_column),
+            normalize_header(payee_column),
+            normalize_header(payment_column),
+        )).encode("utf-8")
+    ).hexdigest()
+
+
+def parse_payment_request_workbook_observation(
+    *,
+    filename: str,
+    payload: bytes,
+    source: SourceRef,
+    received_at: datetime,
+    mime: str | None = None,
+) -> PaymentRequestObservation | None:
+    """Parse one frozen structured payment-plan table into a pending total.
+
+    This route is intentionally narrower than the formal fact parsers.  It
+    accepts only the declared payment-plan filename family and requires every
+    visible detail amount to reconcile to one labelled grand-total row.  The
+    resulting observation remains a pending-payment trend point, never a
+    balance, transaction fact, or formal-publication input.
+    """
+
+    if not isinstance(received_at, datetime):
+        raise ParseError("PAYMENT_REQUEST_RECEIVED_AT_INVALID")
+    if not is_payment_request_workbook_candidate(filename):
+        return None
+    if not payload:
+        raise ParseError("CORRUPT_ATTACHMENT")
+    _validate_source(source, payload)
+    rows, parser_evidence = _rows_from_bytes(filename, payload, mime)
+    if not rows:
+        raise ParseError("PAYMENT_REQUEST_WORKBOOK_ROWS_EMPTY")
+
+    headers = tuple(rows[0])
+    request_column = _payment_request_workbook_column(
+        headers,
+        aliases=_PAYMENT_REQUEST_WORKBOOK_HEADER_ALIASES["request_id"],
+        code="PAYMENT_REQUEST_WORKBOOK_REQUEST_COLUMN_INVALID",
+    )
+    payee_column = _payment_request_workbook_column(
+        headers,
+        aliases=_PAYMENT_REQUEST_WORKBOOK_HEADER_ALIASES["payee"],
+        code="PAYMENT_REQUEST_WORKBOOK_PAYEE_COLUMN_INVALID",
+    )
+    payment_column = _payment_request_workbook_column(
+        headers,
+        aliases=_PAYMENT_REQUEST_WORKBOOK_HEADER_ALIASES["payment"],
+        code="PAYMENT_REQUEST_WORKBOOK_PAYMENT_COLUMN_INVALID",
+    )
+    business_date = _date_from_filename(filename)
+    if business_date is None:
+        raise ParseError("PAYMENT_REQUEST_DATE_INVALID")
+
+    from zoneinfo import ZoneInfo
+
+    received_day = received_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+    lag_days = (received_day - business_date).days
+    if lag_days < 0 or lag_days > _PAYMENT_REQUEST_MAX_REPORT_LAG_DAYS:
+        raise ParseError("PAYMENT_REQUEST_DATE_OUT_OF_RANGE")
+
+    detail_total_fen = 0
+    detail_count = 0
+    grand_totals: list[int] = []
+    for row in rows:
+        labels = {
+            normalize_header(value)
+            for value in row.values()
+            if not _is_blank(value)
+        }
+        request_value = row.get(request_column)
+        payment_value = row.get(payment_column)
+        if labels & _PAYMENT_REQUEST_WORKBOOK_TOTAL_LABELS:
+            if not _is_blank(request_value):
+                raise ParseError("PAYMENT_REQUEST_WORKBOOK_TOTAL_ROW_INVALID")
+            grand_totals.append(_payment_request_workbook_amount(
+                payment_value,
+                code="PAYMENT_REQUEST_TOTAL_INVALID",
+            ))
+            continue
+        if _is_blank(request_value) or _is_blank(payment_value):
+            continue
+        if _is_blank(row.get(payee_column)):
+            raise ParseError("PAYMENT_REQUEST_WORKBOOK_PAYEE_VALUE_INVALID")
+        payment_fen = _payment_request_workbook_amount(
+            payment_value,
+            code="PAYMENT_REQUEST_WORKBOOK_PAYMENT_VALUE_INVALID",
+        )
+        if payment_fen <= 0:
+            raise ParseError("PAYMENT_REQUEST_WORKBOOK_PAYMENT_VALUE_INVALID")
+        detail_total_fen += payment_fen
+        detail_count += 1
+
+    if detail_count == 0:
+        raise ParseError("PAYMENT_REQUEST_WORKBOOK_ROWS_EMPTY")
+    if len(grand_totals) != 1 or grand_totals[0] <= 0 or grand_totals[0] != detail_total_fen:
+        raise ParseError("PAYMENT_REQUEST_TOTAL_RECONCILIATION_MISSING")
+    evidence = replace(
+        parser_evidence,
+        parser_version=PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION,
+    )
+    return PaymentRequestObservation(
+        business_date=business_date,
+        date_basis="FILENAME_DAY",
+        request_total_fen=grand_totals[0],
+        source=source,
+        parser_evidence=evidence,
+        layout_fingerprint=_payment_request_workbook_layout_fingerprint(
+            evidence=evidence,
+            request_column=request_column,
+            payee_column=payee_column,
+            payment_column=payment_column,
+        ),
+    )
 
 
 def parse_payment_request_observation(

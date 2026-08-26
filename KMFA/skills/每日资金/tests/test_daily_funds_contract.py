@@ -64,11 +64,13 @@ from daily_funds.parsing import (
     ParseError,
     deterministic_ocr_runtime_ready,
     is_ocr_attachment,
+    is_payment_request_workbook_candidate,
     parse_attachment,
     parse_cashflow_observation,
     parse_generic_structured_attachment,
     parse_ocr_attachment,
     parse_payment_request_observation,
+    parse_payment_request_workbook_observation,
 )
 from daily_funds.publication import D1Projection, OciColdBackup, OciParStore, PublicationCoordinator, PublicationError, R2Mirror, RestoreCoordinator, RestoreOracle, S3CompatibleStore
 from daily_funds.r2_guard import R2FreeTierGuard, R2GuardError
@@ -2468,6 +2470,93 @@ def test_payment_request_observation_renders_a_single_page_scanned_pdf() -> None
     assert observation.business_date.isoformat() == "2026-08-21"
     assert observation.request_total_fen == 10_000
     assert observation.parser_evidence.magic == "PDF"
+
+
+def _payment_request_workbook_payload(*, grand_total: str = "250.00") -> bytes:
+    openpyxl = pytest.importorskip("openpyxl")
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.append(["申请编号", "收款单位", "本周支付"])
+    sheet.append(["REQ-01", "单位甲", "100.00"])
+    sheet.append(["REQ-02", "单位乙", "150.00"])
+    sheet.append([None, "总合计", grand_total])
+    stream = BytesIO()
+    workbook.save(stream)
+    workbook.close()
+    return stream.getvalue()
+
+
+def test_payment_request_workbook_requires_filename_day_detail_rows_and_grand_total() -> None:
+    payload = _payment_request_workbook_payload()
+    filename = "项目资金计划2026.08.21.xlsx"
+
+    assert is_payment_request_workbook_candidate(filename)
+    observation = parse_payment_request_workbook_observation(
+        filename=filename,
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    assert observation is not None
+    assert observation.business_date.isoformat() == "2026-08-21"
+    assert observation.date_basis == "FILENAME_DAY"
+    assert observation.request_total_fen == 25_000
+    assert observation.parser_evidence.parser_version == PAYMENT_REQUEST_OBSERVATION_PARSER_VERSION
+    assert len(observation.layout_fingerprint) == 64
+    assert parse_payment_request_workbook_observation(
+        filename="普通文件2026.08.21.xlsx",
+        payload=payload,
+        source=_source(payload),
+        received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ) is None
+
+    mismatched_payload = _payment_request_workbook_payload(grand_total="240.00")
+    with pytest.raises(ParseError, match="PAYMENT_REQUEST_TOTAL_RECONCILIATION_MISSING"):
+        parse_payment_request_workbook_observation(
+            filename=filename,
+            payload=mismatched_payload,
+            source=_source(mismatched_payload),
+            received_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+
+def test_runtime_payment_request_workbook_does_not_depend_on_ocr(tmp_path: Path) -> None:
+    config = replace(_config(tmp_path), ocr_enabled=False)
+    runtime = DailyFundsRuntime(config)
+    payload = _payment_request_workbook_payload()
+    attachment = DownloadedAttachment(
+        message={},
+        message_id="payment-workbook",
+        message_id_hash="f" * 64,
+        message_at=datetime(2026, 8, 21, 12, tzinfo=UTC),
+        index=0,
+        filename="项目资金计划2026.08.21.xlsx",
+        family=None,
+        payload=payload,
+        sha256=sha256(payload).hexdigest(),
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    verified = runtime._write_payment_request_observation((attachment,))
+
+    assert verified["status"] == "VERIFIED"
+    assert verified["machine_code"] == "PAYMENT_REQUEST_OBSERVATION_VERIFIED"
+    assert verified["source_coverage"] == {
+        "eligible_documents": 1,
+        "parsed_documents": 1,
+        "rejected_documents": 0,
+        "distinct_business_days": 1,
+        "superseded_reports": 0,
+    }
+    assert verified["points"] == [{
+        "business_date": "2026-08-21",
+        "date_basis": "FILENAME_DAY",
+        "request_total_fen": 25_000,
+    }]
 
 
 def test_runtime_payment_request_observation_exposes_verified_latest_request_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
