@@ -28,6 +28,7 @@ from daily_funds.access_bridge import (  # noqa: E402
     capture_service_token_id,
     control_application_payload,
     control_application_policy_state,
+    diagnose_orphaned_bridge_policy,
     diagnose_orphaned_bridge_resources,
     diagnose_bridge_target,
     orphaned_bridge_run_tag,
@@ -258,6 +259,9 @@ def main(argv: list[str] | None = None) -> int:
     orphaned_diagnostic.add_argument("--service-tokens", required=True)
     orphaned_diagnostic.add_argument("--policies", required=True)
 
+    orphaned_policy_diagnostic = subparsers.add_parser("diagnose-orphaned-policy")
+    orphaned_policy_diagnostic.add_argument("--policies", required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve-target":
@@ -401,6 +405,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "diagnose-orphaned-bridge":
             print(diagnose_orphaned_bridge_resources(args.service_tokens, args.policies))
+        elif args.command == "diagnose-orphaned-policy":
+            print(diagnose_orphaned_bridge_policy(args.policies))
         else:  # pragma: no cover - argparse owns this branch.
             parser.error("unsupported command")
     except (AccessBridgeInputError, KeyError, OSError, ValueError):
