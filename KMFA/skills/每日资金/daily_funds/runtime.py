@@ -2082,25 +2082,26 @@ class DailyFundsRuntime:
     def _payment_request_refresh_failure_code(error: IngestionError) -> str:
         """Classify a live refresh failure without exposing provider detail.
 
-        The public operation receipt needs an actionable category, while a
-        DWS/attachment exception can contain source or provider text.  Keep
-        only the fixed execution phase; the original error remains inside the
-        worker process and never reaches logs, state JSON, or the owner UI.
+        The public operation receipt needs an actionable stage category, while
+        a DWS/attachment exception can contain source or provider text.  Keep
+        only a fixed, values-free outcome; the original error remains inside
+        the worker process and never reaches logs, state JSON, or the owner UI.
         """
 
-        attachment_codes = {
-            "ATTACHMENT_DOWNLOAD_AMBIGUOUS",
-            "ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID",
-            "ATTACHMENT_DOWNLOAD_FAILED",
-            "ATTACHMENT_DOWNLOAD_READ_FAILED",
-            "ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED",
-            "ATTACHMENT_INDEX_INVALID",
-            "UNSUPPORTED_ATTACHMENT",
+        attachment_failure_codes = {
+            "DWS_ATTACHMENT_PERMISSION_DENIED": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PERMISSION_DENIED",
+            "ATTACHMENT_DOWNLOAD_ARGUMENT_INVALID": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_ARGUMENT_INVALID",
+            "ATTACHMENT_DOWNLOAD_AMBIGUOUS": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_OUTPUT_INVALID",
+            "ATTACHMENT_DOWNLOAD_FAILED": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_PROVIDER_FAILED",
+            "ATTACHMENT_DOWNLOAD_READ_FAILED": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_READ_FAILED",
+            "ATTACHMENT_DOWNLOAD_TRANSPORT_FAILED": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_TRANSPORT_UNAVAILABLE",
+            "ATTACHMENT_INDEX_INVALID": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_INDEX_INVALID",
+            "UNSUPPORTED_ATTACHMENT": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_UNSUPPORTED",
+            "CORRUPT_ATTACHMENT": "PAYMENT_REQUEST_REFRESH_ATTACHMENT_CONTENT_INVALID",
         }
-        return (
-            "PAYMENT_REQUEST_REFRESH_ATTACHMENT_READ_FAILED"
-            if error.code in attachment_codes
-            else "PAYMENT_REQUEST_REFRESH_SOURCE_READ_FAILED"
+        return attachment_failure_codes.get(
+            error.code,
+            "PAYMENT_REQUEST_REFRESH_SOURCE_READ_FAILED",
         )
 
     def _payment_request_refresh_locked(self, *, now: datetime | None) -> dict[str, Any]:
