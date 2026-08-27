@@ -298,8 +298,7 @@ class Stage115ReviewUiPhase1Tests(unittest.TestCase):
             plan,
             ROADMAP,
         )
-        self.assertFalse(is_current_projection)
-        if current in {phase2_current, phase3_current}:
+        if is_current_projection or current in {phase2_current, phase3_current}:
             return
         self.assertEqual("REVIEW_UI_CONTRACT_RUNTIME_DISABLED", status["evidence_status"])
         self.assertEqual("PASS_REVIEW_UI_CONTRACT_RUNTIME_DISABLED", receipt["result"])

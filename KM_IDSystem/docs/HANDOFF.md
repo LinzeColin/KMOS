@@ -1,12 +1,14 @@
 # IDS / Industrial Data System Handoff
 
-## Checkpoint - Stage115 P4 in progress - 2026-08-27
+## Current Gate - Stage115 P4 accepted locally - 2026-08-27
 
-- 当前目标保持为 `IDS-V0_1-STAGE115-P4` 的 metadata-only 复核 UI 交付证据；P3 已验收，治理事实仍停留在 `IDS-STAGE115-P3-GATE`，P4 完成后才进入 `IDS-STAGE115-REVIEW-GATE`。
-- 本检查点已形成四项 P4 工件：范围说明 `STAGE115_PHASE4_REVIEW_UI_DELIVERY.md`、纯内存交付模块 `stage115_review_ui_delivery.py`、静态合同 `stage115_review_ui_delivery_contract.json`、聚焦用例 `test_stage115_review_ui_delivery.py`。模块固定五类各五条样例与两条回滚／重新复核说明，字段形状为 `17/13/13/15/14/14`，合计 `388` 个检查点和 `17` 类失败关闭。
-- 已验证：P4 聚焦用例 `9/9` 通过，最终治理投影用例按 P4 尚未登记回执而跳过。待续工作限于路线图、机器事实、验收、事件、回执、中文生成视图及完整门禁验收；当前检查点不把 P4 标记为完成。
-- 所有工件保持纯内存控制证据，运行计数为 `0`、运行标志为 `false`；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
-- 恢复位置为现有唯一 scratch worktree 与开发分支 `codex/kmids-stage071-p1`。本次按用户临时保全授权建立远端检查点；后续继续同一 worktree，完成 P4 后停在 `IDS-STAGE115-REVIEW-GATE`。
+- `IDS-V0_1-STAGE115-P4` 已完成冻结复核 UI 的 metadata-only 交付控制证据；当前治理状态为 `IDS-STAGE115 / IDS-STAGE115-P4 / IDS-V0_1-STAGE115-P4 / IDS-STAGE115-REVIEW-GATE`。整阶段 Review 仅由新的独立 run 在冻结任务包门禁下承接。
+- P4 机械重放 P2 的 `5×23/19/4×117/585` 与 P3 的 `5×47=235/5/5` 控制形状，形成复核队列样例、复核审计日志样例、中文 UI 流程说明、人工判断边界与业务线白箱确认各 `5` 条，以及 `2` 条 P4→P3 回滚与重新复核说明；字段形状为 `17/13/13/15/14/14`，共 `388` 个检查点、`17` 类失败关闭和 `4` 条中文反馈。
+- 冻结 Stage115 任务包、Stage115 P1/P2/P3 工件与 Stage114 Review 工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P4 聚焦 `9/9`、Stage112 P1 至 Stage115 P4 选择的前向治理套件 `141/141`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `13/13`、机器平面生成 `7` 个中文文件、文档预算／阻塞／双平面门均通过。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 `0`、运行标志保持 `false`；真实资料、OCR、复核 UI、队列、工作流、审计、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。用户授权的开发分支保全检查点保持可恢复；正式全局上传、main 与 release 继续由后续授权门禁承接。
+- 回滚只撤回本 P4 的范围说明、纯内存交付模块、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_IN_MEMORY_REVIEW_UI_CONTROLLED_SCENARIOS_RUNTIME_DISABLED`；P3、P2、P1、Stage114 Review、冻结任务包、来源文档、真实证据账本、报告、审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE115-REVIEW-GATE`，继续使用同一既有 scratch worktree 与开发分支。
 
 ## Current Gate - Stage115 P3 accepted locally - 2026-08-27
 

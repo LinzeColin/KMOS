@@ -434,8 +434,7 @@ class Stage114ReviewWorkflowStageReviewTests(unittest.TestCase):
             plan,
             ROADMAP,
         )
-        self.assertFalse(future_projection)
-        if current in {
+        if future_projection or current in {
             stage115_phase1_current,
             stage115_phase2_current,
             stage115_phase3_current,
