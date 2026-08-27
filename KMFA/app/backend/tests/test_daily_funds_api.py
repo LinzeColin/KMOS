@@ -457,6 +457,66 @@ def test_payment_request_observation_is_read_only_and_never_becomes_a_balance(tm
     assert "payment-request-raw-fixture" not in blocked.text
 
 
+def test_latest_finance_image_snapshot_is_direct_display_and_separate_from_balance(tmp_path, monkeypatch):
+    publication = tmp_path / "publication"
+    publication.mkdir()
+    monkeypatch.setattr(main_module, "DAILY_FUNDS_PUBLICATION_DIR", publication)
+
+    unavailable = client.get("/ops/api/daily-funds/image-snapshot")
+    assert unavailable.status_code == 200
+    assert unavailable.json() == {
+        "status": "NOT_AVAILABLE",
+        "message": "尚未读取到可展示的最新资金来源图片。",
+        "generated_at": None,
+        "source_date": None,
+        "image_url": None,
+    }
+
+    image_bytes = b"\x89PNG\r\n\x1a\nsource-image"
+    (publication / "latest_finance_image").write_bytes(image_bytes)
+    (publication / "image_snapshot.json").write_text(json.dumps({
+        "schema_version": "kmfa.daily_funds.image_snapshot.v1",
+        "generated_at": "2026-08-27T01:00:00Z",
+        "source_date": "2026-08-26",
+        "status": "AVAILABLE",
+        "media_type": "image/png",
+        "machine_code": "IMAGE_SNAPSHOT_AVAILABLE",
+    }), encoding="utf-8")
+
+    available = client.get("/ops/api/daily-funds/image-snapshot")
+    assert available.status_code == 200
+    body = available.json()
+    assert body["status"] == "AVAILABLE"
+    assert body["source_date"] == "2026-08-26"
+    assert body["image_url"] == "/ops/api/daily-funds/image-snapshot/image"
+    assert "账户余额" in body["message"]
+    assert "machine_code" not in body
+    assert "media_type" not in body
+
+    asset = client.get(body["image_url"])
+    assert asset.status_code == 200
+    assert asset.headers["content-type"] == "image/png"
+    assert asset.headers["cache-control"] == "private, no-store, no-transform"
+    assert asset.content == image_bytes
+
+    stale = json.loads((publication / "image_snapshot.json").read_text(encoding="utf-8"))
+    stale.update({"status": "STALE", "machine_code": "IMAGE_SNAPSHOT_SOURCE_READ_FAILED"})
+    (publication / "image_snapshot.json").write_text(json.dumps(stale), encoding="utf-8")
+    stale_view = client.get("/ops/api/daily-funds/image-snapshot")
+    assert stale_view.status_code == 200
+    assert stale_view.json()["status"] == "STALE"
+    assert stale_view.json()["image_url"] == "/ops/api/daily-funds/image-snapshot/image"
+
+    malformed = json.loads((publication / "image_snapshot.json").read_text(encoding="utf-8"))
+    malformed["source_message_should_not_escape"] = "source-fixture"
+    (publication / "image_snapshot.json").write_text(json.dumps(malformed), encoding="utf-8")
+    blocked = client.get("/ops/api/daily-funds/image-snapshot")
+    assert blocked.status_code == 200
+    assert blocked.json()["status"] == "NEEDS_REVIEW"
+    assert blocked.json()["image_url"] is None
+    assert "source-fixture" not in blocked.text
+
+
 def test_daily_funds_auth_session_is_access_api_only_and_never_enters_source_projection(tmp_path, monkeypatch):
     publication = tmp_path / "publication"
     control = tmp_path / "control"

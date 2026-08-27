@@ -1804,7 +1804,7 @@ const 阈值控制话 = value => {
   return value.mode === 'disabled' ? '已停用' : '未验证'
 }
 
-function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水观察, 付款请示, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
+function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水观察, 付款请示, 图片快照, 范围, 设范围, 自定义, 设自定义, 刷新 }) {
   const [阈值模式, 设阈值模式] = useState('numeric')
   const [阈值金额, 设阈值金额] = useState('')
   const [阈值日期, 设阈值日期] = useState({ from: '', to: '' })
@@ -1817,6 +1817,13 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
   const 取不到 = 摘要?.加载失败 || 时序?.加载失败
   const 需要登录 = 摘要?.需要登录 || 时序?.需要登录
   const 无可信发布 = !需要登录 && 来源 && !来源.加载失败 && 来源.has_trusted_publication === false
+  const 图片快照状态 = ['AVAILABLE', 'STALE', 'NOT_AVAILABLE', 'NEEDS_REVIEW'].includes(图片快照?.status)
+    ? 图片快照.status : 'NOT_AVAILABLE'
+  const 图片快照可展示 = ['AVAILABLE', 'STALE'].includes(图片快照状态)
+    && typeof 图片快照?.image_url === 'string' && 图片快照.image_url.startsWith('/ops/api/daily-funds/image-snapshot/image')
+  const 图片快照色 = 图片快照状态 === 'AVAILABLE' ? 'ok'
+    : 图片快照状态 === 'STALE' ? 'warn'
+      : 图片快照状态 === 'NEEDS_REVIEW' ? 'bad' : 'muted'
   const 收支观察状态 = ['VERIFIED', 'NEEDS_REVIEW', 'NOT_AVAILABLE'].includes(流水观察?.status)
     ? 流水观察.status : 'NOT_AVAILABLE'
   const 收支观察已验证 = 收支观察状态 === 'VERIFIED'
@@ -2198,6 +2205,28 @@ function 每日资金({ 摘要, 时序, 来源, 阈值, 认证, 探针, 流水�
         <div className="sub">{来源?.message || '页面只展示已验证 publication；没有可信结果时明确提示需处理。'}</div>
       </div>
 
+      <section className="card daily-funds-image" aria-label="最新资金图片明细" style={{ marginTop: 14 }}>
+        <div className="daily-funds-image-head">
+          <div>
+            <b>最新资金图片明细（直接展示）</b>
+            <div className="sub">来自已登记财务来源的最新图片。页面原样展示，不把图片中的内容改称为账户余额、可用资金或正式资金发布。</div>
+          </div>
+          <span className={`chip ${图片快照色}`}>
+            {图片快照状态 === 'AVAILABLE' ? '最新图片' : 图片快照状态 === 'STALE' ? '历史最新' : 图片快照状态 === 'NEEDS_REVIEW' ? '待处理' : '暂无图片'}
+          </span>
+        </div>
+        {图片快照可展示 ? <>
+          <div className="daily-funds-image-meta">来源图片日期（群消息）：{图片快照.source_date || '未标注'}｜读取时间：{图片快照.generated_at || '未标注'}</div>
+          <div className="daily-funds-image-frame">
+            <img src={图片快照.image_url} alt="最新资金图片明细" />
+          </div>
+          <div className="hint" role="status">{图片快照.message}</div>
+        </> : <div className={`card callout ${图片快照状态 === 'NEEDS_REVIEW' ? 'bad' : 'warn'}`} style={{ marginTop: 12 }}>
+          <b>来源图片暂未展示</b>
+          <div className="sub">{图片快照?.message || '尚未读取到可展示的最新资金来源图片。'}</div>
+        </div>}
+      </section>
+
       <div className="grid" style={{ marginTop: 14 }}>
         <Kpi 标="当前可用资金" 值={资金金额(摘要?.total_available_fen)} 小 />
         <Kpi 标="今日流入" 值={资金金额(今日.inflow_fen)} 小 />
@@ -2488,6 +2517,7 @@ export default function App() {
   const [资金历史探针, set资金历史探针] = useState(null)
   const [资金流水观察, set资金流水观察] = useState(null)
   const [资金付款请示, set资金付款请示] = useState(null)
+  const [资金图片快照, set资金图片快照] = useState(null)
   const [资金范围状态, set资金范围] = useState('30d')
   const [资金自定义, set资金自定义] = useState({ from: '', to: '' })
   // 每日资金是独立的私有纵向切片。若深链直接进入它，不能先把二十多条
@@ -2546,6 +2576,7 @@ export default function App() {
     取(`/ops/api/daily-funds/timeseries${查询}`, set资金时序)
     取(`/ops/api/daily-funds/cashflow-observations${查询}`, set资金流水观察)
     取(`/ops/api/daily-funds/payment-request-observations${查询}`, set资金付款请示)
+    取('/ops/api/daily-funds/image-snapshot', set资金图片快照)
     取('/ops/api/daily-funds/source-health', set资金来源)
     取('/ops/api/daily-funds/thresholds', set资金阈值)
     取('/ops/api/daily-funds/auth-session', set资金认证)
@@ -2674,7 +2705,7 @@ export default function App() {
             {页 === '回款与账龄' && <回款与账龄 账龄={账龄} />}
             {页 === '开票与税务' && <开票与税务 开票={开票} />}
             {页 === '每日资金' && <每日资金 摘要={资金摘要} 时序={资金时序} 来源={资金来源} 阈值={资金阈值}
-              认证={资金认证} 探针={资金历史探针} 流水观察={资金流水观察} 付款请示={资金付款请示} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
+              认证={资金认证} 探针={资金历史探针} 流水观察={资金流水观察} 付款请示={资金付款请示} 图片快照={资金图片快照} 范围={资金范围状态} 设范围={set资金范围} 自定义={资金自定义} 设自定义={set资金自定义} 刷新={取每日资金} />}
             {页 === '今天' && <>
               <h3 className="sec">上游归档目标群</h3>
               <目标群 群={目标群数据} 刷新={取群} />

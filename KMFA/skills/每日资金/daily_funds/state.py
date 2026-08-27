@@ -46,6 +46,22 @@ def atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
             os.unlink(temporary)
 
 
+def atomic_bytes_write(path: Path, payload: bytes) -> None:
+    """Replace one private projection asset without exposing a partial file."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
 @dataclass(frozen=True)
 class RuntimeStatus:
     human_status: str

@@ -60,7 +60,7 @@ from .publication import (
 )
 from .r2_guard import R2FreeTierGuard, R2GuardError
 from .reconcile import ReconciliationError, ReconciliationReport, account_key, account_key_hash, reconcile
-from .state import RuntimeState, StatusWriter, atomic_json_write, iso_now
+from .state import RuntimeState, StatusWriter, atomic_bytes_write, atomic_json_write, iso_now
 
 UTC = timezone.utc
 
@@ -99,6 +99,17 @@ _PAYMENT_REQUEST_OBSERVATION_SCHEMA = "kmfa.daily_funds.payment_request_observat
 # long-running historic raw-archive audit.
 _PAYMENT_REQUEST_REFRESH_WINDOW_DAYS = 31
 _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS = 128
+# The direct image snapshot is intentionally simpler than a financial
+# publication: it retains exactly one latest image from the configured finance
+# source so the owner page is useful while formal balance and cashflow lanes
+# continue their own independent validation.
+_IMAGE_SNAPSHOT_SCHEMA = "kmfa.daily_funds.image_snapshot.v1"
+_IMAGE_SNAPSHOT_STATE_FILE = "image_snapshot.json"
+_IMAGE_SNAPSHOT_ASSET_FILE = "latest_finance_image"
+_IMAGE_SNAPSHOT_MAX_BYTES = 16 * 1024 * 1024
+_IMAGE_SNAPSHOT_MAX_ATTACHMENTS = 128
+_IMAGE_SNAPSHOT_STATUSES = frozenset({"AVAILABLE", "STALE", "NOT_AVAILABLE"})
+_IMAGE_SNAPSHOT_MEDIA_TYPES = frozenset({"image/png", "image/jpeg", "image/webp"})
 _BUILD_SOURCE_COMMIT_FILE = Path(__file__).with_name(".kmfa-source-commit")
 _OPERATION_RECEIPT_JOBS = frozenset({
     "preflight",
@@ -2159,6 +2170,136 @@ class DailyFundsRuntime:
             "points": [],
         })
 
+    @property
+    def _image_snapshot_state_path(self) -> Path:
+        return self.config.publication_dir / _IMAGE_SNAPSHOT_STATE_FILE
+
+    @property
+    def _image_snapshot_asset_path(self) -> Path:
+        return self.config.publication_dir / _IMAGE_SNAPSHOT_ASSET_FILE
+
+    @staticmethod
+    def _image_snapshot_media_type(payload: bytes) -> str | None:
+        """Accept only a small, browser-displayable image from the exact source."""
+
+        if not payload or len(payload) > _IMAGE_SNAPSHOT_MAX_BYTES:
+            return None
+        if payload.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "image/png"
+        if payload.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        if len(payload) >= 12 and payload[:4] == b"RIFF" and payload[8:12] == b"WEBP":
+            return "image/webp"
+        return None
+
+    def _image_snapshot_previous(self) -> dict[str, str] | None:
+        """Return the prior displayable image metadata, never its source details."""
+
+        payload = self._read_json_object(self._image_snapshot_state_path)
+        asset = self._image_snapshot_asset_path
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"schema_version", "generated_at", "source_date", "status", "media_type", "machine_code"}
+            or payload.get("schema_version") != _IMAGE_SNAPSHOT_SCHEMA
+            or payload.get("status") not in {"AVAILABLE", "STALE"}
+            or payload.get("media_type") not in _IMAGE_SNAPSHOT_MEDIA_TYPES
+            or not isinstance(payload.get("source_date"), str)
+            or not isinstance(payload.get("machine_code"), str)
+            or asset.is_symlink()
+            or not asset.is_file()
+        ):
+            return None
+        try:
+            date.fromisoformat(payload["source_date"])
+            asset_size = asset.stat().st_size
+        except (OSError, ValueError):
+            return None
+        if asset_size <= 0 or asset_size > _IMAGE_SNAPSHOT_MAX_BYTES:
+            return None
+        return {
+            "source_date": payload["source_date"],
+            "media_type": payload["media_type"],
+        }
+
+    def _retain_image_snapshot(self, machine_code: str) -> dict[str, str | None]:
+        """Keep the last readable source image and make its age explicit."""
+
+        previous = self._image_snapshot_previous()
+        payload: dict[str, str | None] = {
+            "schema_version": _IMAGE_SNAPSHOT_SCHEMA,
+            "generated_at": iso_now(),
+            "source_date": previous["source_date"] if previous else None,
+            "status": "STALE" if previous else "NOT_AVAILABLE",
+            "media_type": previous["media_type"] if previous else None,
+            "machine_code": machine_code if previous else "IMAGE_SNAPSHOT_NOT_AVAILABLE",
+        }
+        atomic_json_write(self._image_snapshot_state_path, payload)
+        return payload
+
+    def _publish_image_snapshot(self, attachment: DownloadedAttachment, media_type: str) -> dict[str, str]:
+        """Publish exactly one source image for direct owner display.
+
+        This is a visual source snapshot, not an OCR-derived amount, a balance,
+        a cashflow projection, or a formal publication.  The state JSON keeps
+        only fixed metadata, while the private shared volume holds the latest
+        image bytes for the KMFA page.
+        """
+
+        atomic_bytes_write(self._image_snapshot_asset_path, attachment.payload)
+        payload = {
+            "schema_version": _IMAGE_SNAPSHOT_SCHEMA,
+            "generated_at": iso_now(),
+            "source_date": attachment.message_at.astimezone(UTC).date().isoformat(),
+            "status": "AVAILABLE",
+            "media_type": media_type,
+            "machine_code": "IMAGE_SNAPSHOT_AVAILABLE",
+        }
+        atomic_json_write(self._image_snapshot_state_path, payload)
+        return payload
+
+    def _refresh_image_snapshot_from_messages(
+        self,
+        client: DwsHistoryClient,
+        messages: Iterable[dict[str, Any]],
+    ) -> dict[tuple[int, int], DownloadedAttachment | IngestionError]:
+        """Copy the newest image in the fixed finance source into the page volume.
+
+        The exact DWS source is already enforced by ``DwsHistoryClient``.  The
+        first displayable image in descending source-time order wins; no OCR,
+        parser, raw archive, account pairing, or formal-publication gate is
+        involved in this direct-image lane.
+        """
+
+        ordered_messages = tuple(sorted(
+            ((_message_timestamp(message), message) for message in messages),
+            key=lambda item: item[0],
+            reverse=True,
+        ))
+        downloaded: dict[tuple[int, int], DownloadedAttachment | IngestionError] = {}
+        attempts = 0
+        for _received_at, message in ordered_messages:
+            for index in range(client.attachment_count(message)):
+                if attempts >= _IMAGE_SNAPSHOT_MAX_ATTACHMENTS:
+                    self._retain_image_snapshot("IMAGE_SNAPSHOT_SOURCE_LIMIT")
+                    return downloaded
+                attempts += 1
+                try:
+                    attachment = client.download(message, index)
+                except IngestionError as error:
+                    # A newer source image could not be read, so serving an
+                    # older one as current would be misleading.  Keep the
+                    # prior displayed image and label it stale instead.
+                    downloaded[(id(message), index)] = error
+                    self._retain_image_snapshot("IMAGE_SNAPSHOT_SOURCE_READ_FAILED")
+                    return downloaded
+                downloaded[(id(message), index)] = attachment
+                media_type = self._image_snapshot_media_type(attachment.payload)
+                if media_type is not None:
+                    self._publish_image_snapshot(attachment, media_type)
+                    return downloaded
+        self._retain_image_snapshot("IMAGE_SNAPSHOT_SOURCE_EMPTY")
+        return downloaded
+
     def payment_request_refresh(self, *, now: datetime | None = None) -> dict[str, Any]:
         """Refresh the page's pending-payment trend from the exact DWS source.
 
@@ -2176,11 +2317,13 @@ class DailyFundsRuntime:
                 return self._payment_request_refresh_locked(now=now)
         except ConfigError:
             self._clear_payment_request_observation()
+            self._retain_image_snapshot("IMAGE_SNAPSHOT_CONFIG_INVALID")
             return {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_CONFIG_INVALID"}
         except IngestionError as exc:
             if exc.code == "PAYMENT_REQUEST_REFRESH_LOCK_HELD":
                 return {"ok": False, "code": exc.code}
             self._clear_payment_request_observation()
+            self._retain_image_snapshot("IMAGE_SNAPSHOT_SOURCE_READ_FAILED")
             return {
                 "ok": False,
                 "code": self._payment_request_refresh_failure_code(exc),
@@ -2261,6 +2404,11 @@ class DailyFundsRuntime:
         # quarantined exact-source messages, then let the title gate decide
         # whether each downloaded image is a real payment-request report.
         messages = (*client.selected_messages(page), *client.quarantine_messages(page))
+        # Owner-visible source-image lane: publish the newest exact-source
+        # image before strict pending-payment OCR starts.  This resolves the
+        # empty-page failure without changing what qualifies as a payment
+        # request, cashflow observation, account balance, or formal release.
+        image_snapshot_downloads = self._refresh_image_snapshot_from_messages(client, messages)
         # The live page is a current operational observation.  Resolve newest
         # source-time groups first, and resolve every attachment at the same
         # time before accepting the group.  This lets a newer verified report
@@ -2293,7 +2441,12 @@ class DailyFundsRuntime:
                     if attempted_attachments >= _PAYMENT_REQUEST_REFRESH_MAX_ATTACHMENTS:
                         raise IngestionError("PAYMENT_REQUEST_REFRESH_SOURCE_LIMIT")
                     attempted_attachments += 1
-                    attachment = client.download(message, index)
+                    cached = image_snapshot_downloads.get((id(message), index))
+                    if isinstance(cached, IngestionError):
+                        raise cached
+                    attachment = cached
+                    if attachment is None:
+                        attachment = client.download(message, index)
                     attachments.append(attachment)
                     group_attachments.append(attachment)
 

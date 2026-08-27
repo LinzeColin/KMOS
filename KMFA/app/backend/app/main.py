@@ -2474,9 +2474,10 @@ SKILL_MODULE = {
 }
 
 
-# ── 每日资金：只读已验证 projection，绝不读群消息、原始附件或私有 Git ──────────────
-# 这个卷由独立 daily-funds 容器写，app 只读（control 卷除外），因此前端无法绕过
-# D1/Git/R2 的发布门直接接触原始数据。
+# ── 每日资金：app 只读 worker 写入的共享卷 ─────────────────────────────────────
+# 正式余额与收支 API 继续只读已验证 projection。另有一个 Owner 明确需要的
+# 最新来源图片快照：worker 从固定财务来源取到一张图片后只写入这个共享卷，
+# app 原样展示，不从 DWS、私有 Git、SMB 或本机读取任何原始数据。
 DAILY_FUNDS_PUBLICATION_DIR = Path(os.environ.get(
     "DAILY_FUNDS_PUBLICATION_DIR", "/var/lib/kmfa/daily-funds"))
 DAILY_FUNDS_CONTROL_DIR = Path(os.environ.get(
@@ -2621,6 +2622,14 @@ DAILY_FUNDS_PAYMENT_REQUEST_OBSERVATION_FIELDS = frozenset({
     "schema_version", "generated_at", "parser_version", "source_coverage",
     "rejection_categories", "evidence_version", "points", "status", "machine_code",
 })
+DAILY_FUNDS_IMAGE_SNAPSHOT_SCHEMA = "kmfa.daily_funds.image_snapshot.v1"
+DAILY_FUNDS_IMAGE_SNAPSHOT_STATUSES = {"AVAILABLE", "STALE", "NOT_AVAILABLE"}
+DAILY_FUNDS_IMAGE_SNAPSHOT_MEDIA_TYPES = {"image/png", "image/jpeg", "image/webp"}
+DAILY_FUNDS_IMAGE_SNAPSHOT_FIELDS = frozenset({
+    "schema_version", "generated_at", "source_date", "status", "media_type", "machine_code",
+})
+DAILY_FUNDS_IMAGE_SNAPSHOT_FILE = "latest_finance_image"
+DAILY_FUNDS_IMAGE_SNAPSHOT_MAX_BYTES = 16 * 1024 * 1024
 # This is a read-side schema allowlist, not a second scheduler or health
 # authority.  The daily-funds worker remains the sole writer; the app only
 # displays the fixed worker contract after checking its exact shape so a
@@ -4210,6 +4219,82 @@ def _daily_funds_source_health_view() -> dict[str, Any]:
     return view
 
 
+def _daily_funds_image_snapshot_asset(media_type: object) -> Path | None:
+    """Return only the fixed worker-written image asset under the shared volume."""
+
+    if media_type not in DAILY_FUNDS_IMAGE_SNAPSHOT_MEDIA_TYPES:
+        return None
+    root = DAILY_FUNDS_PUBLICATION_DIR.resolve()
+    target = DAILY_FUNDS_PUBLICATION_DIR / DAILY_FUNDS_IMAGE_SNAPSHOT_FILE
+    try:
+        resolved = target.resolve(strict=True)
+        size = resolved.stat().st_size
+    except OSError:
+        return None
+    if (
+        target.is_symlink()
+        or resolved.parent != root
+        or not resolved.is_file()
+        or size <= 0
+        or size > DAILY_FUNDS_IMAGE_SNAPSHOT_MAX_BYTES
+    ):
+        return None
+    return resolved
+
+
+def _daily_funds_image_snapshot_view() -> dict[str, Any]:
+    """Expose the newest direct source image without relabeling it as a balance."""
+
+    unavailable = {
+        "status": "NOT_AVAILABLE",
+        "message": "尚未读取到可展示的最新资金来源图片。",
+        "generated_at": None,
+        "source_date": None,
+        "image_url": None,
+    }
+    needs_review = {
+        **unavailable,
+        "status": "NEEDS_REVIEW",
+        "message": "最新资金来源图片状态异常，暂不展示。",
+    }
+    payload = _read_daily_funds_json("image_snapshot.json")
+    if not isinstance(payload, dict) or set(payload) != DAILY_FUNDS_IMAGE_SNAPSHOT_FIELDS:
+        return unavailable if payload is None else needs_review
+    if payload.get("schema_version") != DAILY_FUNDS_IMAGE_SNAPSHOT_SCHEMA:
+        return needs_review
+    status = payload.get("status")
+    generated_at = _daily_funds_timestamp(payload.get("generated_at"))
+    source_date = _daily_funds_date(payload.get("source_date"))
+    media_type = payload.get("media_type")
+    machine_code = payload.get("machine_code")
+    if (
+        status not in DAILY_FUNDS_IMAGE_SNAPSHOT_STATUSES
+        or generated_at is None
+        or not isinstance(machine_code, str)
+        or not machine_code.startswith("IMAGE_SNAPSHOT_")
+    ):
+        return needs_review
+    if status == "NOT_AVAILABLE":
+        if source_date is not None or media_type is not None:
+            return needs_review
+        return unavailable
+    if source_date is None or media_type not in DAILY_FUNDS_IMAGE_SNAPSHOT_MEDIA_TYPES:
+        return needs_review
+    if _daily_funds_image_snapshot_asset(media_type) is None:
+        return needs_review
+    return {
+        "status": status,
+        "message": (
+            "已显示已登记财务来源的最新图片明细；图片原样展示，未作为账户余额或正式资金发布解释。"
+            if status == "AVAILABLE"
+            else "暂未读取到更新图片，页面保留上一次可读取的来源图片；请以来源图片日期判断时效。"
+        ),
+        "generated_at": generated_at,
+        "source_date": source_date.isoformat(),
+        "image_url": "/ops/api/daily-funds/image-snapshot/image",
+    }
+
+
 def _daily_funds_cashflow_observation_view() -> dict[str, Any]:
     """Read the independent, chart-only receipt/payment projection safely.
 
@@ -4697,6 +4782,35 @@ def daily_funds_payment_request_observations(
         range_value=range,
         from_date=from_,
         to_date=to,
+    )
+
+
+@app.get("/ops/api/daily-funds/image-snapshot")
+def daily_funds_image_snapshot():
+    """Read the independent direct-image state written by the funds worker."""
+
+    return _daily_funds_image_snapshot_view()
+
+
+@app.get("/ops/api/daily-funds/image-snapshot/image", include_in_schema=False)
+def daily_funds_image_snapshot_image():
+    """Serve the one current source image only when its state is displayable."""
+
+    view = _daily_funds_image_snapshot_view()
+    if view["image_url"] is None:
+        raise HTTPException(status_code=404, detail="daily_funds_image_snapshot_unavailable")
+    payload = _read_daily_funds_json("image_snapshot.json")
+    media_type = payload.get("media_type") if isinstance(payload, dict) else None
+    asset = _daily_funds_image_snapshot_asset(media_type)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="daily_funds_image_snapshot_unavailable")
+    return FileResponse(
+        asset,
+        media_type=str(media_type),
+        headers={
+            "Cache-Control": "private, no-store, no-transform",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

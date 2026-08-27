@@ -2717,6 +2717,75 @@ def test_payment_request_refresh_reads_the_exact_dws_source_without_waiting_for_
     assert windows == [(moment - timedelta(days=31), moment)]
 
 
+def test_payment_request_refresh_writes_the_latest_source_image_without_waiting_for_ocr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The visible source image remains available when the strict chart has no point."""
+
+    runtime = DailyFundsRuntime(_config(tmp_path))
+    older_message = {"fixture": "older-image", "createTime": "2026-08-25T01:00:00Z"}
+    newest_message = {"fixture": "newest-image", "createTime": "2026-08-26T01:00:00Z"}
+
+    def image_attachment(message: dict[str, object], marker: bytes) -> DownloadedAttachment:
+        payload = b"\x89PNG\r\n\x1a\n" + marker
+        return DownloadedAttachment(
+            message=message,
+            message_id=str(message["fixture"]),
+            message_id_hash="a" * 64,
+            message_at=datetime.fromisoformat(str(message["createTime"]).replace("Z", "+00:00")),
+            index=0,
+            filename="source-image.png",
+            family=None,
+            payload=payload,
+            sha256="d" * 64 if marker == b"older" else "e" * 64,
+            mime="image/png",
+        )
+
+    older = image_attachment(older_message, b"older")
+    newest = image_attachment(newest_message, b"newest")
+
+    class ExactSourceClient:
+        @staticmethod
+        def collect_group_history_v2(_start: datetime, _end: datetime) -> DwsPage:
+            return DwsPage(messages=(older_message, newest_message), next_cursor=None, has_more=False)
+
+        @staticmethod
+        def selected_messages(_page: DwsPage):
+            return (older_message, newest_message)
+
+        @staticmethod
+        def quarantine_messages(_page: DwsPage):
+            return ()
+
+        @staticmethod
+        def message_id_hash(message: dict[str, object]) -> str:
+            return "b" * 64 if message["fixture"] == "older-image" else "c" * 64
+
+        @staticmethod
+        def attachment_count(_message: dict[str, object]) -> int:
+            return 1
+
+        @staticmethod
+        def download(message: dict[str, object], _index: int) -> DownloadedAttachment:
+            return newest if message["fixture"] == "newest-image" else older
+
+    monkeypatch.setattr(runtime, "_dws_client", ExactSourceClient)
+    monkeypatch.setattr(runtime, "_payment_request_has_candidate", lambda _attachments: False)
+    monkeypatch.setattr(runtime, "_write_payment_request_observation", lambda _attachments: {"status": "NOT_AVAILABLE"})
+
+    result = runtime.payment_request_refresh(now=datetime(2026, 8, 26, 2, tzinfo=UTC))
+
+    assert result == {"ok": False, "code": "PAYMENT_REQUEST_REFRESH_SOURCE_EMPTY"}
+    snapshot = json.loads((runtime.config.publication_dir / "image_snapshot.json").read_text(encoding="utf-8"))
+    assert snapshot["status"] == "AVAILABLE"
+    assert snapshot["source_date"] == "2026-08-26"
+    assert snapshot["media_type"] == "image/png"
+    assert (runtime.config.publication_dir / "latest_finance_image").read_bytes() == newest.payload
+    assert "newest-image" not in json.dumps(snapshot)
+    assert "source-image.png" not in json.dumps(snapshot)
+
+
 def test_payment_request_refresh_clears_stale_points_when_the_exact_source_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
