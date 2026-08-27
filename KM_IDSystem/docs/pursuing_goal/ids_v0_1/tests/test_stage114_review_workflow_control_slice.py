@@ -307,7 +307,7 @@ class Stage114ReviewWorkflowPhase2Tests(unittest.TestCase):
                 self.assertEqual([], rejected[f"{prefix}_control_projections"])
                 self.assertEqual(0, rejected[f"{prefix}_control_projection_count"])
 
-    def test_scope_receipt_and_current_governance_are_exact(self) -> None:
+    def test_scope_receipt_and_p2_completion_evidence_are_exact(self) -> None:
         scope_text = SCOPE.read_text(encoding="utf-8")
         for phrase in (
             "五条非业务、`reference-only` 纯内存控制请求",
@@ -335,8 +335,6 @@ class Stage114ReviewWorkflowPhase2Tests(unittest.TestCase):
         receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
         if receipt.get("final_validation", {}).get("state") != "PASS":
             self.skipTest("P2 最终治理投影将在冻结本地验收完成后启用")
-        status = json.loads(STATUS.read_text(encoding="utf-8"))
-        plan = json.loads(PLAN.read_text(encoding="utf-8"))
         self.assertEqual(
             (
                 "IDS-STAGE114",
@@ -344,22 +342,23 @@ class Stage114ReviewWorkflowPhase2Tests(unittest.TestCase):
                 "IDS-V0_1-STAGE114-P2",
                 "IDS-STAGE114-P3-GATE",
             ),
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+            (
+                receipt["stage"],
+                receipt["phase"],
+                receipt["task_id"],
+                receipt["next_gate"],
+            ),
         )
-        self.assertEqual(
-            "REVIEW_WORKFLOW_CONTROL_SLICE_RUNTIME_DISABLED",
-            status["evidence_status"],
-        )
-        self.assertIn("IDS-STAGE114-P3-GATE", plan["stop_condition"])
         self.assertEqual(control_slice.PASS_RESULT, receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
         self.assertTrue(
             all(value is False for value in receipt["runtime_flags"].values())
         )
         self.assertEqual("PASS", receipt["final_validation"]["state"])
+        self.assertFalse(receipt["stage_boundary"]["stage114_phase3_started"])
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual("P2 受控最小切片已完成", acceptance_by_id["ACC-STAGE-114"])
+        self.assertIn("ACC-STAGE-114", acceptance_by_id)
         for acceptance_id in (
             "ACC-STAGE114-P2-01",
             "ACC-STAGE114-P2-02",
