@@ -278,10 +278,18 @@ class Stage115ReviewUiPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE115-P1",
             "IDS-STAGE115-P2-GATE",
         )
+        phase2_current = (
+            "IDS-STAGE115",
+            "IDS-STAGE115-P2",
+            "IDS-V0_1-STAGE115-P2",
+            "IDS-STAGE115-P3-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
-            self, current, {phase1_current}, status, plan, ROADMAP
+            self, current, {phase1_current, phase2_current}, status, plan, ROADMAP
         )
         self.assertFalse(is_current_projection)
+        if current == phase2_current:
+            return
         self.assertEqual("REVIEW_UI_CONTRACT_RUNTIME_DISABLED", status["evidence_status"])
         self.assertEqual("PASS_REVIEW_UI_CONTRACT_RUNTIME_DISABLED", receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
@@ -302,4 +310,3 @@ class Stage115ReviewUiPhase1Tests(unittest.TestCase):
         ):
             with self.subTest(acceptance_id=acceptance_id):
                 self.assertEqual("已通过", acceptance_by_id[acceptance_id])
-

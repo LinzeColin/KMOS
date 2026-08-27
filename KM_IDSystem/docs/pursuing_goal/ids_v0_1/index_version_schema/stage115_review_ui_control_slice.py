@@ -1,0 +1,522 @@
+"""Stage115 P2 复核 UI 的纯内存受控最小切片。
+
+模块只投影冻结的 reference-only 控制请求。它不读取业务资料、外部参考、
+证据账本、报告或既有审计日志；不创建真实复核队列、状态转换、UI、审计、
+证据风险或报告状态写回；不连接数据库、外部服务、模型或 OVH。
+"""
+
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+
+SCHEMA_VERSION = "ids.stage115.review_ui.phase2.v1"
+RECORD_KIND = "CONTROL_ONLY_IN_MEMORY_REVIEW_UI"
+CONTROL_ADAPTER_VERSION = "stage115-p2-control-slice-v1"
+PASS_RESULT = "PASS_IN_MEMORY_REVIEW_UI_CONTROL_SLICE_RUNTIME_DISABLED"
+REJECTED_RESULT = "REJECTED_IN_MEMORY_REVIEW_UI_CONTROL_SLICE"
+CONTROL_PREFIX = ":control:stage115-p2:"
+CONTROL_FIELDS = ("review_ui_control_requests",)
+
+CONTROL_SCENARIOS = (
+    "low_ocr_pending_review_ui_control",
+    "source_conflict_confirm_ui_control",
+    "parsing_failure_needs_more_material_ui_control",
+    "evidence_risk_reject_ui_control",
+    "external_augmentation_archive_ui_control",
+)
+
+FIXED_REVIEW_STATUSES = (
+    "pending_review",
+    "confirmed",
+    "rejected",
+    "needs_more_material",
+    "archived",
+)
+
+FIXED_REVIEW_ACTIONS = (
+    "submit_for_review",
+    "confirm",
+    "reject",
+    "request_more_material",
+    "archive",
+)
+
+STATIC_CHINESE_UI_SECTIONS = (
+    "复核队列",
+    "复核详情",
+    "审计引用",
+    "影响预览",
+    "业务线白箱门禁",
+)
+
+CONTROL_SCENARIO_CONFIGURATION = {
+    "low_ocr_pending_review_ui_control": {
+        "binding_mode": "review_queue_route",
+        "fixed_review_status": "pending_review",
+        "fixed_review_action": "submit_for_review",
+    },
+    "source_conflict_confirm_ui_control": {
+        "binding_mode": "review_queue_route",
+        "fixed_review_status": "confirmed",
+        "fixed_review_action": "confirm",
+    },
+    "parsing_failure_needs_more_material_ui_control": {
+        "binding_mode": "review_queue_route",
+        "fixed_review_status": "needs_more_material",
+        "fixed_review_action": "request_more_material",
+    },
+    "evidence_risk_reject_ui_control": {
+        "binding_mode": "review_queue_route",
+        "fixed_review_status": "rejected",
+        "fixed_review_action": "reject",
+    },
+    "external_augmentation_archive_ui_control": {
+        "binding_mode": "external_augmentation_route",
+        "fixed_review_status": "archived",
+        "fixed_review_action": "archive",
+    },
+}
+
+HUMAN_REASON_MESSAGES = {
+    "low_ocr_pending_review_ui_control": (
+        "低 OCR 置信度：已形成待复核控制投影，业务线白箱确认后才可处理。"
+    ),
+    "source_conflict_confirm_ui_control": (
+        "资料冲突：已形成确认动作控制投影，需保留差异说明并由业务线白箱复核。"
+    ),
+    "parsing_failure_needs_more_material_ui_control": (
+        "解析失败：已形成需补资料控制投影，补充可复核材料后由业务线白箱处理。"
+    ),
+    "evidence_risk_reject_ui_control": (
+        "证据风险：已形成拒绝动作控制投影，影响预览由业务线白箱确认。"
+    ),
+    "external_augmentation_archive_ui_control": (
+        "外部增强：保持外部来源身份，归档控制投影不能替代内部证据或业务线确认。"
+    ),
+}
+
+STATUS_CHINESE_LABELS = {
+    "pending_review": "待复核",
+    "confirmed": "已确认",
+    "rejected": "已拒绝",
+    "needs_more_material": "需补资料",
+    "archived": "已归档",
+}
+
+ACTION_CHINESE_LABELS = {
+    "submit_for_review": "提交复核",
+    "confirm": "确认",
+    "reject": "拒绝",
+    "request_more_material": "请求补充资料",
+    "archive": "归档",
+}
+
+PHASE1_CONTROL_REFERENCE_FIELDS = (
+    "review_queue_entry_ref",
+    "review_trigger_type_ref",
+    "review_status_ref",
+    "review_reason_ref",
+    "review_actor_ref",
+    "review_time_ref",
+    "review_transition_reason_ref",
+    "old_value_ref",
+    "new_value_ref",
+    "review_result_ref",
+    "review_audit_record_ref",
+    "evidence_trust_level_before_ref",
+    "evidence_trust_level_after_ref",
+    "report_quality_score_before_ref",
+    "report_quality_score_after_ref",
+    "report_status_impact_ref",
+    "business_line_whitebox_confirmation_gate_ref",
+    "re_review_reference_ref",
+    "archive_reference_ref",
+)
+
+INPUT_FIELDS = (
+    "control_scenario",
+    "control_binding_mode",
+    "fixed_review_status_control_value",
+    "fixed_review_action_control_value",
+    *PHASE1_CONTROL_REFERENCE_FIELDS,
+)
+
+REVIEW_UI_QUEUE_AND_ACTION_DYNAMIC_FIELDS = (
+    "review_status_chinese_control_label",
+    "review_action_chinese_control_label",
+    "review_reason_chinese_control_message",
+    "review_ui_section_control_labels",
+)
+
+REVIEW_UI_QUEUE_AND_ACTION_STATES = {
+    "review_ui_control_state": "CONTROL_CHINESE_REVIEW_UI_REFERENCE_ONLY_NOT_RENDERED",
+    "review_queue_control_state": "CONTROL_REVIEW_QUEUE_REFERENCE_ONLY_NOT_CREATED",
+    "review_action_control_state": "CONTROL_REVIEW_ACTION_REFERENCE_ONLY_NOT_EXECUTED",
+    "fixed_review_status_catalog": FIXED_REVIEW_STATUSES,
+    "fixed_review_action_catalog": FIXED_REVIEW_ACTIONS,
+    "static_chinese_ui_section_catalog": STATIC_CHINESE_UI_SECTIONS,
+    "automatic_review_queue_entry_allowed": False,
+    "automatic_review_action_allowed": False,
+    "automatic_review_ui_render_allowed": False,
+    "actual_review_queue_entry_created": False,
+    "actual_review_action_executed": False,
+    "actual_review_ui_rendered": False,
+}
+
+REVIEW_AUDIT_INPUT_FIELDS = (
+    "control_scenario",
+    "control_binding_mode",
+    "fixed_review_status_control_value",
+    "fixed_review_action_control_value",
+    "review_actor_ref",
+    "review_time_ref",
+    "review_transition_reason_ref",
+    "old_value_ref",
+    "new_value_ref",
+    "review_result_ref",
+    "review_audit_record_ref",
+    "re_review_reference_ref",
+    "archive_reference_ref",
+    "business_line_whitebox_confirmation_gate_ref",
+)
+
+REVIEW_AUDIT_STATES = {
+    "review_audit_control_state": "CONTROL_REVIEW_AUDIT_REFERENCE_ONLY_NOT_WRITTEN",
+    "review_result_control_state": "CONTROL_REVIEW_RESULT_REFERENCE_ONLY_NOT_APPLIED",
+    "re_review_control_state": "CONTROL_RE_REVIEW_REFERENCE_ONLY_NOT_EXECUTED",
+    "archive_control_state": "CONTROL_ARCHIVE_REFERENCE_ONLY_NOT_EXECUTED",
+    "automatic_review_audit_write_allowed": False,
+    "automatic_human_confirmation_allowed": False,
+    "automatic_re_review_allowed": False,
+    "automatic_archive_allowed": False,
+    "actual_review_audit_written": False,
+    "actual_actor_time_reason_old_new_recorded": False,
+    "actual_human_confirmation_recorded": False,
+    "actual_re_review_performed": False,
+    "actual_archive_performed": False,
+}
+
+EVIDENCE_TRUST_AND_REPORT_IMPACT_INPUT_FIELDS = (
+    "control_scenario",
+    "control_binding_mode",
+    "fixed_review_status_control_value",
+    "fixed_review_action_control_value",
+    "review_queue_entry_ref",
+    "evidence_trust_level_before_ref",
+    "evidence_trust_level_after_ref",
+    "report_quality_score_before_ref",
+    "report_quality_score_after_ref",
+    "report_status_impact_ref",
+    "review_result_ref",
+    "review_audit_record_ref",
+    "business_line_whitebox_confirmation_gate_ref",
+)
+
+EVIDENCE_TRUST_AND_REPORT_IMPACT_DYNAMIC_FIELDS = (
+    "review_result_impact_control_label",
+)
+
+EVIDENCE_TRUST_AND_REPORT_IMPACT_STATES = {
+    "evidence_risk_writeback_control_state": "CONTROL_EVIDENCE_RISK_REFERENCE_ONLY_NOT_WRITTEN",
+    "evidence_trust_level_control_state": "CONTROL_EVIDENCE_TRUST_LEVEL_REFERENCE_ONLY_NOT_CHANGED",
+    "report_quality_score_control_state": "CONTROL_REPORT_QUALITY_SCORE_REFERENCE_ONLY_NOT_CHANGED",
+    "report_status_writeback_control_state": "CONTROL_REPORT_STATUS_REFERENCE_ONLY_NOT_UPDATED",
+    "automatic_evidence_risk_writeback_allowed": False,
+    "automatic_evidence_trust_level_change_allowed": False,
+    "automatic_report_quality_score_change_allowed": False,
+    "automatic_report_status_change_allowed": False,
+    "actual_evidence_risk_writeback_performed": False,
+    "actual_evidence_trust_level_changed": False,
+    "actual_report_quality_score_changed": False,
+    "actual_report_status_changed": False,
+}
+
+HUMAN_REASON_AND_SOURCE_BOUNDARY_INPUT_FIELDS = (
+    "control_scenario",
+    "control_binding_mode",
+    "fixed_review_status_control_value",
+    "fixed_review_action_control_value",
+    "review_trigger_type_ref",
+    "review_reason_ref",
+    "review_queue_entry_ref",
+    "business_line_whitebox_confirmation_gate_ref",
+    "review_result_ref",
+    "archive_reference_ref",
+)
+
+HUMAN_REASON_AND_SOURCE_BOUNDARY_DYNAMIC_FIELDS = (
+    "external_public_reference_control_label",
+    "model_reasoning_control_label",
+    "business_line_whitebox_confirmation_control_label",
+)
+
+HUMAN_REASON_AND_SOURCE_BOUNDARY_STATES = {
+    "human_readable_review_reason_control_state": "CONTROL_CHINESE_REVIEW_REASON_REFERENCE_ONLY_NOT_DELIVERED",
+    "external_augmentation_representation_state": "CONTROL_EXTERNAL_AUGMENTATION_RETAINS_UNDERLYING_SOURCE_TYPE_SEPARATE_FROM_INTERNAL_EVIDENCE",
+    "external_augmentation_may_not_be_internal_project_evidence": True,
+    "external_augmentation_may_not_replace_evidence_binding": True,
+    "external_augmentation_may_not_close_evidence_gap": True,
+    "business_line_whitebox_confirmation_required": True,
+    "automatic_user_feedback_delivery_allowed": False,
+    "automatic_human_confirmation_allowed": False,
+    "automatic_final_conclusion_allowed": False,
+    "actual_external_augmentation_displayed": False,
+    "actual_human_confirmation_recorded": False,
+    "actual_final_conclusion_published": False,
+}
+
+PROJECTION_SPECS = (
+    (
+        "review_ui_queue_and_action",
+        INPUT_FIELDS,
+        REVIEW_UI_QUEUE_AND_ACTION_STATES,
+    ),
+    ("review_audit", REVIEW_AUDIT_INPUT_FIELDS, REVIEW_AUDIT_STATES),
+    (
+        "evidence_trust_and_report_impact",
+        EVIDENCE_TRUST_AND_REPORT_IMPACT_INPUT_FIELDS,
+        EVIDENCE_TRUST_AND_REPORT_IMPACT_STATES,
+    ),
+    (
+        "human_reason_and_source_boundary",
+        HUMAN_REASON_AND_SOURCE_BOUNDARY_INPUT_FIELDS,
+        HUMAN_REASON_AND_SOURCE_BOUNDARY_STATES,
+    ),
+)
+
+PROJECTION_FIELDS = (
+    (
+        "review_ui_queue_and_action",
+        (
+            *INPUT_FIELDS,
+            *REVIEW_UI_QUEUE_AND_ACTION_DYNAMIC_FIELDS,
+            *REVIEW_UI_QUEUE_AND_ACTION_STATES,
+        ),
+    ),
+    ("review_audit", (*REVIEW_AUDIT_INPUT_FIELDS, *REVIEW_AUDIT_STATES)),
+    (
+        "evidence_trust_and_report_impact",
+        (
+            *EVIDENCE_TRUST_AND_REPORT_IMPACT_INPUT_FIELDS,
+            *EVIDENCE_TRUST_AND_REPORT_IMPACT_DYNAMIC_FIELDS,
+            *EVIDENCE_TRUST_AND_REPORT_IMPACT_STATES,
+        ),
+    ),
+    (
+        "human_reason_and_source_boundary",
+        (
+            *HUMAN_REASON_AND_SOURCE_BOUNDARY_INPUT_FIELDS,
+            *HUMAN_REASON_AND_SOURCE_BOUNDARY_DYNAMIC_FIELDS,
+            *HUMAN_REASON_AND_SOURCE_BOUNDARY_STATES,
+        ),
+    ),
+)
+
+RUNTIME_CLOSED_FIELDS = (
+    "ids_business_source_read_performed",
+    "raw_metadata_content_accessed",
+    "external_reference_read_performed",
+    "report_or_pdf_read_performed",
+    "evidence_ledger_read_performed",
+    "evidence_ledger_write_performed",
+    "existing_audit_log_read_performed",
+    "low_ocr_evaluation_performed",
+    "source_conflict_evaluation_performed",
+    "parsing_failure_evaluation_performed",
+    "evidence_risk_evaluation_performed",
+    "review_queue_entry_created",
+    "review_workflow_execution_performed",
+    "review_ui_rendered",
+    "review_status_transition_performed",
+    "review_action_execution_performed",
+    "review_audit_write_performed",
+    "evidence_risk_writeback_performed",
+    "evidence_trust_level_change_performed",
+    "report_quality_score_change_performed",
+    "report_status_update_performed",
+    "human_confirmation_performed",
+    "database_connection_performed",
+    "audit_log_write_performed",
+    "persistent_state_write_performed",
+    "external_api_call_performed",
+    "provider_or_model_selected",
+    "model_call_performed",
+    "model_token_consumption_performed",
+    "agent_execution_performed",
+    "ovh_deployment_performed",
+    "production_runtime_activation_performed",
+    "github_upload_performed",
+    "push_performed",
+)
+
+
+def _control_ref(kind: str, scenario: str) -> str:
+    return f"{CONTROL_PREFIX}{kind}:{scenario}:reference-only"
+
+
+def _control_request(scenario: str) -> dict[str, str]:
+    """构造固定控制请求，不包含业务事实或可执行运行时输入。"""
+
+    configuration = CONTROL_SCENARIO_CONFIGURATION[scenario]
+    request = {
+        "control_scenario": scenario,
+        "control_binding_mode": f"CONTROL_BINDING_{configuration['binding_mode'].upper()}",
+        "fixed_review_status_control_value": configuration["fixed_review_status"],
+        "fixed_review_action_control_value": configuration["fixed_review_action"],
+    }
+    for field in PHASE1_CONTROL_REFERENCE_FIELDS:
+        kind = field.removesuffix("_ref").replace("_", "-")
+        request[field] = _control_ref(kind, scenario)
+    return request
+
+
+def build_control_input() -> dict[str, list[dict[str, str]]]:
+    """返回唯一允许的五条 Stage115 P2 非业务控制请求。"""
+
+    return {
+        CONTROL_FIELDS[0]: [
+            _control_request(scenario) for scenario in CONTROL_SCENARIOS
+        ]
+    }
+
+
+def _runtime_boundary() -> dict[str, bool]:
+    return {field: False for field in RUNTIME_CLOSED_FIELDS}
+
+
+def _zero_actual_counts() -> dict[str, int]:
+    return {
+        "actual_control_projection_execution_count": 0,
+        "actual_business_source_read_count": 0,
+        "actual_external_reference_read_count": 0,
+        "actual_report_or_pdf_read_count": 0,
+        "actual_evidence_ledger_read_count": 0,
+        "actual_existing_audit_log_read_count": 0,
+        "actual_review_queue_entry_count": 0,
+        "actual_review_workflow_execution_count": 0,
+        "actual_review_ui_render_count": 0,
+        "actual_review_action_execution_count": 0,
+        "actual_review_status_transition_count": 0,
+        "actual_review_audit_write_count": 0,
+        "actual_evidence_risk_writeback_count": 0,
+        "actual_evidence_trust_level_change_count": 0,
+        "actual_report_quality_score_change_count": 0,
+        "actual_report_status_update_count": 0,
+        "actual_human_confirmation_count": 0,
+        "actual_database_connection_count": 0,
+        "actual_audit_log_write_count": 0,
+        "actual_persistent_state_write_count": 0,
+        "actual_model_call_count": 0,
+        "actual_model_token_count": 0,
+        "actual_agent_execution_count": 0,
+        "actual_ovh_deployment_count": 0,
+    }
+
+
+def _empty_projection_result() -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for prefix, _fields in PROJECTION_FIELDS:
+        result[f"{prefix}_control_projections"] = []
+        result[f"{prefix}_control_projection_count"] = 0
+    return result
+
+
+def _rejected_result() -> dict[str, Any]:
+    """输入漂移保持拒绝状态，并且不产生控制投影。"""
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "record_kind": RECORD_KIND,
+        "control_adapter_version": CONTROL_ADAPTER_VERSION,
+        "input_accepted": False,
+        "execution_state": REJECTED_RESULT,
+        "failure_state": "CONTROL_INPUT_MISMATCH",
+        "control_input_count": 0,
+        "control_projection_group_count": len(PROJECTION_FIELDS),
+        "control_projection_field_total_per_request": sum(
+            len(fields) for _prefix, fields in PROJECTION_FIELDS
+        ),
+        "control_projection_field_total": 0,
+        **_zero_actual_counts(),
+        "persistent_record_created": False,
+        "runtime_boundary": _runtime_boundary(),
+        **_empty_projection_result(),
+    }
+
+
+def _project(request: Mapping[str, str]) -> dict[str, dict[str, Any]]:
+    scenario = request["control_scenario"]
+    status = request["fixed_review_status_control_value"]
+    action = request["fixed_review_action_control_value"]
+    projections: dict[str, dict[str, Any]] = {}
+    for prefix, input_fields, state_values in PROJECTION_SPECS:
+        record: dict[str, Any] = {field: request[field] for field in input_fields}
+        if prefix == "review_ui_queue_and_action":
+            record.update(
+                {
+                    "review_status_chinese_control_label": STATUS_CHINESE_LABELS[
+                        status
+                    ],
+                    "review_action_chinese_control_label": ACTION_CHINESE_LABELS[
+                        action
+                    ],
+                    "review_reason_chinese_control_message": HUMAN_REASON_MESSAGES[
+                        scenario
+                    ],
+                    "review_ui_section_control_labels": STATIC_CHINESE_UI_SECTIONS,
+                }
+            )
+        if prefix == "evidence_trust_and_report_impact":
+            record["review_result_impact_control_label"] = _control_ref(
+                "review-result-impact", scenario
+            )
+        if prefix == "human_reason_and_source_boundary":
+            record.update(
+                {
+                    "external_public_reference_control_label": _control_ref(
+                        "external-public-reference", scenario
+                    ),
+                    "model_reasoning_control_label": _control_ref(
+                        "model-reasoning", scenario
+                    ),
+                    "business_line_whitebox_confirmation_control_label": _control_ref(
+                        "business-line-whitebox-confirmation", scenario
+                    ),
+                }
+            )
+        record.update(state_values)
+        projections[prefix] = record
+    return projections
+
+
+def project_review_ui_control_slice(control_input: Mapping[str, Any]) -> dict[str, Any]:
+    """机械投影固定控制输入；输入漂移返回零运行时拒绝结果。"""
+
+    if control_input != build_control_input():
+        return _rejected_result()
+
+    projections = [_project(request) for request in control_input[CONTROL_FIELDS[0]]]
+    field_total_per_request = sum(
+        len(fields) for _prefix, fields in PROJECTION_FIELDS
+    )
+    result: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "record_kind": RECORD_KIND,
+        "control_adapter_version": CONTROL_ADAPTER_VERSION,
+        "input_accepted": True,
+        "execution_state": PASS_RESULT,
+        "failure_state": None,
+        "control_input_count": len(projections),
+        "control_projection_group_count": len(PROJECTION_FIELDS),
+        "control_projection_field_total_per_request": field_total_per_request,
+        "control_projection_field_total": len(projections) * field_total_per_request,
+        **_zero_actual_counts(),
+        "persistent_record_created": False,
+        "runtime_boundary": _runtime_boundary(),
+    }
+    for prefix, _fields in PROJECTION_FIELDS:
+        records = [projection[prefix] for projection in projections]
+        result[f"{prefix}_control_projections"] = records
+        result[f"{prefix}_control_projection_count"] = len(records)
+    return result

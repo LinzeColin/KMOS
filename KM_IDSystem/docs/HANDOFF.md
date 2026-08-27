@@ -1,5 +1,15 @@
 # IDS / Industrial Data System Handoff
 
+## Current Gate - Stage115 P2 accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE115-P2` 已完成冻结复核 UI 的纯内存受控最小切片；当前治理状态为 `IDS-STAGE115 / IDS-STAGE115-P2 / IDS-V0_1-STAGE115-P2 / IDS-STAGE115-P3-GATE`。P3 只由新的独立 run 在冻结任务包门禁下承接。
+- P2 固定 `5×23/19/4×39/27/26/25/117/585/24/5`：五条非业务、`reference-only` 控制请求，每条二十三个输入字段，承接 P1 十九个控制引用；四组投影覆盖中文复核 UI／队列／动作、复核审计、证据可信等级与报告影响、中文原因与外部增强来源边界。四类必经路由、五个状态与动作、actor/time/reason/old value/new value/review result、重新复核、归档和业务线白箱门禁保持受控。
+- 冻结 Stage115 任务包、Stage115 P1 静态合同与 Stage114 Review 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P2 聚焦 `7/7`、Stage112 P1 至 Stage115 P2 选择的前向治理套件 `124/124`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `13/13`、机器平面生成 `7` 个中文文件、文档预算／阻塞／双平面门均通过。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 `0`、运行标志保持 `false`；真实资料、OCR、冲突、解析、复核 UI、队列、工作流、审计、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。现有唯一 scratch worktree 和开发分支继续作为本地恢复位置，正式全局上传、main 与 release 保持后续授权门禁。
+- 回滚只撤回本 P2 的范围说明、纯内存模块、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REVIEW_UI_CONTRACT_RUNTIME_DISABLED`；P1、Stage114 Review、冻结任务包、来源文档、真实证据账本、报告、审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE115-P3-GATE`，继续使用同一既有 scratch worktree 与开发分支。
+
 ## Current Gate - Stage115 P1 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE115-P1` 已完成冻结复核 UI 静态控制合同；当前治理状态为 `IDS-STAGE115 / IDS-STAGE115-P1 / IDS-V0_1-STAGE115-P1 / IDS-STAGE115-P2-GATE`。Stage115 P2 由新的独立 run 在冻结任务包门禁下承接。

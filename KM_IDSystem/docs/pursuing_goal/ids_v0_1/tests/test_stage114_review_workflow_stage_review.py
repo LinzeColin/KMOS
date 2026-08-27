@@ -409,11 +409,22 @@ class Stage114ReviewWorkflowStageReviewTests(unittest.TestCase):
             "IDS-V0_1-STAGE115-P1",
             "IDS-STAGE115-P2-GATE",
         )
+        stage115_phase2_current = (
+            "IDS-STAGE115",
+            "IDS-STAGE115-P2",
+            "IDS-V0_1-STAGE115-P2",
+            "IDS-STAGE115-P3-GATE",
+        )
         future_projection = assert_legacy_or_current_projection(
-            self, current, {review_current, stage115_phase1_current}, status, plan, ROADMAP
+            self,
+            current,
+            {review_current, stage115_phase1_current, stage115_phase2_current},
+            status,
+            plan,
+            ROADMAP,
         )
         self.assertFalse(future_projection)
-        if current == stage115_phase1_current:
+        if current in {stage115_phase1_current, stage115_phase2_current}:
             return
         self.assertEqual(
             "REVIEWED_REVIEW_WORKFLOW_RUNTIME_DISABLED",
