@@ -13,6 +13,9 @@ from KM_IDSystem.docs.pursuing_goal.ids_v0_1.index_version_schema import (
 from KM_IDSystem.docs.pursuing_goal.ids_v0_1.index_version_schema import (
     stage114_review_workflow_control_slice as control_slice,
 )
+from KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests.current_governance_projection import (
+    assert_legacy_or_current_projection,
+)
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -357,20 +360,33 @@ class Stage114ReviewWorkflowPhase3Tests(unittest.TestCase):
             self.skipTest("P3 最终治理投影将在本 run 收尾时启用")
         status = json.loads(STATUS.read_text(encoding="utf-8"))
         plan = json.loads(PLAN.read_text(encoding="utf-8"))
-        self.assertEqual(
-            (
-                "IDS-STAGE114",
-                "IDS-STAGE114-P3",
-                "IDS-V0_1-STAGE114-P3",
-                "IDS-STAGE114-P4-GATE",
-            ),
-            (status["stage"], status["phase"], status["task"], status["next_gate"]),
+        current = (status["stage"], status["phase"], status["task"], status["next_gate"])
+        phase3_current = (
+            "IDS-STAGE114",
+            "IDS-STAGE114-P3",
+            "IDS-V0_1-STAGE114-P3",
+            "IDS-STAGE114-P4-GATE",
         )
-        self.assertEqual(
-            "REVIEW_WORKFLOW_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
-            status["evidence_status"],
+        phase4_current = (
+            "IDS-STAGE114",
+            "IDS-STAGE114-P4",
+            "IDS-V0_1-STAGE114-P4",
+            "IDS-STAGE114-REVIEW-GATE",
         )
-        self.assertIn("IDS-STAGE114-P4-GATE", plan["stop_condition"])
+        future_projection = assert_legacy_or_current_projection(
+            self,
+            current,
+            {phase3_current, phase4_current},
+            status,
+            plan,
+            ROADMAP,
+        )
+        if not future_projection and current == phase3_current:
+            self.assertEqual(
+                "REVIEW_WORKFLOW_CONTROLLED_SCENARIOS_RUNTIME_DISABLED",
+                status["evidence_status"],
+            )
+            self.assertIn("IDS-STAGE114-P4-GATE", plan["stop_condition"])
         self.assertEqual(controlled_scenarios.PASS_RESULT, receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))
         self.assertTrue(
@@ -379,9 +395,10 @@ class Stage114ReviewWorkflowPhase3Tests(unittest.TestCase):
         self.assertEqual("PASS", receipt["final_validation"]["state"])
         acceptance = json.loads(ACCEPTANCE.read_text(encoding="utf-8"))
         acceptance_by_id = {item["id"]: item["status"] for item in acceptance["items"]}
-        self.assertEqual(
-            "P3 专项异常场景已完成", acceptance_by_id["ACC-STAGE-114"]
-        )
+        if not future_projection and current == phase3_current:
+            self.assertEqual(
+                "P3 专项异常场景已完成", acceptance_by_id["ACC-STAGE-114"]
+            )
         for acceptance_id in (
             "ACC-STAGE114-P3-01",
             "ACC-STAGE114-P3-02",

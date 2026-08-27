@@ -1,5 +1,16 @@
 # IDS / Industrial Data System Handoff
 
+## Current Gate - Stage114 P4 accepted locally - 2026-08-27
+
+- IDS-V0_1-STAGE114-P4 已完成冻结复核工作流的 metadata-only 交付控制证据；当前治理状态为 IDS-STAGE114 / IDS-STAGE114-P4 / IDS-V0_1-STAGE114-P4 / IDS-STAGE114-REVIEW-GATE。整阶段 Review 仅由新的独立 run 在冻结任务包门禁下承接。
+- P4 机械重放 P3 的 5 条非业务、reference-only 场景、其 P2 的 5×30/26/4×132/660 控制形状和 P3 的 5×54/270 场景检查点，形成复核队列样例、复核审计日志样例、中文 UI 流程说明、人工判断边界与业务线白箱确认各 5 条，以及 2 条 P4→P3 回滚与重新复核说明；字段形状 17/13/13/15/14/14，共 388 个检查点、17 类失败关闭和 4 条中文反馈。
+- actor/time/reason/old_value/new_value/review result/review audit、证据可信等级、报告质量／状态影响和外部增强来源分离保持未来控制引用；业务线白箱人工确认继续作为未来业务使用、真实状态转换、真实写回和最终结论的前置。`time` 已登记到唯一机器平面术语表，中文视图校验保持一致。
+- 冻结 Stage114 任务包、Stage114 P1/P2/P3 控制工件与 Stage113 Review 工件构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P4 聚焦 8/8、Stage112 至 Stage114 P4 选择的前向治理套件 104/104、Stage005 直接治理校验 valid=true、Batch041-050 与 Batch051-060 均为 PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED、批次门禁 7/7、机器平面生成 7 个中文文件、文档预算／阻塞／双平面门均通过。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 0、运行标志保持 false；真实资料、OCR、复核工作流、队列、UI、审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。本 P4 不新增远端写入，正式全局上传、main 与 release 保持后续授权门禁。
+- 回滚只撤回本 P4 的范围说明、纯内存模块、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 PASS_IN_MEMORY_REVIEW_WORKFLOW_CONTROLLED_SCENARIOS_RUNTIME_DISABLED；Stage114 P1/P2/P3、Stage113 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 IDS-STAGE114-REVIEW-GATE，继续使用同一既有 scratch worktree 与开发分支。
+
 ## Current Gate - Stage114 P3 accepted locally - 2026-08-27
 
 - IDS-V0_1-STAGE114-P3 已完成冻结复核工作流的专项异常场景验证；当前治理状态为 IDS-STAGE114 / IDS-STAGE114-P3 / IDS-V0_1-STAGE114-P3 / IDS-STAGE114-P4-GATE。P4 仅由新的独立 run 在冻结任务包门禁下承接。
