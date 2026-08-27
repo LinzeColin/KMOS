@@ -1,5 +1,13 @@
 # IDS / Industrial Data System Handoff
 
+## Checkpoint - Stage115 P4 in progress - 2026-08-27
+
+- 当前目标保持为 `IDS-V0_1-STAGE115-P4` 的 metadata-only 复核 UI 交付证据；P3 已验收，治理事实仍停留在 `IDS-STAGE115-P3-GATE`，P4 完成后才进入 `IDS-STAGE115-REVIEW-GATE`。
+- 本检查点已形成四项 P4 工件：范围说明 `STAGE115_PHASE4_REVIEW_UI_DELIVERY.md`、纯内存交付模块 `stage115_review_ui_delivery.py`、静态合同 `stage115_review_ui_delivery_contract.json`、聚焦用例 `test_stage115_review_ui_delivery.py`。模块固定五类各五条样例与两条回滚／重新复核说明，字段形状为 `17/13/13/15/14/14`，合计 `388` 个检查点和 `17` 类失败关闭。
+- 已验证：P4 聚焦用例 `9/9` 通过，最终治理投影用例按 P4 尚未登记回执而跳过。待续工作限于路线图、机器事实、验收、事件、回执、中文生成视图及完整门禁验收；当前检查点不把 P4 标记为完成。
+- 所有工件保持纯内存控制证据，运行计数为 `0`、运行标志为 `false`；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 恢复位置为现有唯一 scratch worktree 与开发分支 `codex/kmids-stage071-p1`。本次按用户临时保全授权建立远端检查点；后续继续同一 worktree，完成 P4 后停在 `IDS-STAGE115-REVIEW-GATE`。
+
 ## Current Gate - Stage115 P3 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE115-P3` 已完成冻结复核 UI 的纯内存专项异常场景控制；当前治理状态为 `IDS-STAGE115 / IDS-STAGE115-P3 / IDS-V0_1-STAGE115-P3 / IDS-STAGE115-P4-GATE`。P4 只由新的独立 run 在冻结任务包门禁下承接。
