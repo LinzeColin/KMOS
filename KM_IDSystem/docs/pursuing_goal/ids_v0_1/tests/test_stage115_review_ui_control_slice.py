@@ -320,10 +320,18 @@ class Stage115ReviewUiPhase2Tests(unittest.TestCase):
             "IDS-V0_1-STAGE115-P2",
             "IDS-STAGE115-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE115",
+            "IDS-STAGE115-P3",
+            "IDS-V0_1-STAGE115-P3",
+            "IDS-STAGE115-P4-GATE",
+        )
         future_projection = assert_legacy_or_current_projection(
-            self, current, {phase2_current}, status, plan, ROADMAP
+            self, current, {phase2_current, phase3_current}, status, plan, ROADMAP
         )
         self.assertFalse(future_projection)
+        if current == phase3_current:
+            return
         self.assertEqual("REVIEW_UI_CONTROL_SLICE_RUNTIME_DISABLED", status["evidence_status"])
         self.assertEqual(control_slice.PASS_RESULT, receipt["result"])
         self.assertTrue(all(value == 0 for value in receipt["runtime_counts"].values()))

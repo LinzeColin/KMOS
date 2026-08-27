@@ -1,3 +1,10 @@
+## 2026-08-27 · Stage115 复核 UI P3
+
+- 完成冻结 Stage115 P3 纯内存专项异常场景：机械重放 P2 的五条非业务、`reference-only` 控制请求，保留每条 `23` 个输入字段、P1 的 `19` 个控制引用、四组、每条 `117` 个字段、共 `585` 个前序检查点；形成低质量 OCR、资料冲突、撤回资料、evidence trust level 与报告质量影响、外部增强替代内部证据五条、每条 `47` 字段、共 `235` 个场景检查点、五个控制视图与五条业务线白箱处理记录。
+- actor、time、reason、old value、new value、review result、review audit、重新复核、归档、证据可信等级、报告质量与报告状态影响保持未来控制引用；外部增强保持外部来源身份，内部证据绑定和业务线白箱确认继续承担未来业务使用前置。
+- 本地验收记录：P3 聚焦 `8/8`、Stage112 P1 至 Stage115 P3 选择的前向治理套件 `132/132`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `13/13`、机器平面生成 `7` 个中文文件，文档预算／阻塞／双平面门均通过。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 完成态止于 `IDS-STAGE115-P4-GATE`，可回退到 `PASS_IN_MEMORY_REVIEW_UI_CONTROL_SLICE_RUNTIME_DISABLED`。本 P3 形成可恢复本地提交，正式全局上传、main、release、OVH 与生产继续由后续授权门禁承接。
+
 ## 2026-08-27 · Stage115 复核 UI P2
 
 - 完成冻结 Stage115 P2 纯内存中文复核 UI 控制切片：固定 `5×23/19/4×39/27/26/25/117/585/24/5` 控制形状，覆盖复核队列／动作、复核审计、证据可信等级与报告影响、中文原因与外部增强来源边界四组投影。

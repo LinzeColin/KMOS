@@ -284,11 +284,22 @@ class Stage115ReviewUiPhase1Tests(unittest.TestCase):
             "IDS-V0_1-STAGE115-P2",
             "IDS-STAGE115-P3-GATE",
         )
+        phase3_current = (
+            "IDS-STAGE115",
+            "IDS-STAGE115-P3",
+            "IDS-V0_1-STAGE115-P3",
+            "IDS-STAGE115-P4-GATE",
+        )
         is_current_projection = assert_legacy_or_current_projection(
-            self, current, {phase1_current, phase2_current}, status, plan, ROADMAP
+            self,
+            current,
+            {phase1_current, phase2_current, phase3_current},
+            status,
+            plan,
+            ROADMAP,
         )
         self.assertFalse(is_current_projection)
-        if current == phase2_current:
+        if current in {phase2_current, phase3_current}:
             return
         self.assertEqual("REVIEW_UI_CONTRACT_RUNTIME_DISABLED", status["evidence_status"])
         self.assertEqual("PASS_REVIEW_UI_CONTRACT_RUNTIME_DISABLED", receipt["result"])
