@@ -4851,6 +4851,12 @@ def evaluate_stage038_source_reverification(
                         and roadmap.get("next_gate_id")
                         == "IDS-STAGE114-REVIEW-GATE"
                     )
+                    or (
+                        roadmap.get("current_phase_id") == "IDS-STAGE114-REVIEW"
+                        and roadmap.get("current_task_id")
+                        == "IDS-V0_1-STAGE114-REVIEW"
+                        and roadmap.get("next_gate_id") == "IDS-STAGE115-P1-GATE"
+                    )
                 )
                 and source_gate.get("gate_id")
                 == "IDS-STAGE038-P1-SOURCE-REVERIFY-GATE"
@@ -5986,6 +5992,11 @@ ALLOWED_CHANGED_PATHS = {
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage114_review_workflow_delivery_contract.json",
     "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage114_review_workflow_delivery.py",
     "KM_IDSystem/machine/runs/2026-08-27-stage114-p4-local.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE114_STAGE_REVIEW.md",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage114_review_workflow_stage_review.py",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/stage114_review_workflow_stage_review_contract.json",
+    "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/test_stage114_review_workflow_stage_review.py",
+    "KM_IDSystem/machine/runs/2026-08-27-stage114-review-local.json",
     "KM_IDSystem/docs/HANDOFF.md",
     "KM_IDSystem/docs/governance/DEVELOPMENT_LEDGER.md",
     "KM_IDSystem/docs/governance/DELIVERY_PLAN.md",
@@ -26850,6 +26861,154 @@ def evaluate_required_event_semantics(events: list[dict]) -> list[str]:
             "next_gate": "IDS-STAGE114-REVIEW-GATE",
         },
     }
+    event_specs["EVT-IDS-V0_1-STAGE114-REVIEW-20260827-001"] = {
+        "event_type": "stage_review_completed",
+        "allow_stage_gate": True,
+        "task_id": "IDS-V0_1-STAGE114-REVIEW",
+        "acceptance_ids": [
+            "ACC-STAGE-114",
+            "ACC-STAGE114-REVIEW-01",
+            "ACC-STAGE114-REVIEW-02",
+            "ACC-STAGE114-REVIEW-03",
+            "ACC-STAGE114-REVIEW-04",
+        ],
+        "required_changed_files": {
+            "KM_IDSystem/CHANGELOG.md",
+            "KM_IDSystem/docs/HANDOFF.md",
+            "KM_IDSystem/docs/governance/events.jsonl",
+            "KM_IDSystem/docs/governance/roadmap.yaml",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE114_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_batch051_060_review_gate.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "validate_stage005_governance_regression.py",
+            "KM_IDSystem/scripts/check_batch041_050_review.py",
+            "KM_IDSystem/scripts/check_batch051_060_review.py",
+            "KM_IDSystem/machine/facts/acceptance.json",
+            "KM_IDSystem/machine/facts/plan.json",
+            "KM_IDSystem/machine/facts/status.json",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-review-local.json",
+        },
+        "required_refs": {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/"
+            "stages/STAGE-114_复核工作流.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE114_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-review-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE114_PHASE4_REVIEW_WORKFLOW_DELIVERY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_delivery_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_delivery.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-p4-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE114_PHASE3_REVIEW_WORKFLOW_CONTROLLED_SCENARIOS.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_controlled_scenarios.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_controlled_scenarios_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_controlled_scenarios.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-p3-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE114_PHASE2_REVIEW_WORKFLOW_CONTROL_SLICE.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_control_slice.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_control_slice_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_control_slice.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-p2-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE114_PHASE1_REVIEW_WORKFLOW_SCOPE_BOUNDARY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_contract.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-p1-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE113_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage113_review_queue_schema_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage113_review_queue_schema_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage113_review_queue_schema_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage113-review-local.json",
+        },
+        "required_note_assignments": {
+            "contract_state": "STAGE114_REVIEW_WORKFLOW_REVIEW_RUNTIME_DISABLED",
+            "second_authoritative_source_created": "false",
+            "phase1_reference_field_count": "26",
+            "phase1_review_trigger_type_count": "4",
+            "phase1_review_status_count": "5",
+            "phase1_workflow_action_label_count": "5",
+            "phase1_review_audit_reference_field_count": "7",
+            "phase1_failure_state_count": "20",
+            "phase1_chinese_feedback_count": "4",
+            "phase2_control_request_count": "5",
+            "phase2_input_field_count": "30",
+            "phase2_phase1_reference_field_count": "26",
+            "phase2_projection_group_count": "4",
+            "phase2_projection_field_count_per_request": "132",
+            "phase2_control_field_check_count": "660",
+            "phase3_scenario_count": "5",
+            "phase3_scenario_field_count": "54",
+            "phase3_scenario_field_check_count": "270",
+            "phase3_control_view_count": "5",
+            "phase3_human_handling_count": "5",
+            "phase3_whitebox_confirmation_required_count": "5",
+            "phase3_failure_state_count": "15",
+            "phase3_chinese_feedback_count": "5",
+            "phase4_delivery_shape": "5/5/5/5/5/2",
+            "phase4_delivery_field_shape": "17/13/13/15/14/14",
+            "phase4_delivery_field_check_count": "388",
+            "phase4_chinese_feedback_count": "4",
+            "phase4_failure_state_count": "17",
+            "actor_time_reason_old_new_review_audit_controls_preserved": "true",
+            "evidence_trust_and_report_quality_impact_controls_preserved": "true",
+            "external_augmentation_source_separation_preserved": "true",
+            "business_line_whitebox_confirmation_preserved": "true",
+            "phase4_to_phase3_rollback_preserved": "true",
+            "focused_review_test_count": "7",
+            "stage005_direct_validation_valid": "true",
+            "batch_review_gate_test_count": "7",
+            "human_rendered_file_count": "7",
+            "document_budget_valid": "true",
+            "blocker_stop_valid": "true",
+            "dual_plane_valid": "true",
+            "actual_runtime_counts": "0",
+            "model_call_performed": "false",
+            "model_token_consumption_performed": "false",
+            "agent_execution_performed": "false",
+            "ovh_deployment_performed": "false",
+            "production_runtime_activation_performed": "false",
+            "stage113_review_preserved": "true",
+            "stage114_phase1_completed": "true",
+            "stage114_phase2_completed": "true",
+            "stage114_phase3_completed": "true",
+            "stage114_phase4_completed": "true",
+            "stage114_review_completed": "true",
+            "stage115_started": "false",
+            "formal_global_upload_performed": "false",
+            "github_upload_allowed": "false",
+            "push_allowed": "false",
+            "next_gate": "IDS-STAGE115-P1-GATE",
+        },
+    }
 
     errors: list[str] = []
     recognized_events = 0
@@ -29037,6 +29196,315 @@ def evaluate_current_state_consistency(
             "current_state_stage114_phase3_not_started": phase3_valid,
             "current_state_stage114_phase4_not_started": phase4_valid,
             "current_state_stage114_review_not_started": review_valid,
+            "current_state_stage114_transition_history_preserved": transition_valid,
+            "current_state_batch041_050_projection_preserved": historical_batch041_050_projection_valid,
+        }
+    if (
+        current_stage_id == "IDS-STAGE114"
+        and roadmap.get("current_phase_id") == "IDS-STAGE114-REVIEW"
+        and roadmap.get("current_task_id") == "IDS-V0_1-STAGE114-REVIEW"
+        and roadmap.get("next_gate_id") == "IDS-STAGE115-P1-GATE"
+    ):
+        roadmap_stages = roadmap.get("stages")
+        roadmap_stages = roadmap_stages if isinstance(roadmap_stages, list) else []
+        current_stage = next(
+            (
+                item
+                for item in roadmap_stages
+                if isinstance(item, dict) and item.get("stage_id") == "IDS-STAGE114"
+            ),
+            {},
+        )
+        predecessor_stage = next(
+            (
+                item
+                for item in roadmap_stages
+                if isinstance(item, dict) and item.get("stage_id") == "IDS-STAGE113"
+            ),
+            {},
+        )
+        phases = current_stage.get("phases") if isinstance(current_stage, dict) else []
+        phases = phases if isinstance(phases, list) else []
+        phase_by_id = {
+            item.get("phase_id"): item
+            for item in phases
+            if isinstance(item, dict) and isinstance(item.get("phase_id"), str)
+        }
+
+        def phase_task(phase: object, task_id: str) -> dict:
+            tasks = phase.get("tasks") if isinstance(phase, dict) else []
+            tasks = tasks if isinstance(tasks, list) else []
+            return next(
+                (
+                    item
+                    for item in tasks
+                    if isinstance(item, dict) and item.get("task_id") == task_id
+                ),
+                {},
+            )
+
+        def completed_phase_valid(
+            phase_id: str,
+            task_id: str,
+            *,
+            gate_id: str,
+            next_gate_id: str,
+            dependencies: list[str],
+            test_module: str,
+        ) -> bool:
+            phase = phase_by_id.get(phase_id, {})
+            task = phase_task(phase, task_id)
+            return all(
+                (
+                    isinstance(phase, dict),
+                    phase.get("status") == "completed",
+                    phase.get("entry_authorized") is True,
+                    phase.get("next_gate_id") == next_gate_id,
+                    isinstance(phase.get("gate"), dict),
+                    phase["gate"].get("gate_id") == gate_id,
+                    phase["gate"].get("status") == "passed",
+                    phase["gate"].get("next_gate_id") == next_gate_id,
+                    phase["gate"].get("github_upload_allowed") is False,
+                    task.get("task_id") == task_id,
+                    task.get("status") == "completed",
+                    task.get("dependencies") == dependencies,
+                    (
+                        "python3 -B -m unittest -q "
+                        "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                        f"{test_module}"
+                        in task.get("test_commands", [])
+                    ),
+                    isinstance(task.get("test_results"), str),
+                    bool(task.get("test_results")),
+                )
+            )
+
+        phase1_valid = completed_phase_valid(
+            "IDS-STAGE114-P1",
+            "IDS-V0_1-STAGE114-P1",
+            gate_id="IDS-STAGE114-P1-GATE",
+            next_gate_id="IDS-STAGE114-P2-GATE",
+            dependencies=["IDS-V0_1-STAGE113-REVIEW"],
+            test_module="test_stage114_review_workflow_contract",
+        )
+        phase2_valid = completed_phase_valid(
+            "IDS-STAGE114-P2",
+            "IDS-V0_1-STAGE114-P2",
+            gate_id="IDS-STAGE114-P2-GATE",
+            next_gate_id="IDS-STAGE114-P3-GATE",
+            dependencies=["IDS-V0_1-STAGE114-P1"],
+            test_module="test_stage114_review_workflow_control_slice",
+        )
+        phase3_valid = completed_phase_valid(
+            "IDS-STAGE114-P3",
+            "IDS-V0_1-STAGE114-P3",
+            gate_id="IDS-STAGE114-P3-GATE",
+            next_gate_id="IDS-STAGE114-P4-GATE",
+            dependencies=["IDS-V0_1-STAGE114-P1", "IDS-V0_1-STAGE114-P2"],
+            test_module="test_stage114_review_workflow_controlled_scenarios",
+        )
+        phase4_valid = completed_phase_valid(
+            "IDS-STAGE114-P4",
+            "IDS-V0_1-STAGE114-P4",
+            gate_id="IDS-STAGE114-P4-GATE",
+            next_gate_id="IDS-STAGE114-REVIEW-GATE",
+            dependencies=[
+                "IDS-V0_1-STAGE114-P1",
+                "IDS-V0_1-STAGE114-P2",
+                "IDS-V0_1-STAGE114-P3",
+            ],
+            test_module="test_stage114_review_workflow_delivery",
+        )
+        review = current_stage.get("review") if isinstance(current_stage, dict) else {}
+        review = review if isinstance(review, dict) else {}
+        review_task = phase_task(review, "IDS-V0_1-STAGE114-REVIEW")
+        review_required_evidence = {
+            "KM_IDSystem/docs/taskpacks/IDS_v0_1_Final_Chinese_Revised/"
+            "stages/STAGE-114_复核工作流.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/STAGE114_STAGE_REVIEW.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_stage_review.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_stage_review_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_stage_review.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-review-local.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/"
+            "STAGE114_PHASE4_REVIEW_WORKFLOW_DELIVERY.md",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_delivery.py",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/index_version_schema/"
+            "stage114_review_workflow_delivery_contract.json",
+            "KM_IDSystem/docs/pursuing_goal/ids_v0_1/tests/"
+            "test_stage114_review_workflow_delivery.py",
+            "KM_IDSystem/machine/runs/2026-08-27-stage114-p4-local.json",
+        }
+        review_valid = all(
+            (
+                review.get("phase_id") == "IDS-STAGE114-REVIEW",
+                review.get("status") == "completed",
+                review.get("entry_authorized") is True,
+                review.get("next_gate_id") == "IDS-STAGE115-P1-GATE",
+                isinstance(review.get("gate"), dict),
+                review["gate"].get("gate_id") == "IDS-STAGE114-REVIEW-GATE",
+                review["gate"].get("status") == "passed",
+                review["gate"].get("next_gate_id") == "IDS-STAGE115-P1-GATE",
+                review["gate"].get("github_upload_allowed") is False,
+                review_task.get("task_id") == "IDS-V0_1-STAGE114-REVIEW",
+                review_task.get("status") == "completed",
+                review_task.get("dependencies")
+                == [
+                    "IDS-V0_1-STAGE114-P1",
+                    "IDS-V0_1-STAGE114-P2",
+                    "IDS-V0_1-STAGE114-P3",
+                    "IDS-V0_1-STAGE114-P4",
+                ],
+                review_task.get("acceptance_ids")
+                == [
+                    "ACC-STAGE-114",
+                    "ACC-STAGE114-REVIEW-01",
+                    "ACC-STAGE114-REVIEW-02",
+                    "ACC-STAGE114-REVIEW-03",
+                    "ACC-STAGE114-REVIEW-04",
+                ],
+                (
+                    "python3 -B -m unittest -q "
+                    "KM_IDSystem.docs.pursuing_goal.ids_v0_1.tests."
+                    "test_stage114_review_workflow_stage_review"
+                    in review_task.get("test_commands", [])
+                ),
+                isinstance(review_task.get("test_results"), str),
+                bool(review_task.get("test_results")),
+                review_required_evidence.issubset(
+                    {
+                        item
+                        for item in review_task.get("evidence_refs", [])
+                        if isinstance(item, str)
+                    }
+                ),
+            )
+        )
+        current_stage_valid = all(
+            (
+                current_stage.get("name") == "复核工作流",
+                current_stage.get("task_id") == "IDS-V0_1-STAGE114",
+                current_stage.get("acceptance_ids") == ["ACC-STAGE-114"],
+                current_stage.get("status") == "completed_reviewed_local",
+                current_stage.get("entry_authorized") is True,
+                current_stage.get("next_gate_id") == "IDS-STAGE115-P1-GATE",
+                isinstance(current_stage.get("gate"), dict),
+                current_stage["gate"].get("gate_id")
+                == "IDS-STAGE114-REVIEW-GATE",
+                current_stage["gate"].get("status") == "passed",
+                current_stage["gate"].get("next_gate_id")
+                == "IDS-STAGE115-P1-GATE",
+                current_stage["gate"].get("github_upload_allowed") is False,
+            )
+        )
+        predecessor_review = (
+            predecessor_stage.get("review")
+            if isinstance(predecessor_stage, dict)
+            else {}
+        )
+        predecessor_review = (
+            predecessor_review if isinstance(predecessor_review, dict) else {}
+        )
+        predecessor_task = phase_task(
+            predecessor_review, "IDS-V0_1-STAGE113-REVIEW"
+        )
+        predecessor_valid = all(
+            (
+                predecessor_stage.get("task_id") == "IDS-V0_1-STAGE113",
+                predecessor_stage.get("status") == "completed_reviewed_local",
+                predecessor_stage.get("next_gate_id") == "IDS-STAGE114-P1-GATE",
+                predecessor_review.get("status") == "completed",
+                predecessor_task.get("status") == "completed",
+            )
+        )
+        transitions = roadmap.get("current_transition_history")
+        transitions = transitions if isinstance(transitions, dict) else {}
+        expected_transitions = {
+            "stage114_phase1_state": (
+                "IDS-STAGE114-P1",
+                "IDS-V0_1-STAGE114-P1",
+                "IDS-STAGE114-P2-GATE",
+            ),
+            "stage114_phase2_state": (
+                "IDS-STAGE114-P2",
+                "IDS-V0_1-STAGE114-P2",
+                "IDS-STAGE114-P3-GATE",
+            ),
+            "stage114_phase3_state": (
+                "IDS-STAGE114-P3",
+                "IDS-V0_1-STAGE114-P3",
+                "IDS-STAGE114-P4-GATE",
+            ),
+            "stage114_phase4_state": (
+                "IDS-STAGE114-P4",
+                "IDS-V0_1-STAGE114-P4",
+                "IDS-STAGE114-REVIEW-GATE",
+            ),
+            "stage114_review_state": (
+                "IDS-STAGE114-REVIEW",
+                "IDS-V0_1-STAGE114-REVIEW",
+                "IDS-STAGE115-P1-GATE",
+            ),
+        }
+        transition_valid = all(
+            transitions.get(name)
+            == {
+                "current_stage_id": "IDS-STAGE114",
+                "current_phase_id": phase,
+                "current_task_id": task,
+                "next_gate_id": next_gate,
+            }
+            for name, (phase, task, next_gate) in expected_transitions.items()
+        )
+        batch_route_verified = (
+            batch.get("status")
+            in {
+                "batch041_050_reviewed_local_global_upload_locked",
+                "batch051_060_reviewed_local_global_upload_locked",
+                "stage070_completed_reviewed_local",
+            }
+            and decision.get("github_upload_allowed") is False
+            and decision.get("push_allowed") is False
+            and upload_gate.get("github_upload_allowed") is False
+            and upload_gate.get("push_allowed") is False
+        )
+        batch_governance_valid = (
+            batch_route_verified and historical_batch041_050_projection_valid
+        )
+        exact = all(
+            (
+                current_stage_valid,
+                phase1_valid,
+                phase2_valid,
+                phase3_valid,
+                phase4_valid,
+                review_valid,
+                predecessor_valid,
+                transition_valid,
+                batch_governance_valid,
+            )
+        )
+        return {
+            "yaml_documents_parsed": bool(batch) and bool(roadmap),
+            "current_stage_node_resolved": exact,
+            "current_phase_allowed": exact,
+            "current_task_allowed": exact,
+            "next_gate_allowed": exact,
+            "batch_top_status_matches_stage": batch_governance_valid,
+            "decision_upload_locked": batch_route_verified,
+            "push_locked_structurally": batch_route_verified,
+            "current_state_decision_upload_locked": batch_route_verified,
+            "current_state_push_locked_structurally": batch_route_verified,
+            "current_state_stage113_review_preserved": predecessor_valid,
+            "current_state_stage114_phase1_completed": phase1_valid,
+            "current_state_stage114_phase2_completed": phase2_valid,
+            "current_state_stage114_phase3_completed": phase3_valid,
+            "current_state_stage114_phase4_completed": phase4_valid,
+            "current_state_stage114_review_completed": review_valid,
             "current_state_stage114_transition_history_preserved": transition_valid,
             "current_state_batch041_050_projection_preserved": historical_batch041_050_projection_valid,
         }

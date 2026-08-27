@@ -1,3 +1,9 @@
+## 2026-08-27 · Stage114 复核工作流整阶段机械复审
+
+- 完成冻结 Stage114 P1--P4 控制工件的纯内存机械复审：P1 固定 `26/4/5/5/7/20/4`，P2 固定 `5×30/26/4×132/660`，P3 固定 `5×54=270/5/5/5/15/5`，P4 固定 `5/5/5/5/5/2`、`17/13/13/15/14/14`、`388/4/17`。actor、time、reason、old value、new value、review result、review audit、证据可信等级与报告质量／状态影响、外部增强来源分离、业务线白箱确认和 `P4→P3` 回退保持受控。
+- 本地验收记录：Review 聚焦 `7/7`、Stage112 Review 至 Stage114 Review 选择的前向治理套件 `111/111`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 完成态止于 `IDS-STAGE115-P1-GATE`，可回退到 `PASS_REVIEW_WORKFLOW_DELIVERY_EVIDENCE_RUNTIME_DISABLED`。本 Review 形成可恢复本地提交，不执行新增远端写入；正式全局上传、main、release、OVH 与生产继续由后续授权门禁承接。
+
 ## 2026-08-27 · Stage114 复核工作流 P4
 
 - 完成冻结 P4 metadata-only 交付控制证据：从 P3 的 5 条非业务、reference-only 场景派生复核队列样例、复核审计日志样例、中文 UI 流程说明、人工判断边界与业务线白箱确认各 5 条，以及回滚与重新复核说明 2 条；字段形状为 17/13/13/15/14/14，共 388 个检查点、17 类失败关闭与 4 条中文反馈。
