@@ -1,3 +1,10 @@
+## 2026-08-27 · Stage114 复核工作流 P2
+
+- 完成冻结 P2 纯内存受控最小切片：固定 `5` 条非业务、`reference-only` 控制请求，每条 `30` 个输入字段，完整承接 P1 的 `26` 个控制引用；四组投影字段形状为 `45/31/28/28`，每条 `132` 个字段、共 `660` 个检查点，覆盖复核工作流／队列／中文 UI、复核审计、证据风险与报告状态未来写回、中文原因与外部增强来源边界。
+- `actor`、`time`、`reason`、`old_value`、`new_value`、`review result`、重新复核、归档、证据可信等级与报告质量／状态影响保持未来控制引用；外部增强来源分离、业务线白箱确认与输入漂移失败关闭保持受控。来源文档、真实证据账本、已交付报告与既有审计日志继续承担业务事实权威。
+- 本地验收记录：P2 聚焦 `7/7`、Stage112 Review 至 Stage114 P2 前向治理套件 `64/64`、Stage005 治理回归 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。运行计数保持 `0`、运行标志保持 `false`；模型 Token、Agent、OVH 与生产运行保持零执行。
+- 完成态止于 `IDS-STAGE114-P3-GATE`，可回退到 `PASS_REVIEW_WORKFLOW_CONTRACT_RUNTIME_DISABLED`。本 P2 最终验收不新增远端写入；正式全局上传、main、release、OVH 与生产继续由后续授权门禁承接。
+
 ## 2026-08-27 · Stage114 复核工作流 P1
 
 - 完成冻结 P1 静态合同：固定 `26/4/5/5/7/20/4` 控制形状，覆盖二十六个未来输入输出控制引用、低 OCR 置信度／来源冲突／解析失败／证据风险四类未来入队路由、五个复核状态、五个动作标签、actor/time/reason/old_value/new_value/review result 审计、证据可信等级与报告质量／状态影响、失败关闭和中文反馈。

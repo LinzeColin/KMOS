@@ -1,14 +1,16 @@
 # IDS / Industrial Data System Handoff
 
-## 休眠前恢复检查点 — Stage114 P2 初始实现已固化，尚未验收 — 2026-08-27
+## Current Gate - Stage114 P2 accepted locally - 2026-08-27
 
-- 当前治理门禁仍为 `IDS-STAGE114 / IDS-STAGE114-P1 / IDS-V0_1-STAGE114-P1 / IDS-STAGE114-P2-GATE`。`IDS-V0_1-STAGE114-P2` 已在同一既有开发 worktree 中形成五个初始控制工件：范围说明、纯内存模块、静态合同、聚焦用例与本地 run；路线、机器事实、事件、批次门禁、中文视图与完整回执仍保持 P1 已验收状态。
-- 本检查点只保存 P2 的可恢复开发进度，不构成 P2 本地验收。已运行聚焦用例 `7` 项，其中 `6` 项通过、`1` 项因本地 run 仍为 `IN_PROGRESS_LOCAL_VALIDATION` 而跳过；尚未执行治理接入、全套前向验证或 P2 最终回执。
-- 用户已明确授权在休眠前将现有开发分支作为恢复检查点同步到 GitHub。该同步只使用既有 `codex/kmids-stage071-p1` 分支；`main`、release、PR、OVH 与生产运行保持既有边界。
-- 恢复时先完成 P2 的治理投影、回执与全量冻结门禁验证；P3、P4、Stage114 Review 与 Stage115 均保持未启动。
-- 回退范围仅为本检查点新增的五个 P2 初始工件与本条交接记录；Stage114 P1、Stage113 Review、冻结任务包、业务事实来源与既有远端恢复记录保持原状。
+- `IDS-V0_1-STAGE114-P2` 已完成冻结复核工作流的受控最小切片；当前治理状态为 `IDS-STAGE114 / IDS-STAGE114-P2 / IDS-V0_1-STAGE114-P2 / IDS-STAGE114-P3-GATE`。P3 仅由新的独立 run 在冻结任务包门禁下承接。
+- P2 固定 `5×30/26/4×45/31/28/28/132/660/24/5` 控制形状：五条非业务、`reference-only` 输入，承接 P1 二十六个控制引用，四组复核工作流／队列／中文 UI、复核审计、证据风险与报告状态未来写回、中文原因与外部增强来源边界投影；四类未来路由、五个状态、五个动作、actor/time/reason/old_value/new_value/review result、重新复核、归档、业务线白箱确认与输入漂移失败关闭均保持受控。
+- 冻结 Stage114 任务包、Stage114 P1 静态合同与 Stage113 Review 控制工件构成工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P2 聚焦 `7/7`、Stage112 Review 至 Stage114 P2 选择的前向治理套件 `64/64`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 `0`、运行标志保持 `false`；真实资料、OCR、复核工作流、队列、UI、审计、证据风险、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持零执行。已授权的开发分支恢复检查点保持既有范围；本 P2 最终验收不新增远端写入，正式全局上传、main 与 release 保持后续授权门禁。
+- 回滚只撤回本 P2 的范围说明、纯内存模块、静态合同、聚焦用例、machine run、机器事实、治理路线、事件、生成中文视图、变更记录和本交接，恢复 `PASS_REVIEW_WORKFLOW_CONTRACT_RUNTIME_DISABLED`；Stage114 P1、Stage113 Review、冻结任务包、来源文档、真实证据账本、已交付报告、既有审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE114-P3-GATE`，继续使用同一既有 scratch worktree 与开发分支。
 
-## Current Gate - Stage114 P1 accepted locally - 2026-08-27
+## Superseded Gate - Stage114 P1 accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE114-P1` 已完成冻结复核工作流范围、输入输出与边界确认；当前治理状态为 `IDS-STAGE114 / IDS-STAGE114-P1 / IDS-V0_1-STAGE114-P1 / IDS-STAGE114-P2-GATE`。Stage114 P2 仅由后续独立 run 在冻结任务包门禁下承接。
 - P1 固定 `26/4/5/5/7/20/4` 控制形状：二十六个未来输入输出控制引用、低 OCR 置信度／来源冲突／解析失败／证据风险四类未来入队路由、五个复核状态、五个动作标签、七个审计引用、二十类失败关闭与四条中文反馈。具体状态转移、重新复核、归档时机、人工确认、证据可信等级、报告质量与报告状态影响保持业务线白箱授权。
