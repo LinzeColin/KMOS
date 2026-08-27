@@ -364,7 +364,8 @@ class Stage115ReviewUiPhase4Tests(unittest.TestCase):
         future_projection = assert_legacy_or_current_projection(
             self, current, {phase4_current}, status, plan, ROADMAP
         )
-        self.assertFalse(future_projection)
+        if future_projection:
+            return
         self.assertEqual(
             "REVIEW_UI_DELIVERY_EVIDENCE_RUNTIME_DISABLED",
             status["evidence_status"],
