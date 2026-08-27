@@ -1,5 +1,15 @@
 # IDS / Industrial Data System Handoff
 
+## Current Gate - Stage116 P1 accepted locally - 2026-08-27
+
+- `IDS-V0_1-STAGE116-P1` 已完成冻结复核审计静态控制合同；当前治理状态为 `IDS-STAGE116 / IDS-STAGE116-P1 / IDS-V0_1-STAGE116-P1 / IDS-STAGE116-P2-GATE`。Stage116 P2 由新的独立 run 在冻结任务包门禁下承接。
+- P1 固定 `22/4/5/5/12/8/21/4`：二十二个 future 审计控制引用、四类未来入队路由、五个状态、五个动作、十二个审计字段、八个影响范围字段、二十一类失败关闭与四条中文反馈。actor、time、reason、old value、new value、review result、证据可信等级、报告质量／状态影响、外部增强来源分离和业务线白箱确认保持受控。
+- 冻结 Stage116 任务包与 Stage115 Review 复核 UI 控制工件构成唯一工程控制上下文；来源文档、真实证据账本、已交付报告、既有审计日志与业务线白箱人工复核继续承担业务事实权威。
+- 已验证：P1 聚焦 `6/6`、Stage115 Review 加 P1 前向治理 `43/43`、Stage005 直接治理校验 `valid=true`、Batch041-050 与 Batch051-060 均为 `PASS_BATCH_REVIEWED_LOCAL_GLOBAL_UPLOAD_LOCKED`、批次门禁 `7/7`、机器平面生成 `7` 个中文文件。此为选定范围的本地验收，不声明完整仓库绿。
+- 回执运行计数保持 `0`、运行标志保持 `false`；真实资料、OCR、复核队列、复核 UI、复核审计、证据可信等级、报告质量、报告状态、数据库、人工确认、模型 Token、Agent、OVH 与生产运行保持后续授权边界。开发分支交接由本次用户授权完成；该分支用于任意 agent 恢复本 P1，不改变任务包中的正式全局上传、main、release 或生产门禁。
+- 回滚只撤回本 P1 的范围说明、静态复核审计控制合同、聚焦用例、machine run、治理投影、中文视图、变更记录和本交接，恢复 `PASS_REVIEWED_REVIEW_UI_RUNTIME_DISABLED`；Stage115 Review、冻结任务包、来源文档、真实证据账本、报告、审计日志、数据库、GitHub、OVH 与应用状态保持既有边界。
+- 下一步：仅在新的独立 run 进入 `IDS-STAGE116-P2-GATE`，以本分支中的 Stage116 P1 回执、事件、路线图和本交接为起点继续。
+
 ## Current Gate - Stage115 Review accepted locally - 2026-08-27
 
 - `IDS-V0_1-STAGE115-REVIEW` 已完成冻结复核 UI P1--P4 的纯内存机械复审；当前治理状态为 `IDS-STAGE115 / IDS-STAGE115-REVIEW / IDS-V0_1-STAGE115-REVIEW / UNASSIGNED_SUCCESSOR_GATE`。后继由新的冻结任务包和独立授权定义。
