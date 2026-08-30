@@ -8,10 +8,10 @@ covered_categories:
   - "collection"
   - "receivable_aging"
   - "journal"
-raw_assets: 108
+raw_assets: 109
 raw_with_staging_edges: 13
 raw_deferred_all_sheets: 0
-raw_not_yet_extracted: 95
+raw_not_yet_extracted: 96
 staging_tables:
   - "_staging.bank_journal"
   - "_staging.collection"
@@ -554,6 +554,11 @@ nodes:
   - asset: "raw:2659f36a235b"
     domain: "其他"
     batch: "2026-08-23"
+    size_bytes: 151581
+    status: "not_yet_extracted"
+  - asset: "raw:142bfec18af2"
+    domain: "其他"
+    batch: "2026-08-24"
     size_bytes: 151581
     status: "not_yet_extracted"
 edges:
