@@ -1073,6 +1073,23 @@ def update_role_document(args: argparse.Namespace) -> tuple[dict[str, Any], dict
         role_data["single_changed_atom"] = args.single_changed_atom
     if args.evidence_boundary:
         role_data["evidence_boundary"] = args.evidence_boundary
+    amended_contract_fields: list[str] = []
+    if args.variant_id or args.delivery_scope or args.approval_ref or args.asset_window_ref:
+        if role != "t30":
+            raise ValueError("variant_id、delivery_scope、approval_ref 与 asset_window_ref 只适用于 T30")
+        if args.variant_id:
+            role_data["variant_ids"] = list(args.variant_id)
+            role_data["variant_id"] = args.variant_id[0] if len(args.variant_id) == 1 else ""
+            amended_contract_fields.append("variant_ids")
+        if args.delivery_scope:
+            role_data["delivery_scope"] = required_text(args.delivery_scope, "delivery_scope")
+            amended_contract_fields.append("delivery_scope")
+        if args.approval_ref:
+            role_data["approval_ref"] = required_text(args.approval_ref, "approval_ref")
+            amended_contract_fields.append("approval_ref")
+        if args.asset_window_ref:
+            role_data["asset_window_refs"] = list(args.asset_window_ref)
+            amended_contract_fields.append("asset_window_refs")
     if args.run_state:
         document["run_state"] = args.run_state
     document["next_transition"] = {
@@ -1081,16 +1098,18 @@ def update_role_document(args: argparse.Namespace) -> tuple[dict[str, Any], dict
         "receiving_role": args.next_receiver or "T00",
         "next_action": args.next_action or "",
     }
+    occurred_at = now_utc()
     event = {
-        "event_id": f"handoff:{document.get('run_id', '')}:{role}:{now_utc()}",
-        "event_type": "role_status_updated",
-        "occurred_at": now_utc(),
+        "event_id": f"handoff:{document.get('run_id', '')}:{role}:{occurred_at}",
+        "event_type": "role_contract_amended" if amended_contract_fields else "role_status_updated",
+        "occurred_at": occurred_at,
         "run_id": document.get("run_id", ""),
         "role": ROLE_NAMES[role],
         "status": role_data["status"],
         "output_refs": list(args.output_ref),
         "error_code": args.error_code or "",
         "next_receiver": args.next_receiver or "T00",
+        "amended_contract_fields": amended_contract_fields,
     }
     return document, event
 
@@ -1102,6 +1121,29 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     write_jsonl(out_dir / "运行事件增量.jsonl", [event])
     events = [*read_jsonl(Path(args.event_log).expanduser().resolve() if args.event_log else None), event]
     write_jsonl(out_dir / "运行事件.jsonl", events)
+    role_data = document.get(args.role.lower())
+    if not isinstance(role_data, dict):
+        role_data = {}
+    handoff = {
+        "schema_version": SCHEMA_VERSION,
+        "handoff_id": f"HANDOFF-{document['run_id']}-{args.role.upper()}",
+        "created_at": event["occurred_at"],
+        "run_id": document["run_id"],
+        "from_role": "T00",
+        "to_role": args.role.upper(),
+        "state": role_data.get("status", ""),
+        "input_refs": reference_list(role_data.get("input_refs")),
+        "output_refs": reference_list(role_data.get("output_refs")) or reference_list(role_data.get("output_ref")),
+        "single_changed_atom": role_data.get("single_changed_atom", ""),
+        "evidence_boundary": role_data.get("evidence_boundary", ""),
+        "acceptance_condition": role_data.get("acceptance_condition", ""),
+        "next_action": role_data.get("recommended_next_action", ""),
+        "delivery_scope": role_data.get("delivery_scope", ""),
+        "approval_ref": role_data.get("approval_ref", ""),
+        "asset_window_refs": reference_list(role_data.get("asset_window_refs")),
+        "variant_ids": reference_list(role_data.get("variant_ids")),
+    }
+    write_json(out_dir / "交接包.json", handoff)
     write_json(out_dir / "交接结果.json", {"run_id": document["run_id"], "event": event})
     print(json.dumps({"run_id": document["run_id"], "event": event}, ensure_ascii=False, indent=2))
     return 0
@@ -1278,6 +1320,10 @@ def build_parser() -> argparse.ArgumentParser:
     handoff.add_argument("--required-ref", action="append", default=[])
     handoff.add_argument("--next-receiver")
     handoff.add_argument("--next-action")
+    handoff.add_argument("--variant-id", action="append", default=[])
+    handoff.add_argument("--delivery-scope")
+    handoff.add_argument("--approval-ref")
+    handoff.add_argument("--asset-window-ref", action="append", default=[])
     add_common_out_dir(handoff)
     handoff.set_defaults(func=cmd_handoff)
 
