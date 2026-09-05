@@ -49,6 +49,14 @@ INTERNAL_STRATEGY_GATES = (
     "voice",
     "bgm",
 )
+INTERNAL_QC_GATES = (
+    "scope",
+    "candidate_media",
+    "captions",
+    "narration_sync",
+    "visual_integrity",
+    "bgm",
+)
 
 
 def now_utc() -> str:
@@ -437,6 +445,123 @@ def internal_strategy_production_work_item(
     }
 
 
+def internal_production_review_work_item(
+    latest_run: Mapping[str, Any] | None, workspace: Path
+) -> dict[str, Any] | None:
+    """只把通过内部 QC 的 T30 候选路由给 T40 复盘。"""
+    if not latest_run:
+        return None
+    roles = latest_run.get("roles")
+    if not isinstance(roles, dict):
+        return None
+    t30 = roles.get("t30")
+    if not isinstance(t30, dict) or str(t30.get("status") or "") not in {"ready", "partial", "blocked"}:
+        return None
+
+    run_id = str(latest_run.get("run_id") or "")
+    run_ref = str(latest_run.get("path") or "")
+    task_id = str(t30.get("task_id") or "")
+    project_id = str(t30.get("project_id") or "")
+    output_refs = reference_list(t30.get("output_refs"))
+    output_refs.extend(reference_list(t30.get("output_ref")))
+    receipt_ref = next((ref for ref in output_refs if ref.lower().endswith((".yaml", ".yml"))), "")
+    missing: list[dict[str, str]] = []
+    receipt: dict[str, Any] = {}
+    if not receipt_ref:
+        missing.append({"field": "production_receipt", "reason": "T30 尚未登记 YAML 制作回执引用"})
+    else:
+        receipt_path = resolve_workspace_ref(workspace, receipt_ref)
+        if receipt_path is None or not receipt_path.is_file():
+            missing.append({"field": "production_receipt", "reason": f"制作回执不可读取: {receipt_ref}"})
+        else:
+            try:
+                receipt = load_yaml(receipt_path)
+            except ValueError as exc:
+                missing.append({"field": "production_receipt", "reason": str(exc)})
+
+    if receipt:
+        expected_fields = {
+            "run_id": run_id,
+            "project_id": project_id,
+            "task_id": task_id,
+        }
+        for field, expected in expected_fields.items():
+            actual = str(receipt.get(field) or "")
+            if not expected or actual != expected:
+                missing.append({"field": field, "reason": f"应为 {expected or '非空'}，实际为 {actual or '空'}"})
+        if not str(receipt.get("render_id") or "").strip():
+            missing.append({"field": "render_id", "reason": "缺少候选成片唯一标识"})
+        if str(receipt.get("status") or "") != "internal_qc_ready":
+            missing.append({"field": "status", "reason": "制作回执状态必须为 internal_qc_ready"})
+        if str(receipt.get("delivery_scope") or "") != "internal_review_only":
+            missing.append({"field": "delivery_scope", "reason": "制作回执仅可路由 internal_review_only"})
+        gates = receipt.get("qc_gates")
+        if not isinstance(gates, dict):
+            gates = {}
+        for gate_name in INTERNAL_QC_GATES:
+            gate = gates.get(gate_name)
+            if not isinstance(gate, dict):
+                missing.append({"field": gate_name, "reason": "缺少 QC 门"})
+                continue
+            if not is_ready_gate(gate.get("state")):
+                missing.append({"field": gate_name, "reason": f"状态为 {gate.get('state') or '空'}"})
+            if not reference_list(gate.get("refs")):
+                missing.append({"field": gate_name, "reason": "缺少精确引用"})
+    if str(t30.get("status") or "") != "ready":
+        missing.append({"field": "t30_status", "reason": f"运行单状态为 {t30.get('status') or '空'}"})
+
+    ready = not missing
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "work_item_id": f"WI-T40-REVIEW-{task_id or run_id}",
+        "kind": "internal_review",
+        "state": "ready_to_route" if ready else "qc_gate_waiting",
+        "next_receiver": "T40" if ready else "T30",
+        "next_action": (
+            "审核内部候选的价值、节奏、证据边界与可复用结论；不执行公开发布。"
+            if ready
+            else "补齐制作回执中列出的精确内部 QC 门；完成后由 T00 重投影。"
+        ),
+        "runnable": ready,
+        "source_run_id": run_id,
+        "project_id": project_id,
+        "task_id": task_id,
+        "production_receipt_ref": receipt_ref,
+        "input_refs": [ref for ref in (run_ref, receipt_ref) if ref],
+        "missing_gates": missing,
+        "single_changed_atom": str(t30.get("single_changed_atom") or ""),
+        "evidence_boundary": str(t30.get("evidence_boundary") or ""),
+    }
+
+
+def internal_review_completion_work_item(latest_run: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    """完成 T40 内部复盘后由 T00 显式开启下一轮，避免静默重复派工。"""
+    if not latest_run:
+        return None
+    roles = latest_run.get("roles")
+    if not isinstance(roles, dict):
+        return None
+    t40 = roles.get("t40")
+    if not isinstance(t40, dict) or str(t40.get("status") or "") not in {"ready", "partial", "blocked"}:
+        return None
+    run_id = str(latest_run.get("run_id") or "")
+    output_refs = reference_list(t40.get("output_refs"))
+    output_refs.extend(reference_list(t40.get("output_ref")))
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "work_item_id": f"WI-T00-REVIEW-CLOSED-{run_id}",
+        "kind": "review_completion",
+        "state": "review_closed" if str(t40.get("status") or "") == "ready" else "review_precisely_blocked",
+        "next_receiver": "T00",
+        "next_action": "读取 T40 复盘结论后创建下一轮运行单；公开发布仍需独立批准与实际回执。",
+        "runnable": False,
+        "source_run_id": run_id,
+        "input_refs": output_refs,
+        "single_changed_atom": str(t40.get("single_changed_atom") or ""),
+        "evidence_boundary": str(t40.get("evidence_boundary") or ""),
+    }
+
+
 def active_run_work_item(latest_run: Mapping[str, Any] | None) -> dict[str, Any] | None:
     """活动运行单优先于任何新路由，避免同一日重复派工。"""
     if not latest_run:
@@ -568,9 +693,11 @@ def derive_projection(
     if active_item:
         role_work_items = [active_item]
     else:
+        review_closed = internal_review_completion_work_item(latest_run)
+        production_review = internal_production_review_work_item(latest_run, workspace)
         production = internal_strategy_production_work_item(latest_run, workspace)
         strategy = strategy_work_item(latest_run)
-        role_work_items = [production or strategy or research_work_item(latest_run, workspace)]
+        role_work_items = [review_closed or production_review or production or strategy or research_work_item(latest_run, workspace)]
     work_items = [*role_work_items, *tasks, *releases]
     work_items.sort(key=lambda item: (item["state"] != "in_progress", not bool(item["runnable"]), item["kind"], item["work_item_id"]))
     runnable = [item for item in work_items if item["runnable"]]
