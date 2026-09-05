@@ -22,6 +22,12 @@ ROLE_NAMES = {
     "t30": "T30",
     "t40": "T40",
 }
+ROLE_WORK_KINDS = {
+    "t10": "market_research",
+    "t20": "content_strategy",
+    "t30": "internal_production",
+    "t40": "performance_review",
+}
 OBJECTIVES = {
     "market_research",
     "content_strategy",
@@ -36,6 +42,13 @@ DIRECTIONS = {
     "G4_报价方案教育",
 }
 READY_GATES = {"ready", "approved", "closed", "release_qc_ready", "internal_qc_ready"}
+INTERNAL_STRATEGY_GATES = (
+    "scope",
+    "script_evidence",
+    "source_assets",
+    "voice",
+    "bgm",
+)
 
 
 def now_utc() -> str:
@@ -155,6 +168,9 @@ def role_runtime_summary(role_data: object) -> dict[str, Any]:
         "block_reason",
         "next_receiver",
         "recommended_next_action",
+        "acceptance_condition",
+        "single_changed_atom",
+        "evidence_boundary",
     )
     for field in scalar_fields:
         value = role_data.get(field)
@@ -311,6 +327,149 @@ def task_gate(task_path: Path, workspace: Path) -> dict[str, Any]:
     }
 
 
+def resolve_workspace_ref(workspace: Path, reference: object) -> Path | None:
+    if not isinstance(reference, str) or not reference.strip():
+        return None
+    candidate = Path(reference.strip())
+    path = candidate if candidate.is_absolute() else workspace / candidate
+    path = path.expanduser().resolve()
+    try:
+        path.relative_to(workspace.resolve())
+    except ValueError:
+        return None
+    return path
+
+
+def reference_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value] if value.strip() else []
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    return []
+
+
+def internal_strategy_production_work_item(
+    latest_run: Mapping[str, Any] | None, workspace: Path
+) -> dict[str, Any] | None:
+    """只把通过内部策略门的 T20 产物路由给 T30。"""
+    if not latest_run:
+        return None
+    roles = latest_run.get("roles")
+    if not isinstance(roles, dict):
+        return None
+    t20 = roles.get("t20")
+    if not isinstance(t20, dict) or str(t20.get("status") or "") not in {"ready", "partial", "blocked"}:
+        return None
+
+    run_id = str(latest_run.get("run_id") or "")
+    run_ref = str(latest_run.get("path") or "")
+    task_id = str(t20.get("task_id") or "")
+    project_id = str(t20.get("project_id") or "")
+    output_refs = reference_list(t20.get("output_refs"))
+    output_refs.extend(reference_list(t20.get("output_ref")))
+    strategy_ref = next((ref for ref in output_refs if ref.lower().endswith((".yaml", ".yml"))), "")
+    missing: list[dict[str, str]] = []
+    card: dict[str, Any] = {}
+    if not strategy_ref:
+        missing.append({"field": "strategy_card", "reason": "T20 尚未登记 YAML 策略卡引用"})
+    else:
+        strategy_path = resolve_workspace_ref(workspace, strategy_ref)
+        if strategy_path is None or not strategy_path.is_file():
+            missing.append({"field": "strategy_card", "reason": f"策略卡不可读取: {strategy_ref}"})
+        else:
+            try:
+                card = load_yaml(strategy_path)
+            except ValueError as exc:
+                missing.append({"field": "strategy_card", "reason": str(exc)})
+
+    if card:
+        expected_fields = {
+            "run_id": run_id,
+            "project_id": project_id,
+            "task_id": task_id,
+        }
+        for field, expected in expected_fields.items():
+            actual = str(card.get(field) or "")
+            if not expected or actual != expected:
+                missing.append({"field": field, "reason": f"应为 {expected or '非空'}，实际为 {actual or '空'}"})
+        if not str(card.get("strategy_id") or "").strip():
+            missing.append({"field": "strategy_id", "reason": "缺少策略卡唯一标识"})
+        if str(card.get("status") or "") != "internal_review_ready":
+            missing.append({"field": "status", "reason": "策略卡状态必须为 internal_review_ready"})
+        if str(card.get("delivery_scope") or "") != "internal_review_only":
+            missing.append({"field": "delivery_scope", "reason": "策略卡仅可路由 internal_review_only"})
+        gates = card.get("production_gates")
+        if not isinstance(gates, dict):
+            gates = {}
+        for gate_name in INTERNAL_STRATEGY_GATES:
+            gate = gates.get(gate_name)
+            if not isinstance(gate, dict):
+                missing.append({"field": gate_name, "reason": "缺少生产门"})
+                continue
+            if not is_ready_gate(gate.get("state")):
+                missing.append({"field": gate_name, "reason": f"状态为 {gate.get('state') or '空'}"})
+            if not reference_list(gate.get("refs")):
+                missing.append({"field": gate_name, "reason": "缺少精确引用"})
+    if str(t20.get("status") or "") != "ready":
+        missing.append({"field": "t20_status", "reason": f"运行单状态为 {t20.get('status') or '空'}"})
+
+    ready = not missing
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "work_item_id": f"WI-T30-PRODUCTION-{task_id or run_id}",
+        "kind": "internal_production",
+        "state": "ready_to_route" if ready else "production_gate_waiting",
+        "next_receiver": "T30" if ready else "T20",
+        "next_action": (
+            "按内部策略卡创建可审阅候选成片与 QC 回执；保持 internal_review_only，禁止发布。"
+            if ready
+            else "补齐策略卡中列出的精确内部生产门；完成后由 T00 重投影。"
+        ),
+        "runnable": ready,
+        "source_run_id": run_id,
+        "project_id": project_id,
+        "task_id": task_id,
+        "strategy_ref": strategy_ref,
+        "input_refs": [ref for ref in (run_ref, strategy_ref) if ref],
+        "missing_gates": missing,
+        "single_changed_atom": str(t20.get("single_changed_atom") or ""),
+        "evidence_boundary": str(t20.get("evidence_boundary") or ""),
+    }
+
+
+def active_run_work_item(latest_run: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    """活动运行单优先于任何新路由，避免同一日重复派工。"""
+    if not latest_run:
+        return None
+    roles = latest_run.get("roles")
+    if not isinstance(roles, dict):
+        return None
+    for role in ROLE_KEYS[1:]:
+        role_data = roles.get(role)
+        if not isinstance(role_data, dict) or str(role_data.get("status") or "") != "in_progress":
+            continue
+        run_id = str(latest_run.get("run_id") or "")
+        inputs = [str(ref) for ref in role_data.get("input_refs") or [] if str(ref).strip()]
+        run_ref = str(latest_run.get("path") or "")
+        if run_ref:
+            inputs.insert(0, run_ref)
+        acceptance = str(role_data.get("acceptance_condition") or "指定产物")
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "work_item_id": f"WI-RUN-{run_id}-{ROLE_NAMES[role]}",
+            "kind": ROLE_WORK_KINDS[role],
+            "state": "in_progress",
+            "next_receiver": ROLE_NAMES[role],
+            "next_action": f"等待 {ROLE_NAMES[role]} 完成：{acceptance}",
+            "runnable": False,
+            "active_run_id": run_id,
+            "input_refs": inputs,
+            "single_changed_atom": str(role_data.get("single_changed_atom") or ""),
+            "evidence_boundary": str(role_data.get("evidence_boundary") or ""),
+        }
+    return None
+
+
 def research_work_item(latest_run: Mapping[str, Any] | None, workspace: Path) -> dict[str, Any]:
     input_refs: list[str] = []
     latest_run_id = ""
@@ -338,6 +497,19 @@ def research_work_item(latest_run: Mapping[str, Any] | None, workspace: Path) ->
             "input_refs": input_refs,
             "evidence_boundary": "公开样本只形成假设；自有账号、客户、报价和工程事实保持各自真源。",
         }
+    if t10_status == "ready":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "work_item_id": "WI-T10-MARKET-REFRESH-NEXT",
+            "kind": "market_research",
+            "state": "research_ready",
+            "next_receiver": "T00",
+            "next_action": "读取当前 T10 市场快照，并路由一条只使用该事实范围的 T20 策略工作。",
+            "runnable": False,
+            "active_run_id": latest_run_id,
+            "input_refs": input_refs,
+            "evidence_boundary": "公开样本只形成假设；自有账号、客户、报价和工程事实保持各自真源。",
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "work_item_id": "WI-T10-MARKET-REFRESH-NEXT",
@@ -351,6 +523,36 @@ def research_work_item(latest_run: Mapping[str, Any] | None, workspace: Path) ->
     }
 
 
+def strategy_work_item(latest_run: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not latest_run:
+        return None
+    roles = latest_run.get("roles")
+    if not isinstance(roles, dict):
+        return None
+    t10 = roles.get("t10")
+    if not isinstance(t10, dict) or str(t10.get("status") or "") != "ready":
+        return None
+    research_id = str(t10.get("research_id") or "")
+    output_ref = str(t10.get("output_ref") or "")
+    if not research_id or not output_ref:
+        return None
+    run_id = str(latest_run.get("run_id") or "")
+    run_ref = str(latest_run.get("path") or "")
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "work_item_id": f"WI-T20-STRATEGY-{research_id}",
+        "kind": "content_strategy",
+        "state": "ready_to_route",
+        "next_receiver": "T20",
+        "next_action": "在研究允许的事实边界内形成 G2 内部审阅策略卡；确定可制作范围、脚本/镜头候选和精确生产门，不扩展为客户、价格、工程结果或公开发布主张。",
+        "runnable": True,
+        "source_run_id": run_id,
+        "input_refs": [ref for ref in (run_ref, output_ref) if ref],
+        "single_changed_atom": str(t10.get("single_changed_atom") or ""),
+        "evidence_boundary": str(t10.get("evidence_boundary") or ""),
+    }
+
+
 def derive_projection(
     workspace: Path,
     run_root: Path,
@@ -361,10 +563,19 @@ def derive_projection(
     latest_run = runs[-1] if runs else None
     releases = [release_observation(path, workspace) for path in sorted(release_root.glob("REV-*.yaml"))]
     tasks = [task_gate(path, workspace) for path in task_cards]
-    work_items = [research_work_item(latest_run, workspace), *tasks, *releases]
-    work_items.sort(key=lambda item: (not bool(item["runnable"]), item["kind"], item["work_item_id"]))
+    active_item = active_run_work_item(latest_run)
+    role_work_items: list[dict[str, Any]]
+    if active_item:
+        role_work_items = [active_item]
+    else:
+        production = internal_strategy_production_work_item(latest_run, workspace)
+        strategy = strategy_work_item(latest_run)
+        role_work_items = [production or strategy or research_work_item(latest_run, workspace)]
+    work_items = [*role_work_items, *tasks, *releases]
+    work_items.sort(key=lambda item: (item["state"] != "in_progress", not bool(item["runnable"]), item["kind"], item["work_item_id"]))
     runnable = [item for item in work_items if item["runnable"]]
-    current = runnable[0] if runnable else None
+    active = [item for item in work_items if item["state"] == "in_progress"]
+    current = active[0] if active else (runnable[0] if runnable else None)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": now_utc(),
@@ -389,6 +600,7 @@ def derive_projection(
             "items": tasks,
         },
         "work_items": work_items,
+        "active_work_items": active,
         "current_executable": current,
     }
 
@@ -403,7 +615,16 @@ def render_status_md(projection: Mapping[str, Any]) -> str:
         "## 当前可执行工作",
         "",
     ]
-    if isinstance(current, dict):
+    active = projection.get("active_work_items")
+    if isinstance(active, list) and active:
+        for item in active:
+            lines.extend(
+                [
+                    f"- 正在执行：`{item.get('work_item_id', '')}` → `{item.get('next_receiver', '')}`",
+                    f"- 当前动作：{item.get('next_action', '')}",
+                ]
+            )
+    elif isinstance(current, dict):
         lines.extend(
             [
                 f"- 工作项：`{current.get('work_item_id', '')}`",
@@ -474,7 +695,15 @@ def cmd_project(args: argparse.Namespace) -> int:
     )
     state = {
         key: projection[key]
-        for key in ("schema_version", "generated_at", "workspace", "source_refs", "run_summary", "current_executable")
+        for key in (
+            "schema_version",
+            "generated_at",
+            "workspace",
+            "source_refs",
+            "run_summary",
+            "active_work_items",
+            "current_executable",
+        )
     }
     write_yaml(out_dir / "运行总线当前态.yaml", state)
     write_jsonl(out_dir / "工作项队列.jsonl", projection["work_items"])
@@ -578,10 +807,11 @@ def cmd_new_run(args: argparse.Namespace) -> int:
     document = new_run_document(args)
     run_path = out_dir / f"{document['run_id']}.yaml"
     write_yaml(run_path, document)
+    created_at = now_utc()
     handoff = {
         "schema_version": SCHEMA_VERSION,
         "handoff_id": f"HANDOFF-{document['run_id']}-{args.to_role.upper()}",
-        "created_at": now_utc(),
+        "created_at": created_at,
         "run_id": document["run_id"],
         "from_role": "T00",
         "to_role": args.to_role.upper(),
@@ -594,7 +824,20 @@ def cmd_new_run(args: argparse.Namespace) -> int:
         "next_action": args.next_action,
     }
     write_json(out_dir / "交接包.json", handoff)
-    print(json.dumps({"run": str(run_path), "handoff": handoff}, ensure_ascii=False, indent=2))
+    event = {
+        "event_id": f"run_created:{document['run_id']}:{created_at}",
+        "event_type": "run_created",
+        "occurred_at": created_at,
+        "run_id": document["run_id"],
+        "role": "T00",
+        "status": document["run_state"],
+        "input_refs": list(args.input_ref),
+        "next_receiver": args.to_role.upper(),
+    }
+    write_jsonl(out_dir / "运行事件增量.jsonl", [event])
+    events = [*read_jsonl(Path(args.event_log).expanduser().resolve() if args.event_log else None), event]
+    write_jsonl(out_dir / "运行事件.jsonl", events)
+    print(json.dumps({"run": str(run_path), "handoff": handoff, "event": event}, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -655,6 +898,8 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     document, event = update_role_document(args)
     write_yaml(out_dir / f"{document['run_id']}.yaml", document)
     write_jsonl(out_dir / "运行事件增量.jsonl", [event])
+    events = [*read_jsonl(Path(args.event_log).expanduser().resolve() if args.event_log else None), event]
+    write_jsonl(out_dir / "运行事件.jsonl", events)
     write_json(out_dir / "交接结果.json", {"run_id": document["run_id"], "event": event})
     print(json.dumps({"run_id": document["run_id"], "event": event}, ensure_ascii=False, indent=2))
     return 0
@@ -788,6 +1033,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     new_run = commands.add_parser("new-run", help="创建一个角色已绑定的日运行单与交接包")
     new_run.add_argument("--run-id", required=True)
+    new_run.add_argument("--event-log", help="既有运行事件账；读取后带入新的完整暂存账")
     new_run.add_argument("--run-date")
     new_run.add_argument("--objective", required=True)
     new_run.add_argument("--direction", required=True)
@@ -812,6 +1058,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     handoff = commands.add_parser("handoff", help="把一个角色的结果或精确阻塞写入新的运行单副本")
     handoff.add_argument("--run-file", required=True)
+    handoff.add_argument("--event-log", help="既有运行事件账；读取后带入新的完整暂存账")
     handoff.add_argument("--role", required=True)
     handoff.add_argument("--status", required=True)
     handoff.add_argument("--run-state")
