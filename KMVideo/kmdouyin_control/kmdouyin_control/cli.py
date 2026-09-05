@@ -176,6 +176,8 @@ def role_runtime_summary(role_data: object) -> dict[str, Any]:
         "task_id",
         "batch_id",
         "variant_id",
+        "delivery_scope",
+        "approval_ref",
         "render_id",
         "release_id",
         "review_id",
@@ -194,7 +196,15 @@ def role_runtime_summary(role_data: object) -> dict[str, Any]:
         value = role_data.get(field)
         if isinstance(value, (str, int, float, bool)) and str(value).strip():
             result[field] = value
-    for field in ("input_refs", "output_refs", "fact_pack_refs", "asset_reference_refs", "metric_source_refs"):
+    for field in (
+        "input_refs",
+        "output_refs",
+        "fact_pack_refs",
+        "asset_reference_refs",
+        "asset_window_refs",
+        "metric_source_refs",
+        "variant_ids",
+    ):
         value = role_data.get(field)
         if isinstance(value, list):
             result[field] = [str(item) for item in value if str(item).strip()]
@@ -942,12 +952,21 @@ def new_run_document(args: argparse.Namespace) -> dict[str, Any]:
     elif role == "t20":
         target.update({"project_id": args.project_id or "", "task_id": args.task_id or "", "output_refs": [args.output_ref] if args.output_ref else []})
     elif role == "t30":
+        variant_ids = list(args.variant_id)
+        if not variant_ids:
+            raise ValueError("T30 运行单至少需要一个 variant_id")
+        if not args.asset_window_ref:
+            raise ValueError("T30 运行单至少需要一个 asset_window_ref")
         target.update(
             {
                 "project_id": args.project_id or "",
                 "task_id": args.task_id or "",
                 "batch_id": args.batch_id or "",
-                "variant_id": args.variant_id or "",
+                "variant_id": variant_ids[0] if len(variant_ids) == 1 else "",
+                "variant_ids": variant_ids,
+                "delivery_scope": required_text(args.delivery_scope, "delivery_scope"),
+                "approval_ref": required_text(args.approval_ref, "approval_ref"),
+                "asset_window_refs": list(args.asset_window_ref),
                 "output_refs": [args.output_ref] if args.output_ref else [],
             }
         )
@@ -1001,6 +1020,10 @@ def cmd_new_run(args: argparse.Namespace) -> int:
         "evidence_boundary": args.evidence_boundary,
         "acceptance_condition": args.acceptance_condition,
         "next_action": args.next_action,
+        "delivery_scope": args.delivery_scope or "",
+        "approval_ref": args.approval_ref or "",
+        "asset_window_refs": list(args.asset_window_ref),
+        "variant_ids": list(args.variant_id),
     }
     write_json(out_dir / "交接包.json", handoff)
     event = {
@@ -1229,7 +1252,10 @@ def build_parser() -> argparse.ArgumentParser:
     new_run.add_argument("--project-id")
     new_run.add_argument("--task-id")
     new_run.add_argument("--batch-id")
-    new_run.add_argument("--variant-id")
+    new_run.add_argument("--variant-id", action="append", default=[])
+    new_run.add_argument("--delivery-scope")
+    new_run.add_argument("--approval-ref")
+    new_run.add_argument("--asset-window-ref", action="append", default=[])
     new_run.add_argument("--release-id")
     new_run.add_argument("--review-id")
     add_common_out_dir(new_run)
