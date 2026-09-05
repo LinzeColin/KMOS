@@ -1,0 +1,13 @@
+[project]
+name = "kmdouyin-control"
+version = "0.1.0"
+description = "KMDouyin 日运行控制面"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+kmdouyin-control = "kmdouyin_control.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
