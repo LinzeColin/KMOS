@@ -42,12 +42,22 @@ DIRECTIONS = {
     "G4_报价方案教育",
 }
 READY_GATES = {"ready", "approved", "closed", "release_qc_ready", "internal_qc_ready"}
-INTERNAL_STRATEGY_GATES = (
+INTERNAL_STRATEGY_ENTRY_GATES = (
     "scope",
     "script_evidence",
     "source_assets",
+)
+INTERNAL_STRATEGY_OUTPUT_PLANS = (
     "voice",
     "bgm",
+)
+INTERNAL_T30_PLAN_FIELDS = (
+    "variants",
+    "transparent_captions",
+    "task_specific_voice",
+    "bgm_mix",
+    "generic_3d",
+    "internal_qc_receipt",
 )
 INTERNAL_QC_GATES = (
     "scope",
@@ -356,6 +366,24 @@ def reference_list(value: object) -> list[str]:
     return []
 
 
+def is_strategy_entry_ready(gate_name: str, state: object) -> bool:
+    if is_ready_gate(state):
+        return True
+    return gate_name == "source_assets" and str(state or "") == "ready_for_internal_generation"
+
+
+def is_t30_output_plan_ready(plan_name: str, state: object) -> bool:
+    allowed = {
+        "variants": {"ready"},
+        "transparent_captions": {"ready", "planned_for_t30_generation"},
+        "task_specific_voice": {"ready", "planned_for_t30_generation"},
+        "bgm_mix": {"ready", "planned_for_t30_mix"},
+        "generic_3d": {"ready", "planned_for_t30_generation"},
+        "internal_qc_receipt": {"ready", "planned_for_t30_qc"},
+    }
+    return str(state or "") in allowed[plan_name]
+
+
 def internal_strategy_production_work_item(
     latest_run: Mapping[str, Any] | None, workspace: Path
 ) -> dict[str, Any] | None:
@@ -409,15 +437,39 @@ def internal_strategy_production_work_item(
         gates = card.get("production_gates")
         if not isinstance(gates, dict):
             gates = {}
-        for gate_name in INTERNAL_STRATEGY_GATES:
+        for gate_name in INTERNAL_STRATEGY_ENTRY_GATES:
             gate = gates.get(gate_name)
             if not isinstance(gate, dict):
                 missing.append({"field": gate_name, "reason": "缺少生产门"})
                 continue
-            if not is_ready_gate(gate.get("state")):
+            if not is_strategy_entry_ready(gate_name, gate.get("state")):
                 missing.append({"field": gate_name, "reason": f"状态为 {gate.get('state') or '空'}"})
             if not reference_list(gate.get("refs")):
                 missing.append({"field": gate_name, "reason": "缺少精确引用"})
+        for gate_name in INTERNAL_STRATEGY_OUTPUT_PLANS:
+            gate = gates.get(gate_name)
+            if not isinstance(gate, dict):
+                missing.append({"field": gate_name, "reason": "缺少 T30 输出计划"})
+                continue
+            if not reference_list(gate.get("refs")):
+                missing.append({"field": gate_name, "reason": "缺少精确引用"})
+        plan = card.get("t30_production_plan")
+        if not isinstance(plan, dict):
+            plan = {}
+        for plan_name in INTERNAL_T30_PLAN_FIELDS:
+            plan_item = plan.get(plan_name)
+            if not isinstance(plan_item, dict):
+                missing.append({"field": f"t30_production_plan.{plan_name}", "reason": "缺少 T30 输出计划"})
+                continue
+            if not is_t30_output_plan_ready(plan_name, plan_item.get("state")):
+                missing.append(
+                    {
+                        "field": f"t30_production_plan.{plan_name}",
+                        "reason": f"状态为 {plan_item.get('state') or '空'}",
+                    }
+                )
+            if not reference_list(plan_item.get("refs")):
+                missing.append({"field": f"t30_production_plan.{plan_name}", "reason": "缺少精确引用"})
     if str(t20.get("status") or "") != "ready":
         missing.append({"field": "t20_status", "reason": f"运行单状态为 {t20.get('status') or '空'}"})
 
