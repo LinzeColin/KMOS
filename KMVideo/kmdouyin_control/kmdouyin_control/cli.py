@@ -313,10 +313,31 @@ def task_gate(task_path: Path, workspace: Path) -> dict[str, Any]:
 
 def research_work_item(latest_run: Mapping[str, Any] | None, workspace: Path) -> dict[str, Any]:
     input_refs: list[str] = []
+    latest_run_id = ""
+    t10_status = ""
     if latest_run:
         path = str(latest_run.get("path") or "")
         if path:
             input_refs.append(path)
+        latest_run_id = str(latest_run.get("run_id") or "")
+        roles = latest_run.get("roles")
+        if isinstance(roles, dict):
+            t10 = roles.get("t10")
+            if isinstance(t10, dict):
+                t10_status = str(t10.get("status") or "")
+    if t10_status == "in_progress":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "work_item_id": "WI-T10-MARKET-REFRESH-NEXT",
+            "kind": "market_research",
+            "state": "in_progress",
+            "next_receiver": "T10",
+            "next_action": "等待当前 T10 运行单产出指定市场快照；T00 读取完成状态后再路由下一角色。",
+            "runnable": False,
+            "active_run_id": latest_run_id,
+            "input_refs": input_refs,
+            "evidence_boundary": "公开样本只形成假设；自有账号、客户、报价和工程事实保持各自真源。",
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "work_item_id": "WI-T10-MARKET-REFRESH-NEXT",
