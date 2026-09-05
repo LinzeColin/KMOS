@@ -155,13 +155,22 @@ def parse_published_at(value: object) -> datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
     try:
-        return datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None else None
     except ValueError:
         return None
 
 
 def run_sort_key(run: Mapping[str, Any]) -> tuple[str, str]:
     return (str(run.get("run_date") or ""), str(run.get("run_id") or ""))
+
+
+def execution_lane(run: Mapping[str, Any]) -> str:
+    """显式生产线优先；历史 RUN 按已登记的 01–50 / 51–99 号段归属。"""
+    if run.get("execution_lane"):
+        return str(run["execution_lane"])
+    suffix = str(run.get("run_id") or "").rsplit("-", 1)[-1]
+    return "T00-CC" if suffix.isdigit() and 51 <= int(suffix) <= 99 else "T00-Codex"
 
 
 def role_runtime_summary(role_data: object) -> dict[str, Any]:
@@ -225,6 +234,8 @@ def load_runs(run_root: Path, workspace: Path) -> list[dict[str, Any]]:
             {
                 "run_id": run_id,
                 "run_date": str(value.get("run_date") or ""),
+                "execution_lane": execution_lane(value),
+                "thread_id": str(value.get("thread_id") or ""),
                 "run_state": str(value.get("run_state") or ""),
                 "primary_objective": str(value.get("primary_objective") or ""),
                 "primary_direction": str(value.get("primary_direction") or ""),
@@ -249,8 +260,22 @@ def release_observation(review_path: Path, workspace: Path) -> dict[str, Any]:
     decision = review.get("decision") if isinstance(review.get("decision"), dict) else {}
     published_at = parse_published_at(receipt.get("published_at"))
     has_receipt = bool(str(receipt.get("work_url_or_receipt_ref") or "").strip() or str(receipt.get("work_id") or "").strip())
-    has_24h = bool(str(metrics_24h.get("captured_at") or "").strip())
-    has_7d = bool(str(metrics_7d.get("captured_at") or "").strip())
+    nominal_24h = published_at + timedelta(hours=24) if published_at else None
+    due_7d_at = published_at + timedelta(days=7) if published_at else None
+    conservative_24h = parse_published_at(metrics_24h.get("conservative_collection_start_at"))
+    due_24h_at = max(nominal_24h, conservative_24h) if nominal_24h and conservative_24h else nominal_24h
+    captured_24h = parse_published_at(metrics_24h.get("captured_at"))
+    captured_7d = parse_published_at(metrics_7d.get("captured_at"))
+    has_24h = bool(captured_24h and due_24h_at and captured_24h >= due_24h_at)
+    has_7d = bool(captured_7d and due_7d_at and captured_7d >= due_7d_at)
+    window_errors = [
+        code
+        for capture, valid, code in (
+            (captured_24h, has_24h, "METRICS_24H_CAPTURE_OUTSIDE_WINDOW"),
+            (captured_7d, has_7d, "METRICS_7D_CAPTURE_OUTSIDE_WINDOW"),
+        )
+        if capture and not valid
+    ]
 
     if has_7d:
         state = "metrics_7d_ready"
@@ -266,7 +291,7 @@ def release_observation(review_path: Path, workspace: Path) -> dict[str, Any]:
         state = "waiting_24h_window"
         receiver = "T40"
         action = "在 24h 窗口到达后采集同一作品的平台数据。"
-        runnable = datetime.now(timezone.utc) >= published_at + timedelta(hours=24)
+        runnable = datetime.now(timezone.utc) >= due_24h_at
     elif has_receipt:
         state = "waiting_actual_published_at"
         receiver = "T40"
@@ -278,8 +303,8 @@ def release_observation(review_path: Path, workspace: Path) -> dict[str, Any]:
         action = "取得作品链接、作品 ID 或平台/后台回执；现有 Owner 发布声明继续保留。"
         runnable = False
 
-    due_24h = (published_at + timedelta(hours=24)).isoformat().replace("+00:00", "Z") if published_at else ""
-    due_7d = (published_at + timedelta(days=7)).isoformat().replace("+00:00", "Z") if published_at else ""
+    due_24h = due_24h_at.isoformat().replace("+00:00", "Z") if due_24h_at else ""
+    due_7d = due_7d_at.isoformat().replace("+00:00", "Z") if due_7d_at else ""
     return {
         "schema_version": SCHEMA_VERSION,
         "work_item_id": f"WI-RELEASE-{release_id}",
@@ -297,12 +322,13 @@ def release_observation(review_path: Path, workspace: Path) -> dict[str, Any]:
         "runnable": runnable,
         "published_at": receipt.get("published_at") or "",
         "due_24h": due_24h,
+        "nominal_due_24h": nominal_24h.isoformat().replace("+00:00", "Z") if nominal_24h else "",
         "due_7d": due_7d,
         "platform_receipt_present": has_receipt,
         "metrics_24h_present": has_24h,
         "metrics_7d_present": has_7d,
         "comparison_status": str(decision.get("status") or ""),
-        "error_codes": list((account.get("public_profile_discovery") or {}).get("error_codes") or []),
+        "error_codes": list((account.get("public_profile_discovery") or {}).get("error_codes") or []) + window_errors,
     }
 
 
@@ -628,6 +654,8 @@ def active_run_work_item(latest_run: Mapping[str, Any] | None) -> dict[str, Any]
     """活动运行单优先于任何新路由，避免同一日重复派工。"""
     if not latest_run:
         return None
+    if latest_run.get("run_state") in {"closed", "cancelled", "superseded"}:
+        return None
     roles = latest_run.get("roles")
     if not isinstance(roles, dict):
         return None
@@ -650,6 +678,8 @@ def active_run_work_item(latest_run: Mapping[str, Any] | None) -> dict[str, Any]
             "next_action": f"等待 {ROLE_NAMES[role]} 完成：{acceptance}",
             "runnable": False,
             "active_run_id": run_id,
+            "execution_lane": execution_lane(latest_run),
+            "thread_id": str(latest_run.get("thread_id") or ""),
             "input_refs": inputs,
             "single_changed_atom": str(role_data.get("single_changed_atom") or ""),
             "evidence_boundary": str(role_data.get("evidence_boundary") or ""),
@@ -750,16 +780,47 @@ def derive_projection(
     latest_run = runs[-1] if runs else None
     releases = [release_observation(path, workspace) for path in sorted(release_root.glob("REV-*.yaml"))]
     tasks = [task_gate(path, workspace) for path in task_cards]
-    active_item = active_run_work_item(latest_run)
-    role_work_items: list[dict[str, Any]]
-    if active_item:
-        role_work_items = [active_item]
-    else:
-        review_closed = internal_review_completion_work_item(latest_run)
-        production_review = internal_production_review_work_item(latest_run, workspace)
-        production = internal_strategy_production_work_item(latest_run, workspace)
-        strategy = strategy_work_item(latest_run)
-        role_work_items = [review_closed or production_review or production or strategy or research_work_item(latest_run, workspace)]
+    latest_by_lane: dict[str, dict[str, Any]] = {}
+    role_work_items: list[dict[str, Any]] = []
+    for run in runs:
+        latest_by_lane[execution_lane(run)] = run
+        active_item = active_run_work_item(run)
+        if active_item:
+            role_work_items.append(active_item)
+    active_lanes = {item["execution_lane"] for item in role_work_items}
+    for lane, lane_run in latest_by_lane.items():
+        if lane in active_lanes:
+            continue
+        t30 = lane_run["roles"].get("t30") or {}
+        if lane_run["next_transition"].get("receiving_role") == "Owner" and t30.get("status") in {"ready", "completed"}:
+            role_work_items.append({
+                "schema_version": SCHEMA_VERSION,
+                "work_item_id": f"WI-OWNER-{lane_run['run_id']}",
+                "kind": "candidate_review",
+                "state": "owner_review_pending",
+                "next_receiver": "Owner",
+                "next_action": "已完成候选供 Owner 观看；实际发布由作品回执登记。",
+                "runnable": False,
+                "execution_lane": lane,
+                "source_run_id": lane_run["run_id"],
+                "input_refs": reference_list(t30.get("output_refs")),
+            })
+            if lane_run["run_date"] == datetime.now().date().isoformat():
+                continue
+            item = research_work_item(lane_run, workspace)
+        else:
+            item = (
+                internal_review_completion_work_item(lane_run)
+                or internal_production_review_work_item(lane_run, workspace)
+                or internal_strategy_production_work_item(lane_run, workspace)
+                or strategy_work_item(lane_run)
+                or research_work_item(lane_run, workspace)
+            )
+        item["execution_lane"] = lane
+        item["work_item_id"] = f"{item['work_item_id']}-{lane}"
+        role_work_items.append(item)
+    if not runs:
+        role_work_items.append(research_work_item(None, workspace))
     work_items = [*role_work_items, *tasks, *releases]
     work_items.sort(key=lambda item: (item["state"] != "in_progress", not bool(item["runnable"]), item["kind"], item["work_item_id"]))
     runnable = [item for item in work_items if item["runnable"]]
@@ -778,6 +839,10 @@ def derive_projection(
             "total": len(runs),
             "latest_run_id": latest_run.get("run_id") if latest_run else "",
             "latest_run_state": latest_run.get("run_state") if latest_run else "",
+            "latest_by_lane": {
+                lane: {"run_id": run["run_id"], "run_state": run["run_state"], "thread_id": run["thread_id"]}
+                for lane, run in latest_by_lane.items()
+            },
             "runs": runs,
         },
         "release_summary": {
@@ -986,6 +1051,8 @@ def new_run_document(args: argparse.Namespace) -> dict[str, Any]:
         "run_id": run_id,
         "run_date": args.run_date or datetime.now().date().isoformat(),
         "owner": "T00",
+        "execution_lane": args.execution_lane or execution_lane({"run_id": run_id}),
+        "thread_id": args.thread_id or "",
         "run_state": f"{role}_in_progress",
         "primary_objective": objective,
         "primary_direction": direction,
@@ -1010,7 +1077,12 @@ def cmd_new_run(args: argparse.Namespace) -> int:
         "schema_version": SCHEMA_VERSION,
         "handoff_id": f"HANDOFF-{document['run_id']}-{args.to_role.upper()}",
         "created_at": created_at,
+        "captured_at": created_at,
+        "error_code": "",
+        "block_reason": "",
         "run_id": document["run_id"],
+        "execution_lane": document["execution_lane"],
+        "thread_id": document["thread_id"],
         "from_role": "T00",
         "to_role": args.to_role.upper(),
         "state": "in_progress",
@@ -1128,7 +1200,12 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         "schema_version": SCHEMA_VERSION,
         "handoff_id": f"HANDOFF-{document['run_id']}-{args.role.upper()}",
         "created_at": event["occurred_at"],
+        "captured_at": event["occurred_at"],
         "run_id": document["run_id"],
+        "execution_lane": execution_lane(document),
+        "thread_id": document.get("thread_id", ""),
+        "error_code": role_data.get("error_code", ""),
+        "block_reason": role_data.get("block_reason", ""),
         "from_role": "T00",
         "to_role": args.role.upper(),
         "state": role_data.get("status", ""),
@@ -1279,6 +1356,8 @@ def build_parser() -> argparse.ArgumentParser:
     new_run.add_argument("--run-id", required=True)
     new_run.add_argument("--event-log", help="既有运行事件账；读取后带入新的完整暂存账")
     new_run.add_argument("--run-date")
+    new_run.add_argument("--execution-lane", choices=("T00-Codex", "T00-CC"))
+    new_run.add_argument("--thread-id")
     new_run.add_argument("--objective", required=True)
     new_run.add_argument("--direction", required=True)
     new_run.add_argument("--resource-boundary", required=True)
