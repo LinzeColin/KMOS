@@ -28,8 +28,8 @@ SEND_WINDOW_BJ = (8, 12)                     # 北京 08:00 ≤ t < 12:00
 BJ = dt.timezone(dt.timedelta(hours=8))
 
 TITLES = {
-    "apply_stalled":      ("申请交上去，没人批也没付", "张请示单", "给个准话：是不批，还是漏了"),
-    "chase_unpaid":       ("催过了，钱还是没出去", "笔", "确认是压着不付还是漏了"),
+    "approved_not_paid":  ("领导批了，钱还没出去", "笔", "出纳说明为什么没执行"),
+    "bypass_approval":    ("绕开红圈审批流先申请付款", "笔", "发起人补流程，说明为什么不能等"),
     "dup_reimbursement":  ("同收款方、同金额、同事由，7 天内报了两次", "组", "逐组认，是两笔真业务还是报重了"),
     "amount_changed":     ("申请交上去以后金额被改过", "笔", "谁改的、经谁同意的"),
     "transfer_failed":    ("钱没转出去", "笔", "财务确认补了没有，没补是为什么"),
@@ -44,7 +44,12 @@ TITLES = {
 # （receivable_major），合计 1,164 万，占总额一半。每家只报一次。
 #
 # 顺序：先说今天发生的事，再说压着的老账。
-ORDER = ["apply_stalled", "chase_unpaid", "transfer_failed", "dup_reimbursement",
+#
+# 每一项都必须能回答「哪个员工该做的哪件事没做」。老板 2026-09-11：
+# 「没有批准的，那么就是管理层的责任……不要把责任移嫁到管理层上面去。
+#   如果是管理层把事情做了，但是员工没有做，那么就是员工的责任。」
+# 所以「申请交上去没人批」这类判定已经删除——报它等于拿哨兵去追批的人。
+ORDER = ["approved_not_paid", "bypass_approval", "transfer_failed", "dup_reimbursement",
          "amount_changed", "same_day_duplicate", "status_regressed", "receivable_major"]
 DAILY_EXCLUDED = ("receivable_stalled",)
 MAX_LINES_PER_SECTION = 5
