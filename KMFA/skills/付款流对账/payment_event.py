@@ -317,30 +317,17 @@ def findings(ev, now=None, min_days=None):
                         f"（{amt}）：「{_quote(seg, 52)}」",
             })
 
-    # ── 3. 申请正文不写金额，逼领导逐张点图 ───────────────────────
-    #    实测 2026-08-28~09-10：17 笔申请里 10 笔正文只有「领导请批示。」，
-    #    金额和事由全埋在图里，领导每批一笔就要点开一张图。
-    #    10 笔全是同一个人交的，财务冯璐每次都把金额写在正文里——
-    #    这不是做不到，是没做。改起来只要多打一行字。
+    # ── 曾经有第 3 条：「申请正文不写金额，逼领导点图」。已删除。─────
     #
-    #    一周只报一次（指纹带周序号），不天天念。
-    lazy = {}
-    for a in ev["申请"]:
-        if a["amounts"] or _days_since(a["time"], now) < 1:
-            continue
-        lazy.setdefault(a["sender"], []).append(a)
-    for who, items in lazy.items():
-        if len(items) < 3:                 # 偶尔一次不算问题，成了习惯才算
-            continue
-        yw = now.strftime("%G-W%V")
-        out.append({
-            "fingerprint": f"quality:noamount:{who}:{yw}",
-            "check_id": "application_unclear",
-            "when": items[-1]["time"], "who": who, "count": len(items),
-            "line": f"{who} 近期 {len(items)} 笔付款请示正文只写「领导请批示」，"
-                    f"金额和事由全在图里，领导每批一笔就得点开一张图核对",
-        })
-
+    # 老板 2026-09-11：「你说的不现实，杨婷只能发图片，是你的错误。」
+    #
+    # 他是对的。她的岗位就只能甩图，要求她额外打一行字是把流程成本推给员工；
+    # 更要命的是——**金额在图里，读图本来就是本系统的活**。我手上就有 OCR，
+    # 已经能把「待付款请示明细表」读成 15,000+20,000=35,000、能挑出未签字的行，
+    # 却回头去怪交图的人没打字。
+    #
+    # 这跟本 session 早前那条「欠款方未登记」是同一类错误：
+    # 把自己的解析缺口报成别人的问题。这类判定一律不许再出现。
     out.sort(key=lambda x: x["when"])
     return out
 

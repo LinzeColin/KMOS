@@ -30,7 +30,6 @@ BJ = dt.timezone(dt.timedelta(hours=8))
 
 TITLES = {
     "approved_not_paid":  ("领导已经打 OK，钱还没出去", "笔", "出纳说明为什么没执行"),
-    "application_unclear": ("请示正文不写金额，逼领导点图", "人", "以后正文写清金额和收款方，别让领导逐张翻图"),
     "bypass_approval":    ("绕开红圈审批流先申请付款", "笔", "发起人补流程，说明为什么不能等"),
     "dup_reimbursement":  ("同收款方、同金额、同事由，7 天内报了两次", "组", "逐组认，是两笔真业务还是报重了"),
     "amount_changed":     ("申请交上去以后金额被改过", "笔", "谁改的、经谁同意的"),
@@ -51,7 +50,7 @@ TITLES = {
 # 「没有批准的，那么就是管理层的责任……不要把责任移嫁到管理层上面去。
 #   如果是管理层把事情做了，但是员工没有做，那么就是员工的责任。」
 # 所以「申请交上去没人批」这类判定已经删除——报它等于拿哨兵去追批的人。
-ORDER = ["approved_not_paid", "bypass_approval", "application_unclear",
+ORDER = ["approved_not_paid", "bypass_approval",
          "transfer_failed", "dup_reimbursement",
          "amount_changed", "same_day_duplicate", "status_regressed", "receivable_major"]
 DAILY_EXCLUDED = ("receivable_stalled",)
