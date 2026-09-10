@@ -168,7 +168,37 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
     })
     return out
 
+def alarm_target() -> tuple[str, str]:
+    """告警目标直接读环境，不经过 Config —— Config 自己就可能是炸掉的那一个。
+    告警这条路必须比它要通报的任何东西都简单。"""
+    return (os.path.expanduser(os.environ.get("KMFA_BRIEF_DWS", "~/.local/bin/dws")),
+            os.environ.get("KMFA_BRIEF_NOTIFY_USER", "").strip())
+
 def main() -> int:
+    """最外层兜底网。
+
+    _run 里在 cfg 建好之前就有三处可能炸：配置数值解析（int() 拿到非整数）、
+    SMB 在 smb_ready 通过之后瞬断（already_sent 的 .exists() 抛 OSError）、
+    归档子进程 SIGKILL 都收不走。以前这三条路径会让进程直接带 traceback 退出 ——
+    stderr 里一个结论性标记都没有，调度侧只能判 ESCALATE 写进 Codex 桌面 app，
+    而手机上什么都收不到。那正是「没发简报，也没人知道没发」。
+    """
+    a = _parse_args()
+    try:
+        return _run(a)
+    except SystemExit:
+        raise
+    except Exception as e:
+        import traceback
+        runtime.emit("RUN_FAILED", f"{type(e).__name__}: {e}")
+        runtime.runlog(traceback.format_exc())
+        dws, user = alarm_target()
+        runtime.alarm(dws, user, "RUN_FAILED",
+                      f"考勤简报跑挂了，今天这份没发出去。\n{type(e).__name__}: {e}\n"
+                      f"堆栈在运行日志里；下一个工作日 17:15 会自己重跑。")
+        return 1
+
+def _parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", help="指定业务日，默认自动判定")
     ap.add_argument("--dry-run", action="store_true", help="只出报不发送")
@@ -176,11 +206,17 @@ def main() -> int:
                     help="手工运行时也真的发出去（调度器不需要这个）")
     ap.add_argument("--force", action="store_true",
                     help="人按的：无视周末和截止线。注意「今天已发过」照样拦，幂等无条件")
-    a = ap.parse_args()
+    return ap.parse_args()
+
+def _run(a) -> int:
     try:
         cfg = Config()
     except SystemExit as e:
-        runtime.emit("CONFIG_MISSING", str(e)); return 2
+        runtime.emit("CONFIG_MISSING", str(e))
+        dws, user = alarm_target()
+        runtime.alarm(dws, user, "CONFIG_MISSING",
+                      f"考勤简报没跑成：配置缺项，今天这份没发出去。\n{e}")
+        return 2
 
     # SMB 必须最先查。人员表图片、花名册、台账、归档、运行日志全在共享盘上，
     # 盘掉了不查就会在后面某个 python 调用里以随机方式炸，判读侧根本对不上。
@@ -189,7 +225,7 @@ def main() -> int:
         runtime.emit("SMB_UNAVAILABLE", why)
         runtime.alarm(cfg.dws, cfg.notify_user, "SMB_UNAVAILABLE",
                       f"考勤简报没跑成：共享盘不可用。\n{why}\n"
-                      f"挂上 /Volumes/share 后下一个工作日 16:05 会自己重跑。")
+                      f"挂上 /Volumes/share 后下一个工作日 17:15 会自己重跑。")
         return 1
     runtime.runlog_init(cfg.runtime_root)
 

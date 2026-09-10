@@ -9,6 +9,12 @@
 # 所有判读都认 stderr 里的固定标记（SEND_COMPLETED / SKIP_* / *_FAILED …），
 # 不认中文措辞。中文只给人看，改文案不影响调度侧。
 set -uo pipefail
+# HOME 没设的话，下面那行默认 venv 路径里的 $HOME 会在 set -u 下直接把脚本打死，
+# 而且是在任何标记输出之前 —— stderr 里只有一句 bash 报错，调度侧对不上任何标记，
+# 手机上也没有告警。宁可自己响一声：CONFIG_MISSING 是结论性标记，会被判 ESCALATE。
+if [ -z "${HOME:-}" ]; then
+  echo "CONFIG_MISSING | HOME 未设置，定位不到 venv 与配置文件" >&2; exit 2
+fi
 SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV="${KMFA_BRIEF_VENV:-$HOME/.local/share/kmfa-attendance-brief/venv}"
 ENVF="$SKILL/private_runtime/kmfa_brief.env"

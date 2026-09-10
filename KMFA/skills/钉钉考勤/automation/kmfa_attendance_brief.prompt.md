@@ -38,6 +38,7 @@
 以及出报前那轮前置归档的 `KMFILE_START`/`KMFILE_OK`/`KMFILE_LOCKED`/`KMFILE_FAILED`/`KMFILE_TIMEOUT`
 和 `KMMEDIA_START`/`KMMEDIA_OK`/`KMMEDIA_LOCKED`/`KMMEDIA_FAILED`/`KMMEDIA_TIMEOUT`。
 （`_LOCKED` = 撞上另一轮归档的锁，本轮跳过，属正常。）
+还有一个 `ARCHIVE_ABORTED` —— 归档整段被兜住了（子进程 SIGKILL 都收不走那类），同样只是过程标记，简报照出。
 **归档失败或超时不影响 ACTION** —— 简报才是交付物，归档只是前置热身，
 它挂了简报照出。只有上表里的结论性标记才决定 ACTION。
 

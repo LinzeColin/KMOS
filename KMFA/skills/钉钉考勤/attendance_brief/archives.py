@@ -70,6 +70,17 @@ def _finish(name: str, proc, log: Path, started: float) -> None:
 def run(group_title: str, budget: int, python: str = "python3") -> None:
     """并发跑两个归档，只跑 group_title 这一个群，合计不超过 budget 秒。
     只发标记，不抛异常，不阻断调用方。"""
+    try:
+        _run(group_title, budget, python)
+    except Exception as e:
+        # 「不抛异常」是本模块对调用方的承诺，这里把它兑现成代码而不是注释。
+        # run() 在入口那个 try 之外被调用，一旦漏出异常，整个进程会带着
+        # traceback 退出：简报没发、没有结论标记、手机上也没有告警。
+        # 归档只是出报前的热身，永远不值得用它换掉简报本身。
+        runtime.emit("ARCHIVE_ABORTED",
+                     f"{type(e).__name__}: {e} · 跳过归档，继续出报")
+
+def _run(group_title: str, budget: int, python: str) -> None:
     live, logs = [], []
     for name, rel in JOBS:
         script = Path(rel).expanduser()
@@ -102,7 +113,15 @@ def run(group_title: str, budget: int, python: str = "python3") -> None:
                     try:
                         p.wait(timeout=TERM_GRACE)
                     except subprocess.TimeoutExpired:
-                        p.kill(); p.wait(timeout=10)    # 赖着不走才升级
+                        p.kill()                        # 赖着不走才升级
+                        try:
+                            p.wait(timeout=10)
+                        except subprocess.TimeoutExpired:
+                            # SIGKILL 都收不走，多半卡在 SMB 的不可中断 IO（D 态）。
+                            # 这里再抛出去就会连累简报，所以只记一笔，不等了。
+                            runtime.emit(f"{name}_TIMEOUT",
+                                         "SIGKILL 后仍未退出，不再等，继续出报")
+                            continue
                     runtime.emit(f"{name}_TIMEOUT",
                                  f"合计 {budget} 秒预算用尽，已 SIGTERM 收尾，继续出报")
                 return
