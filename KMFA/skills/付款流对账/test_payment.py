@@ -36,6 +36,20 @@ def main():
     check("send() 里时窗判断在调 dws 之前", gate.index("in_send_window") < gate.index('"send"'))
     check("没有任何环境变量能绕过时窗", "environ" not in gate.split("def main")[0])
 
+    print("\n== 一之二、随手测试不许发进群 ==")
+    # 2026-09-11 07:10 我为了「实测时窗」调了 send('x', now=北京08:20)，
+    # 两条 x 用老板的账号发进了生产付款群（已撤回）。和 09-09 悉尼 22:46
+    # 那次同一个根因：验证路径和生产路径是同一条，喂个窗口内的时间就穿过去了。
+    mid = dt.datetime(2026, 9, 11, 8, 20, tzinfo=S.BJ)      # 窗口正中间
+    for junk in ("x", "测试", "hello", "【付款异常】伪造", " 付款异常 9月11日"):
+        tok, _ = S.send(junk, now=mid)
+        check(f"垃圾正文 {junk!r} 出不去", tok == "NOT_AN_ALERT", tok)
+    real = S.render([], {"receivable_stalled": {"status": "clear", "items": [], "note": ""}},
+                    {"reported": 0, "answered": 0}, {}, today=dt.date(2026, 9, 11))
+    check("真告警的开头符合闸门要求", real.lstrip().startswith(S.TITLE_PREFIX), repr(real[:16]))
+    check("闸门排在时窗之前（喂窗口内时间也拦得住）",
+          S.send("x", now=mid)[0] == "NOT_AN_ALERT")
+
     print("\n== 二、各项检查（零参数可跑，一项坏了不许拖垮其余）==")
     res = run_all()
     check("注册表里每一项都有结果", len(res) == len(CHECKS), f"{len(res)} vs {len(CHECKS)}")
