@@ -155,8 +155,8 @@ def main():
             return out("CHECKS_FAILED", detail[:200]), 2
 
         all_items = event_items + [
-            it for cid, r in results.items() if cid not in S.DAILY_EXCLUDED
-            for it in r["items"]]
+            it for cid in S.ORDER for it in results.get(cid, {}).get("items", [])
+            if cid not in S.DAILY_EXCLUDED]
         new_items = L.unreported(all_items)
 
         if not new_items:

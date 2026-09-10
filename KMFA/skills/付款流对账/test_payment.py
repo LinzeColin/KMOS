@@ -6,6 +6,7 @@
 """
 import datetime as dt, os, sys, tempfile
 from decimal import Decimal
+import payment_checks as PC
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -35,9 +36,9 @@ def main():
     check("send() 里时窗判断在调 dws 之前", gate.index("in_send_window") < gate.index('"send"'))
     check("没有任何环境变量能绕过时窗", "environ" not in gate.split("def main")[0])
 
-    print("\n== 二、六项检查（零参数可跑，一项坏了不许拖垮其余）==")
+    print("\n== 二、各项检查（零参数可跑，一项坏了不许拖垮其余）==")
     res = run_all()
-    check("六项都有结果", len(res) == 6, f"{len(res)}")
+    check("注册表里每一项都有结果", len(res) == len(CHECKS), f"{len(res)} vs {len(CHECKS)}")
     for cid, _t in CHECKS:
         check(f"{cid} 不是 error", res[cid]["status"] != "error", res[cid]["note"][:60])
     healthy = [c for c in res.values() if c["status"] in ("hit", "clear")]
@@ -117,16 +118,30 @@ def main():
     check("说明了是增量", "本次新增" in text)
     check("没有金额时不硬凑「共 X 元」", "，共 " not in text.split("**要办")[0])
 
-    print("\n== 八、客户欠款永远不进每日消息 ==")
-    # 老板 2026-09-11：92 个合同 2307 万这个数已经反复听过。存量事实不是当天事件，
-    # 天天重播只会磨掉这个机制的可信度。这条守卫盯的就是它不许再溜回去。
-    check("receivable_stalled 已排除", "receivable_stalled" in S.DAILY_EXCLUDED)
-    check("排在渲染顺序之外", "receivable_stalled" not in S.ORDER)
+    print("\n== 八、欠款怎么进：按客户合并、只进高价值 ==")
+    # 老板 2026-09-11：「不是不进，是要高价值的进。」
+    # 按合同逐条那份（92 条）永远不进——一次刷 92 行没有重点，同一家会被拆成十几条。
+    check("按合同逐条的那份被排除", "receivable_stalled" in S.DAILY_EXCLUDED)
+    check("按合同逐条的那份不在渲染顺序里", "receivable_stalled" not in S.ORDER)
+    check("按客户合并的高价值那份要进", "receivable_major" in S.ORDER)
     recv = res["receivable_stalled"]["items"][:3]
     leaked = S.render(recv, res, {"reported": 0, "answered": 0},
                       {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
-    check("拿真欠款条目去渲染也渲不出正文", "**1. " not in leaked)
-    check("渲不出「客户欠款」四个字", "客户欠款" not in leaked)
+    check("拿逐条欠款去渲染也渲不出正文", "**1. " not in leaked)
+
+    maj = res["receivable_major"]
+    check("高价值欠款查得出来", maj["status"] == "hit" and len(maj["items"]) >= 5)
+    check("每家一条，不按合同拆", all(it["fingerprint"].startswith("recvmajor:") for it in maj["items"]))
+    check("同一家的多个合同已合并", any(it["detail"]["contracts"] > 1 for it in maj["items"]))
+    check("门槛以下的不进正文",
+          all(Decimal(it["detail"]["balance"]) >= PC.RECEIVABLE_MAJOR for it in maj["items"]))
+    check("脚注交代了没进正文的部分", "全部" in maj["note"] and "合计" in maj["note"])
+    parties = [it["detail"]["party"] for it in maj["items"]]
+    check("欠款方都有真名字", all(p and "未登记" not in p and "未知" not in p for p in parties))
+    check("按金额从大到小", [Decimal(i["detail"]["balance"]) for i in maj["items"]]
+          == sorted([Decimal(i["detail"]["balance"]) for i in maj["items"]], reverse=True))
+    fps = [it["fingerprint"] for it in maj["items"]]
+    check("同一家只出现一次", len(fps) == len(set(fps)))
 
     print("\n== 九、事件闸门（没有付款就不说话）==")
     import payment_event as EV

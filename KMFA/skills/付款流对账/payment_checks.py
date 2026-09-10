@@ -315,6 +315,60 @@ def receivable_stalled(receipt_path=None, contract_path=None, today=None):
     return ("hit" if out else "clear"), out, note
 
 
+RECEIVABLE_MAJOR = Decimal("500000")     # 高价值线：欠 50 万以上的 9 家占了总额一半
+
+
+def receivable_major(receipt_path=None, contract_path=None, today=None):
+    """按欠款方合并的高价值长期欠款。
+
+    老板 2026-09-11：「不是不进，是要高价值的进。」
+
+    为什么按客户不按合同：同一家跨多个合同 —— 青海发投碱业 17 个、
+    日照钢铁 3 个、山东鲁泰 4 个。按合同报会把一家拆成十几条刷屏，
+    而且老板追的是这家客户，不是合同编号。
+
+    为什么是 50 万：实测 92 个合同归到 60 家，欠 50 万以上的 9 家
+    合计 1,164 万，占总额 23,071,351.64 的一半。再往下放到 30 万就是 22 家，
+    一次报 22 家等于没有重点。
+
+    首报制照旧按欠款方发指纹：报过一次就不再重复，除非这家的欠款
+    又涨过一个 50 万台阶（台阶写进指纹，涨了才算新事件）。
+    """
+    status, rows, note = receivable_stalled(receipt_path, contract_path, today)
+    if status not in ("hit", "clear"):
+        return status, [], note
+
+    by_party = {}
+    for r in rows:
+        d = r["detail"]
+        g = by_party.setdefault(d["party"], {"amt": Decimal(0), "n": 0, "days": 0, "last": ""})
+        g["amt"] += Decimal(d["balance"])
+        g["n"] += 1
+        if d["days"] > g["days"]:
+            g["days"], g["last"] = d["days"], d["last"]
+
+    out = []
+    for party, g in by_party.items():
+        if g["amt"] < RECEIVABLE_MAJOR:
+            continue
+        step = int(g["amt"] // RECEIVABLE_MAJOR)      # 涨过一个台阶才算新事件
+        span = f"{g['n']} 个合同" if g["n"] > 1 else "1 个合同"
+        out.append({
+            "check_id": "receivable_major",
+            "fingerprint": f"recvmajor:{party}:{step}",
+            "amount": g["amt"],
+            "line": f"{party} 欠 {money(g['amt'])}（{span}），最久一笔 {g['last']} 收到钱，"
+                    f"到今天 {g['days']} 天",
+            "detail": {"party": party, "balance": str(g["amt"]),
+                       "contracts": g["n"], "days": g["days"], "last": g["last"]},
+        })
+    out.sort(key=lambda x: -x["amount"])
+    small = len(by_party) - len(out)
+    note = (f"另有 {small} 家欠款不足 {RECEIVABLE_MAJOR:,.0f}，不占版面；"
+            f"全部 {len(rows)} 个合同合计 {money(sum(Decimal(r['detail']['balance']) for r in rows))}")
+    return ("hit" if out else "clear"), out, note
+
+
 # ---------------------------------------------------------------- 汇总
 CHECKS = [
     ("dup_reimbursement", "同收款方、同金额、同事由，7 天内报了两次"),
@@ -323,6 +377,7 @@ CHECKS = [
     ("same_day_duplicate", "同一天给同一个人转了两遍"),
     ("status_regressed", "审批状态倒退成驳回或撤销"),
     ("receivable_stalled", "客户欠款半年以上没再收到钱（余额 10 万以上）"),
+    ("receivable_major", "大额客户欠款（按客户合并，欠 50 万以上）"),
 ]
 
 
@@ -352,6 +407,7 @@ def run_all(today=None):
     guard("same_day_duplicate", lambda: same_day_duplicate(db3) if db3 else ("unavailable", [], err3))
     guard("status_regressed", lambda: status_regressed(db2) if db2 else ("unavailable", [], err2))
     guard("receivable_stalled", lambda: receivable_stalled(today=today))
+    guard("receivable_major", lambda: receivable_major(today=today))
     return results
 
 
