@@ -16,7 +16,9 @@ import datetime as dt, json, os, sys, traceback
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-EVENT_WINDOW_DAYS = 4       # 回看窗口：够覆盖「周五提、周一才付」，又不至于翻旧账
+EVENT_WINDOW_DAYS = 7       # 回看窗口。4 天够看「周五提、周一才付」，但不够看出习惯：
+                            # 「请示正文不写金额」这类要攒够样本才算数（≥3 笔才报），
+                            # 4 天窗口下它几乎永远看不见。7 天既够看习惯，也不至于翻旧账。
 
 STATE = os.environ.get("PAYMENT_ALERT_STATE_DIR",
                        os.path.expanduser("~/.local/share/kmfa-payment-alert/state"))
