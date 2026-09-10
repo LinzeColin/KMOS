@@ -24,6 +24,7 @@ OWNER_USER = "01256723246324629191"          # 张霖泽，失败告警只走这
 STALE_DAYS = {"红圈付款审批": 3, "红圈收款登记": 3, "周付款计划": 10, "下游转账凭证": 10}
 DEFAULT_STALE_DAYS = 10
 
+TITLE_PREFIX = "**付款异常 "      # 告警正文的唯一合法开头，见 send() 里的硬闸 -1
 SEND_WINDOW_BJ = (8, 12)                     # 北京 08:00 ≤ t < 12:00
 BJ = dt.timezone(dt.timedelta(hours=8))
 
@@ -198,12 +199,25 @@ def _readback(marker, since, group):
 
 
 def send(text, group=None, dry_run=False, now=None):
-    """返回 (token, detail)。token ∈ SENT / HELD / OUT_OF_WINDOW / DRY_RUN / SEND_FAILED / SEND_UNVERIFIED"""
+    """返回 (token, detail)。token ∈ SENT / NOT_AN_ALERT / HELD / OUT_OF_WINDOW / DRY_RUN / SEND_FAILED / SEND_UNVERIFIED"""
     group = group or PRODUCTION_PAYMENT_GROUP
     now = now or bj_now()
 
     if dry_run:
         return "DRY_RUN", text
+
+    # ---- 硬闸 -1：只有真正的告警正文才允许出门 ----
+    #
+    # 2026-09-11 07:10 我为了「实测时窗」直接调了 send('x', now=08:20)，
+    # 两条 `x` 用老板的账号发进了生产付款群。和 2026-09-09 悉尼 22:46 那次
+    # 同一个根因：**验证路径和生产路径是同一条**。
+    # 时窗闸门拦不住它——因为我喂的时间就在窗口内。
+    #
+    # 所以再加一道与时间无关的闸：正文必须是真告警的形状。
+    # 「x」「测试」「hello」这类东西现在物理上出不去，谁调都出不去。
+    if not text.lstrip().startswith(TITLE_PREFIX):
+        return "NOT_AN_ALERT", (f"正文不是告警（必须以 {TITLE_PREFIX!r} 开头），"
+                                f"拒发。收到的开头是 {text.lstrip()[:20]!r}")
 
     # ---- 硬闸 0：显式禁发 ----
     if send_held():
@@ -237,7 +251,7 @@ def main():
     tok, detail = send(text, dry_run=a.dry_run)
     print(tok)
     print(detail)
-    return 0 if tok in ("SENT", "DRY_RUN", "OUT_OF_WINDOW", "HELD") else 3
+    return 0 if tok in ("SENT", "DRY_RUN", "OUT_OF_WINDOW", "HELD", "NOT_AN_ALERT") else 3
 
 
 if __name__ == "__main__":
