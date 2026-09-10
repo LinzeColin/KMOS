@@ -20,7 +20,7 @@
   生产付款群       cid0UmWYRhaMEbiNez2FIpDPA==   杨婷在这里发转账回执
   领导             林全意、张霖泽
 """
-import datetime as dt, json, re, subprocess
+import datetime as dt, hashlib, json, re, subprocess
 from decimal import Decimal
 
 APPLY_GROUP = "cidkU176W26z9HoAK9q5cb1lA=="
@@ -182,16 +182,27 @@ if __name__ == "__main__":
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  异常判定
+#  异常判定 —— 只盯员工该做没做，不盯管理层该批没批
 #
-#  只写「文本本身就能证明」的两条。申请单里的金额/收款方要 OCR 才拿得到，
-#  逐笔勾稽要解开「批量转账明细.pdf」，那两件没做完之前一条都不报——
-#  宁可少报，也不拿半成品去消耗这个机制的可信度。
+#  老板 2026-09-11 定的方向，这是本模块的第一原则：
+#
+#      「没有批准的，那么就是管理层的责任。我都说了，你不要把责任
+#        移嫁到管理层上面去。我们整个机制的目的是要逼员工，是要维护
+#        管理层的利益……如果是管理层把事情做了，但是员工没有做，
+#        那么就是员工的责任。你不要逼管理层。」
+#
+#  所以「申请交上去没人批」这类判定**已删除**：申请挂着没批，责任在批的人，
+#  报它等于拿哨兵去追老板和林总。杨婷在群里催领导也一样，不报。
+#
+#  留下的每一条都必须能回答同一个问题：**哪个员工，该做的哪件事没做。**
 # ══════════════════════════════════════════════════════════════════════
 
-# 判定用「自然日」而不是小时数：小时阈值是拍脑袋的，
-# 「当天下班前没付」才是老板和财务共同认的那把尺。
-# 申请/催办发生当天不催，隔天早上报一次；同一件事被催过就并进同一条。
+# 领导表态同意后，员工先斩后奏也好、拖着不办也好，都归这里
+MIN_DAYS = 2      # 阈值来自实测节奏：申请集中在下午提，付款集中在次日下午出。
+                  # 隔一天就喊会系统性早报。
+
+BYPASS_WORDS = ("流程未通过", "流程没通过", "未走流程", "没走流程",
+                "先申请付款", "流程未过", "未通过先")
 
 
 def _fmt(ts):
@@ -211,16 +222,29 @@ def _days_since(ts, now):
     return (now.date() - d).days
 
 
-MIN_DAYS = 2      # 阈值来自实测节奏，不是拍脑袋：申请集中在下午提，
-                  # 付款也集中在次日下午出。隔一天就喊会系统性早报。
+
+SPLIT_RE = re.compile(r"(?<=请批示。)|(?<=请批示)(?=\s*\[图片消息\])")
+ASKER_RE = re.compile(r"([一-龥]{1,3}(?:工|总|经理))\s*(?:那边)?\s*说")
+
+
+def _split_requests(text):
+    """一条消息里可能塞了两笔独立申请，按「请批示」切开分别判定。"""
+    parts = [p.strip() for p in SPLIT_RE.split(text) if p and p.strip()]
+    return parts or [text]
+
+
+def _originator(seg):
+    """「李工说这个款比较急」——发起人是李工，不是转达的人。"""
+    m = ASKER_RE.search(seg)
+    return m.group(1) if m else None
 
 
 def findings(ev, now=None, min_days=None):
     """返回可上报的异常。每条自带 fingerprint，交给台账做首报制。
 
-    只写「文本本身就能证明」的两条。申请单里的金额/收款方要 OCR 才拿得到，
-    逐笔勾稽要解开「批量转账明细.pdf」，那两件没做完之前一条都不报——
-    宁可少报，也不拿半成品去消耗这个机制的可信度。
+    只写「文本本身就能证明」的两条。回执金额与申请金额的逐笔勾稽要解开
+    「批量转账明细.pdf」，那件没做完之前一条都不报——宁可少报，
+    也不拿半成品去消耗这个机制的可信度。
     """
     now = now or dt.datetime.now(BJ)
     min_days = MIN_DAYS if min_days is None else min_days
@@ -230,48 +254,48 @@ def findings(ev, now=None, min_days=None):
     def receipt_after(ts):
         return [r for r in receipts if r["time"] > ts]
 
-    def chases_after(ts):
-        return [c for c in ev["催办"] if c["time"] > ts and not receipt_after(c["time"])]
+    # ── 1. 领导批了，钱没出去 ─────────────────────────────────────
+    #    这是员工责任的正身：管理层已经把事情做了，剩下的是执行。
+    for d in ev["批示"]:
+        if d.get("verdict") != "同意":
+            continue                      # 领导说不付，那是决定，不是异常
+        if _days_since(d["time"], now) < min_days:
+            continue
+        if receipt_after(d["time"]):
+            continue
+        days = _days_since(d["time"], now)
+        out.append({
+            "fingerprint": f"evt:unpaid:{d['msgid']}",
+            "check_id": "approved_not_paid",
+            "when": d["time"], "who": d["sender"], "days": days,
+            "line": f"{_fmt(d['time'])} {d['sender']}已批「{_quote(d['text'])}」，"
+                    f"过了 {days} 天，生产付款群没有对应回执，出纳没交待",
+        })
 
-    covered_chase = set()
-
-    # ── 1. 申请交上去，当天过完既没批也没付 ───────────────────────
+    # ── 2. 绕过红圈审批流先申请付款 ───────────────────────────────
+    #    先斩后奏是员工发起的，留痕归档，一次记一次。
+    #
+    #    两个坑，都是真数据咬出来的：
+    #    · 一条钉钉消息里常常塞两笔独立申请（09-08 那条：500 元标书费是
+    #      正常走完流程的，41,516.05 才是绕流程的）。整条报会连累无辜那笔。
+    #    · 发起人往往不是发消息的人。09-04 和 09-08 两次都写着「李工说这个款
+    #      比较急」，杨婷只是转达。追到转达人头上比不追更糟。
     for a in ev["申请"]:
-        if _days_since(a["time"], now) < min_days:
-            continue
-        if receipt_after(a["time"]):
-            continue
-        if [d for d in ev["批示"] if d["time"] > a["time"]]:
-            continue
-        cs = chases_after(a["time"])
-        for c in cs:
-            covered_chase.add(c["msgid"])
-        amt = "、".join(f"{x:,.2f}" for x in a["amounts"]) or "正文没写金额"
-        days = _days_since(a["time"], now)
-        tail = f"，{cs[-1]['sender']}已经催了 {len(cs)} 次" if cs else ""
-        out.append({
-            "fingerprint": f"evt:apply:{a['msgid']}",
-            "check_id": "apply_stalled",
-            "when": a["time"], "who": a["sender"], "days": days,
-            "amount": amt, "chases": len(cs),
-            "line": f"{_fmt(a['time'])} {a['sender']}提「{_quote(a['text'])}」（{amt}），"
-                    f"挂了 {days} 天，没见批示也没见回执{tail}",
-        })
-
-    # ── 2. 催过、但催办本身找不到对应的挂起申请（申请在窗口外）─────
-    for c in ev["催办"]:
-        if c["msgid"] in covered_chase or _days_since(c["time"], now) < min_days:
-            continue
-        if receipt_after(c["time"]):
-            continue
-        days = _days_since(c["time"], now)
-        out.append({
-            "fingerprint": f"evt:chase:{c['msgid']}",
-            "check_id": "chase_unpaid",
-            "when": c["time"], "who": c["sender"], "days": days,
-            "line": f"{_fmt(c['time'])} {c['sender']}在请示群催「{_quote(c['text'])}」，"
-                    f"过了 {days} 天，生产付款群一条回执都没有",
-        })
+        for seg in _split_requests(a["text"]):
+            if not any(w in seg for w in BYPASS_WORDS):
+                continue
+            amts = amounts_of(seg)
+            amt = "、".join(f"{x:,.2f}" for x in amts) or "金额在图里"
+            asker = _originator(seg) or a["sender"]
+            relay = f"（{a['sender']}转达）" if asker != a["sender"] else ""
+            out.append({
+                "fingerprint": f"evt:bypass:{a['msgid']}:{hashlib.md5(seg.encode()).hexdigest()[:8]}",
+                "check_id": "bypass_approval",
+                "when": a["time"], "who": asker,
+                "amount": str(amts[0]) if len(amts) == 1 else amt,
+                "line": f"{_fmt(a['time'])} {asker}{relay}绕开红圈审批流直接申请付款"
+                        f"（{amt}）：「{_quote(seg, 52)}」",
+            })
 
     out.sort(key=lambda x: x["when"])
     return out
@@ -297,6 +321,11 @@ NUM_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d{3,9}(?:\.\d+)?)
 PAYEE_RE = re.compile(r"付([一-龥（）()A-Za-z0-9\s]{4,40}?)-{1,2}\s*公司")
 SINGLE_AMT = re.compile(r"付款金额（元）\s*\n\s*([\d,]+\.\d{2})")
 SINGLE_PAYEE = re.compile(r"收款单位\s*\n\s*([^\n]{4,40})")
+# 「待付款请示明细表」每行末尾标签字状态：`7000 武汉 未签字`。
+# 未签字 = 没走完流程，正是绕流程那几笔。比拿整张表的总合计准得多：
+# 2026-09-04 那张总合计 112,100.26，但绕流程的只有 7000+8500+750=16,250，
+# 而且和杨婷正文写的「武汉5,6 / 岚丹3」逐行对得上。
+UNSIGNED_ROW = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s+\S{1,6}\s*未签字")
 
 
 def _safe(name):
@@ -382,16 +411,26 @@ def read_application(msg):
             payees.append(m.group(1).strip())
 
     return {"total": total, "parts": parts, "payees": payees,
+            "unsigned": unsigned_rows(text),
             "is_batch": "待付款请示明细表" in text, "ocr_chars": len(text)}
 
 
+def unsigned_rows(text):
+    """明细表里「未签字」的那几行金额——没走完流程的就是这几笔。"""
+    return [Decimal(m.group(1).replace(",", "")) for m in UNSIGNED_ROW.finditer(text)]
+
+
 def enrich(items, ev):
-    """给 apply_stalled 补上金额和收款方。补不上就原样留着，绝不因为补不上就不报。"""
+    """给绕流程那几笔补上金额。补不上就原样留着，绝不因为补不上就不报。"""
     by_id = {a["msgid"]: a for a in ev["申请"]}
     for it in items:
-        if it["check_id"] != "apply_stalled":
+        if it["check_id"] != "bypass_approval":
             continue
-        src = by_id.get(it["fingerprint"].split(":")[-1])
+        if "金额在图里" not in it["line"]:
+            continue        # 正文已经写了金额，别再拿整条消息的 OCR 去污染它
+        # 指纹是 evt:bypass:<msgid>:<段哈希>，msgid 在第 2 段。
+        # 取错下标不会报错，只会静默补不上——这种失败最难发现。
+        src = by_id.get(it["fingerprint"].split(":")[2])
         if not src:
             continue
         try:
@@ -399,18 +438,15 @@ def enrich(items, ev):
         except Exception as exc:
             it["ocr_note"] = f"{type(exc).__name__}"
             continue
-        if not info or info.get("total") is None:
+        if not info:
             continue
-        n = len(info["parts"]) or 1
-        who = "、".join(info["payees"][:3])
-        if len(info["payees"]) > 3:
-            who += f" 等 {len(info['payees'])} 家"
-        detail = f"{n} 笔共 {info['total']:,.2f}"
-        if info["parts"]:
-            detail += "（" + " + ".join(f"{p:,.0f}" for p in info["parts"]) + "）"
-        it["amount"] = str(info["total"])
-        it["line"] = (f"{_fmt(it['when'])} {it['who']}提的付款请示：{detail}"
-                      + (f"，付{who}" if who else "")
-                      + f"，挂了 {it['days']} 天，没见批示也没见回执"
-                      + (f"，{it['who']}已经催了 {it['chases']} 次" if it.get("chases") else ""))
+        rows = info.get("unsigned") or []
+        if rows:
+            it["amount"] = str(sum(rows))
+            it["line"] = it["line"].replace(
+                "（金额在图里）",
+                f"（明细表里 {len(rows)} 行未签字，共 {sum(rows):,.2f}）")
+        elif info.get("total") is not None:
+            it["amount"] = str(info["total"])
+            it["line"] = it["line"].replace("（金额在图里）", f"（共 {info['total']:,.2f}）")
     return items

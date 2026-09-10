@@ -102,10 +102,9 @@ def main():
 
     print("\n== 七、消息模板 ==")
     ev_items = [{
-        "fingerprint": "evt:apply:TEST", "check_id": "apply_stalled",
-        "when": "2026-09-09 16:35:29", "who": "杨婷", "days": 2, "chases": 1,
-        "amount": "正文没写金额",
-        "line": "9月9日 16:35 杨婷提「[图]领导请批示。」（正文没写金额），挂了 2 天，没见批示也没见回执",
+        "fingerprint": "evt:bypass:TEST:abcd1234", "check_id": "bypass_approval",
+        "when": "2026-09-08 11:39:52", "who": "李工", "amount": "41516.05",
+        "line": "9月8日 11:39 李工（杨婷转达）绕开红圈审批流直接申请付款（41,516.05）",
     }]
     text = S.render(ev_items, res, {"reported": 1, "answered": 6},
                     {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
@@ -116,7 +115,7 @@ def main():
     check("写了数据截止", "数据截止" in text)
     check("停更有提示", "停更" in text or "没更新" in text)
     check("说明了是增量", "本次新增" in text)
-    check("没有金额时不硬凑「共 X 元」", "，共 " not in text.split("**要办")[0])
+    check("金额齐全时给出小计", "，共 41,516.05" in text)
 
     print("\n== 八、欠款怎么进：按客户合并、只进高价值 ==")
     # 老板 2026-09-11：「不是不进，是要高价值的进。」
@@ -168,6 +167,26 @@ def main():
         {"time": "2026-09-04 14:50:34", "sender": "杨婷", "text": "[图片消息](mediaId=x)票据到期，款已到账。",
          "msgid": "m2", "group": EV.APPLY_GROUP}])["申请"] == [])
 
+    print("\n== 九之二、只追员工，不追管理层 ==")
+    # 老板 2026-09-11：「没有批准的，那么就是管理层的责任……不要把责任移嫁到管理层上面去。」
+    # 「申请交上去没人批」「催了领导还不批」这两类判定必须永久消失。
+    src = open(os.path.join(HERE, "payment_event.py"), encoding="utf-8").read()
+    check("「申请挂着没人批」这类判定已删除", "apply_stalled" not in src)
+    check("「催了领导还不批」这类判定已删除", "chase_unpaid" not in src)
+    check("模板里也没有这两项", "apply_stalled" not in S.ORDER and "chase_unpaid" not in S.ORDER)
+    wide = EV.scan(days=14, now=dt.datetime(2026, 9, 11, 8, 20, tzinfo=EV.BJ))
+    fs = EV.findings(wide, now=dt.datetime(2026, 9, 11, 8, 20, tzinfo=EV.BJ))
+    check("14 天里报出来的每一条都指向员工",
+          all(f["check_id"] in ("approved_not_paid", "bypass_approval") for f in fs), str(fs)[:80])
+    check("领导说「不付」是决定，不是异常",
+          not any("不付" in f["line"] for f in fs))
+    reject = [d for d in wide["批示"] if d.get("verdict") == "否决"]
+    check("否决被正确识别出来（这几条一条都不许报）", len(reject) >= 2)
+    okd = [d for d in wide["批示"] if d.get("verdict") == "同意"]
+    check("同意也识别得到（这才是要追执行的）", len(okd) >= 2)
+    check("领导批过的都在阈值内执行了，所以「批了没付」是 0 条",
+          not any(f["check_id"] == "approved_not_paid" for f in fs))
+
     print("\n== 十、申请单 OCR 解析（把「有张图」变成「哪两笔多少钱」）==")
     from decimal import Decimal as D
     t, parts = EV._total_by_arithmetic([D("15000"), D("20000"), D("35000"), D("5000"), D("3")])
@@ -187,6 +206,11 @@ def main():
              "line": "原样"}]
     EV.enrich(stub, {"申请": []})
     check("补不上金额时原样保留，不吞掉真异常", stub[0]["line"] == "原样")
+    rows = EV.unsigned_rows("2273 武汉 已签字\n7000 武汉 未签字\n8500 武汉 未签字\n750 岚丹 未签字")
+    check("按签字状态取绕流程那几笔（09-04 那张：7000+8500+750）",
+          rows == [D("7000"), D("8500"), D("750")] and sum(rows) == D("16250"))
+    check("已签字的行不算绕流程",
+          EV.unsigned_rows("15000 武汉 已签字现金\n20000 武汉 已签字 现金") == [])
 
     print(f"\n{'='*54}")
     if FAILED:
