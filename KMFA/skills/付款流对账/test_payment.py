@@ -5,6 +5,7 @@
 零参数、零环境变量就能跑 —— 定时任务走的就是这条路径。
 """
 import datetime as dt, os, sys, tempfile
+from decimal import Decimal
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -99,8 +100,13 @@ def main():
         check("锚定测试有素材可用", False, "seed 图或 venv 缺失")
 
     print("\n== 七、消息模板 ==")
-    items = res["receivable_stalled"]["items"][:3]
-    text = S.render(items, res, {"reported": 1, "answered": 6},
+    ev_items = [{
+        "fingerprint": "evt:apply:TEST", "check_id": "apply_stalled",
+        "when": "2026-09-09 16:35:29", "who": "杨婷", "days": 2, "chases": 1,
+        "amount": "正文没写金额",
+        "line": "9月9日 16:35 杨婷提「[图]领导请批示。」（正文没写金额），挂了 2 天，没见批示也没见回执",
+    }]
+    text = S.render(ev_items, res, {"reported": 1, "answered": 6},
                     {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
     check("有分节编号", "**1. " in text)
     check("段落之间是空行（钉钉按 Markdown 渲染，单换行会被吃掉）", "\n\n" in text)
@@ -109,6 +115,63 @@ def main():
     check("写了数据截止", "数据截止" in text)
     check("停更有提示", "停更" in text or "没更新" in text)
     check("说明了是增量", "本次新增" in text)
+    check("没有金额时不硬凑「共 X 元」", "，共 " not in text.split("**要办")[0])
+
+    print("\n== 八、客户欠款永远不进每日消息 ==")
+    # 老板 2026-09-11：92 个合同 2307 万这个数已经反复听过。存量事实不是当天事件，
+    # 天天重播只会磨掉这个机制的可信度。这条守卫盯的就是它不许再溜回去。
+    check("receivable_stalled 已排除", "receivable_stalled" in S.DAILY_EXCLUDED)
+    check("排在渲染顺序之外", "receivable_stalled" not in S.ORDER)
+    recv = res["receivable_stalled"]["items"][:3]
+    leaked = S.render(recv, res, {"reported": 0, "answered": 0},
+                      {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
+    check("拿真欠款条目去渲染也渲不出正文", "**1. " not in leaked)
+    check("渲不出「客户欠款」四个字", "客户欠款" not in leaked)
+
+    print("\n== 九、事件闸门（没有付款就不说话）==")
+    import payment_event as EV
+    qnow = dt.datetime(2026, 9, 6, 23, 59, tzinfo=EV.BJ)      # 窗口 09-05 → 09-06，两天全空
+    quiet = EV.scan(days=1, now=qnow)
+    check("09-05~09-06 两天没有任何付款事件", quiet["has_event"] is False)
+    check("安静日一条异常都不产", EV.findings(quiet, now=qnow) == [])
+    check("上界被夹住了（--direction newer 没有上界，不夹就假绿）",
+          all(m["time"] <= "2026-09-06 23:59:00"
+              for m in EV.fetch(EV.APPLY_GROUP, dt.datetime(2026, 9, 1, tzinfo=EV.BJ), qnow)))
+    busy = EV.scan(days=1, now=dt.datetime(2026, 9, 4, 23, 59, tzinfo=EV.BJ))
+    check("09-04 真有付款，识别得到", busy["has_event"] is True and len(busy["回执"]) >= 3)
+    chase = EV.scan(days=1, now=dt.datetime(2026, 9, 10, 23, 59, tzinfo=EV.BJ))
+    check("09-10 只有催办也算事件", chase["has_event"] is True and len(chase["催办"]) == 1)
+    check("自己发的资金日报不算事件", EV.is_machine_post("张霖泽", "2026-09-09 资金日报\n可动用合计"))
+    check("自己发的付款异常不算事件", EV.is_machine_post("张霖泽", "**付款异常 9月8日**"))
+    check("领导真批示不会被误当机器发言", not EV.is_machine_post("张霖泽", "新都化工钢筋采购费41516.05元付承兑"))
+    check("金额解析：4万 = 40000", EV.amounts_of("宜宾华福双三水泥材料款4万（付承兑）") == [Decimal("40000")])
+    check("金额解析：41516.05元", Decimal("41516.05") in EV.amounts_of("新都化工钢筋采购费41516.05元付承兑"))
+    check("噪声不算申请：资金明细", EV.classify([
+        {"time": "2026-09-09 10:19:17", "sender": "杨婷", "text": "[图片消息](mediaId=x)9.8资金明细",
+         "msgid": "m1", "group": EV.APPLY_GROUP}])["申请"] == [])
+    check("噪声不算回执：款已到账", EV.classify([
+        {"time": "2026-09-04 14:50:34", "sender": "杨婷", "text": "[图片消息](mediaId=x)票据到期，款已到账。",
+         "msgid": "m2", "group": EV.APPLY_GROUP}])["申请"] == [])
+
+    print("\n== 十、申请单 OCR 解析（把「有张图」变成「哪两笔多少钱」）==")
+    from decimal import Decimal as D
+    t, parts = EV._total_by_arithmetic([D("15000"), D("20000"), D("35000"), D("5000"), D("3")])
+    check("09-09 那张：15000+20000=35000 自证", t == D("35000") and sorted(parts) == [D("15000"), D("20000")])
+    t2, p2 = EV._total_by_arithmetic([D("3000"), D("18000"), D("91923.55"), D("30000"),
+                                      D("142923.55"), D("111923.55")])
+    check("09-08 那张：四笔加总 = 142923.55", t2 == D("142923.55") and len(p2) == 4)
+    t3, _ = EV._total_by_arithmetic([D("1000"), D("2000"), D("4500")])
+    check("凑不出合计就返回 None，不硬报一个像总额的数", t3 is None)
+    check("msgid 里的 / 不会在磁盘上凭空造目录", "/" not in EV._safe("msg6J8L+mrM/a94O8qdeH5VrA=="))
+    ocr = EV._ocr([])
+    check("没有图时 OCR 不炸", ocr == {})
+    payees = EV.PAYEE_RE.findall("付中盐内蒙古化\n工股份有限公司--公司")
+    check("公司名被 OCR 断行也读得全", payees and "".join(payees[0].split()) == "中盐内蒙古化工股份有限公司")
+    stub = [{"check_id": "apply_stalled", "fingerprint": "evt:apply:NOPE",
+             "when": "2026-09-09 16:35:29", "who": "杨婷", "days": 2, "chases": 0,
+             "line": "原样"}]
+    EV.enrich(stub, {"申请": []})
+    check("补不上金额时原样保留，不吞掉真异常", stub[0]["line"] == "原样")
 
     print(f"\n{'='*54}")
     if FAILED:

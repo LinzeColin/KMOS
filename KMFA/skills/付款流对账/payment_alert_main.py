@@ -6,7 +6,8 @@
 分支时才炸 —— 定时任务里这种错要等到出事那天才发现。
 
 固定标记（automation 只认这些，不解释中文措辞）：
-  ALERT_SENT / ALERT_NONE / ALERT_ALREADY_DONE / ALERT_OUT_OF_WINDOW
+  ALERT_SENT / ALERT_NONE / ALERT_NO_EVENT / ALERT_HELD / ALERT_ALREADY_DONE
+  ALERT_OUT_OF_WINDOW / EVENT_SCAN_FAILED
   ALERT_LOCKED / ALERT_LOCK_INDETERMINATE / SMB_UNAVAILABLE
   CHECKS_FAILED / SEND_FAILED / SEND_UNVERIFIED
 """
@@ -14,6 +15,8 @@ import datetime as dt, json, os, sys, traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+
+EVENT_WINDOW_DAYS = 4       # 回看窗口：够覆盖「周五提、周一才付」，又不至于翻旧账
 
 STATE = os.environ.get("PAYMENT_ALERT_STATE_DIR",
                        os.path.expanduser("~/.local/share/kmfa-payment-alert/state"))
@@ -111,6 +114,37 @@ def main():
         except Exception as exc:                     # 降级，绝不拖垮主流程
             print(f"FEEDBACK_DEGRADED {type(exc).__name__}: {exc}")
 
+        # ---- 事件闸门：没有付款事件，一个字都不发 ----
+        #
+        # 老板 2026-09-11：「他不是每天都有付款，有付款才发送消息，你才需要去核对……
+        # 而不是他没有付款的时候你也发。」
+        # 实测 08-25~09-10 这 16 天，生产付款群只有 9 天有回执，旧机制那 7 个空天
+        # 照发不误，发的还是老板已经听过无数遍的存量欠款。
+        #
+        # 读群失败必须炸出来告警，绝不能当成「今天没事件」而静默——那是装死。
+        import payment_event as EV
+        try:
+            ev = EV.scan(days=EVENT_WINDOW_DAYS, now=now_bj)
+        except Exception as exc:
+            S.alert_owner(f"付款异常哨兵：读不到群消息，今天无法判断有没有付款事件，本轮不发。\n"
+                          f"{type(exc).__name__}: {exc}")
+            return out("EVENT_SCAN_FAILED", f"{type(exc).__name__}: {exc}"[:200]), 2
+
+        if not ev["has_event"]:
+            open(stamp, "w").close()
+            return out("ALERT_NO_EVENT",
+                       f"窗口 {ev['window'][0]} 起：请示群没有申请、生产付款群没有回执，按设计不发"), 0
+
+        event_items = EV.findings(ev, now=now_bj)
+        try:
+            # 申请单里的金额和收款方要 OCR 才拿得到。补不上就原样报，
+            # 绝不因为读不出图就把一条真异常吞掉。
+            EV.enrich(event_items, ev)
+        except Exception as exc:
+            print(f"EVENT_ENRICH_DEGRADED {type(exc).__name__}: {exc}")
+        print(f"EVENT_SCAN 申请={len(ev['申请'])} 催办={len(ev['催办'])} "
+              f"批示={len(ev['批示'])} 回执={len(ev['回执'])} 异常={len(event_items)}")
+
         # ---- 六项检查 ----
         from payment_checks import run_all, CHECKS
         results = run_all(today=now_bj.date())
@@ -120,13 +154,15 @@ def main():
             S.alert_owner(f"付款异常哨兵今天没跑成：六项检查全部不可用。\n{detail[:500]}")
             return out("CHECKS_FAILED", detail[:200]), 2
 
-        all_items = [it for r in results.values() for it in r["items"]]
+        all_items = event_items + [
+            it for cid, r in results.items() if cid not in S.DAILY_EXCLUDED
+            for it in r["items"]]
         new_items = L.unreported(all_items)
 
         if not new_items:
             open(stamp, "w").close()
             return out("ALERT_NONE",
-                       f"六项跑完，{len(all_items)} 条命中全部已上报或已结清，按设计不发"), 0
+                       f"有付款事件，但 {len(all_items)} 条命中全部已上报或已结清，按设计不发"), 0
 
         sources = _source_dates()
         text = S.render(new_items, results, L.counts(), sources, today=now_bj.date())
@@ -136,6 +172,8 @@ def main():
             print("---- 干跑，以下内容不会发出 ----")
             print(text)
             return out("ALERT_DRY_RUN", f"chars={len(text)} new={len(new_items)}"), 0
+        if tok == "HELD":
+            return out("ALERT_HELD", detail), 0
         if tok == "OUT_OF_WINDOW":
             return out("ALERT_OUT_OF_WINDOW", detail), 0
         if tok == "SEND_FAILED":

@@ -15,6 +15,7 @@
 3. **钉钉按 Markdown 渲染**：单个 \n 会被吃掉（要空行分段），`|` 会触发表格语法。
 """
 import datetime as dt, json, os, re, subprocess, sys
+from pathlib import Path
 from decimal import Decimal
 
 PRODUCTION_PAYMENT_GROUP = "cid0UmWYRhaMEbiNez2FIpDPA=="
@@ -27,6 +28,8 @@ SEND_WINDOW_BJ = (8, 12)                     # 北京 08:00 ≤ t < 12:00
 BJ = dt.timezone(dt.timedelta(hours=8))
 
 TITLES = {
+    "apply_stalled":      ("申请交上去，没人批也没付", "张请示单", "给个准话：是不批，还是漏了"),
+    "chase_unpaid":       ("催过了，钱还是没出去", "笔", "确认是压着不付还是漏了"),
     "dup_reimbursement":  ("同收款方、同金额、同事由，7 天内报了两次", "组", "逐组认，是两笔真业务还是报重了"),
     "amount_changed":     ("申请交上去以后金额被改过", "笔", "谁改的、经谁同意的"),
     "transfer_failed":    ("钱没转出去", "笔", "财务确认补了没有，没补是为什么"),
@@ -34,13 +37,26 @@ TITLES = {
     "status_regressed":   ("审批状态倒退成驳回或撤销", "笔", "确认是正常撤单还是被卡住了"),
     "receivable_stalled": ("客户欠款半年以上没再收到钱（余额 10 万以上）", "个合同", "财务和销售认领，按金额从大到小推"),
 }
-ORDER = ["transfer_failed", "receivable_stalled", "dup_reimbursement",
+# 客户欠款（receivable_stalled）不在每日消息里。它是存量事实不是当天事件，
+# 92 个合同 2307 万这个数老板已经反复听过，天天重播只会磨掉机制的可信度。
+# 需要时用 `python3 payment_checks.py receivable` 单独出，不进群。
+ORDER = ["apply_stalled", "chase_unpaid", "transfer_failed", "dup_reimbursement",
          "amount_changed", "same_day_duplicate", "status_regressed"]
+DAILY_EXCLUDED = ("receivable_stalled",)
 MAX_LINES_PER_SECTION = 5
 
 
 def bj_now():
     return dt.datetime.now(BJ)
+
+
+RUNTIME = Path(os.environ.get("PAYMENT_ALERT_DB_DIR",
+                              Path.home() / ".local/share/kmfa-payment-alert"))
+HOLD_FILE = RUNTIME / "SEND_HOLD"   # 存在即禁发；由老板/本人显式解除
+
+def send_held():
+    """硬闸：文件存在就绝不调用 dws。闸门在脚本里，不依赖 automation.toml。"""
+    return HOLD_FILE.exists()
 
 
 def in_send_window(now=None):
@@ -67,8 +83,13 @@ def render(new_items, results, ledger_counts, sources, today=None):
             continue
         n += 1
         title, unit, todo = TITLES[cid]
-        total = sum(Decimal(str(i["amount"])) for i in items)
-        parts.append(f"**{n}. {title}** {len(items)}{unit}，共 {money(total)}")
+        amts = [Decimal(str(i["amount"])) for i in items
+                if isinstance(i.get("amount"), (int, float, str, Decimal))
+                and str(i.get("amount")).replace(".", "").replace("-", "").isdigit()]
+        head = f"**{n}. {title}** {len(items)}{unit}"
+        if amts and len(amts) == len(items):
+            head += f"，共 {money(sum(amts))}"
+        parts.append(head)
         shown = items[:MAX_LINES_PER_SECTION]
         bullets = [f"- {i['line'].replace('|', '／')}" for i in shown]
         if len(items) > len(shown):
@@ -166,14 +187,18 @@ def _readback(marker, since, group):
 
 
 def send(text, group=None, dry_run=False, now=None):
-    """返回 (token, detail)。token ∈ SENT / OUT_OF_WINDOW / DRY_RUN / SEND_FAILED / SEND_UNVERIFIED"""
+    """返回 (token, detail)。token ∈ SENT / HELD / OUT_OF_WINDOW / DRY_RUN / SEND_FAILED / SEND_UNVERIFIED"""
     group = group or PRODUCTION_PAYMENT_GROUP
     now = now or bj_now()
 
     if dry_run:
         return "DRY_RUN", text
 
-    # ---- 硬闸：任何环境变量都绕不过 ----
+    # ---- 硬闸 0：显式禁发 ----
+    if send_held():
+        return "HELD", f"存在禁发文件 {HOLD_FILE}，本轮不发群"
+
+    # ---- 硬闸 1：任何环境变量都绕不过 ----
     if not in_send_window(now):
         return "OUT_OF_WINDOW", f"北京 {now:%H:%M}，发布窗口是 {SEND_WINDOW_BJ[0]:02d}:00–{SEND_WINDOW_BJ[1]:02d}:00"
 
@@ -201,7 +226,7 @@ def main():
     tok, detail = send(text, dry_run=a.dry_run)
     print(tok)
     print(detail)
-    return 0 if tok in ("SENT", "DRY_RUN", "OUT_OF_WINDOW") else 3
+    return 0 if tok in ("SENT", "DRY_RUN", "OUT_OF_WINDOW", "HELD") else 3
 
 
 if __name__ == "__main__":
