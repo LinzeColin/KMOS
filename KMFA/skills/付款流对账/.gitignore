@@ -1,0 +1,7 @@
+# 运行产物一律不入库：库、锁、当日标记、图片缓存都在
+# ~/.local/share/kmfa-payment-alert/ 下，这里只是兜底。
+_scratch/
+*.sqlite3
+*.done-*
+*.lock
+venv/

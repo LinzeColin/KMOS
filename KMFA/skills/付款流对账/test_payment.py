@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""付款异常哨兵回归测试。
+
+守的是历史上真出过的事故，每条断言后面都写清楚它防的是哪一次。
+零参数、零环境变量就能跑 —— 定时任务走的就是这条路径。
+"""
+import datetime as dt, os, sys, tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+
+BJ = dt.timezone(dt.timedelta(hours=8))
+FAILED = []
+
+
+def check(name, cond, extra=""):
+    print(f"  {'PASS' if cond else 'FAIL'}  {name}" + (f"  [{extra}]" if extra else ""))
+    if not cond:
+        FAILED.append(name)
+
+
+def main():
+    import payment_send as S
+    from payment_checks import run_all, CHECKS
+    from payment_ledger import Ledger
+    from payment_feedback import match_line
+
+    print("== 一、发送时窗硬闸（2026-09-09 悉尼 22:46 那次误发）==")
+    for h, want in ((5, False), (7, False), (8, True), (11, True), (12, False), (20, False), (23, False)):
+        got = S.in_send_window(dt.datetime(2026, 9, 11, h, 30, tzinfo=BJ))
+        check(f"北京 {h:02d}:30 {'放行' if want else '拦下'}", got == want)
+    src = open(os.path.join(HERE, "payment_send.py"), encoding="utf-8").read()
+    gate = src[src.index("def send("):]
+    check("send() 里时窗判断在调 dws 之前", gate.index("in_send_window") < gate.index('"send"'))
+    check("没有任何环境变量能绕过时窗", "environ" not in gate.split("def main")[0])
+
+    print("\n== 二、六项检查（零参数可跑，一项坏了不许拖垮其余）==")
+    res = run_all()
+    check("六项都有结果", len(res) == 6, f"{len(res)}")
+    for cid, _t in CHECKS:
+        check(f"{cid} 不是 error", res[cid]["status"] != "error", res[cid]["note"][:60])
+    healthy = [c for c in res.values() if c["status"] in ("hit", "clear")]
+    check("至少一项健康", len(healthy) >= 1, f"healthy={len(healthy)}")
+
+    print("\n== 三、被杨婷 2026-09-09 推翻的三条旧口径，不许复活 ==")
+    check("重复报销 0 命中（0959/0960 只真付一笔；1402/1403 费用说明为空判不了）",
+          len(res["dup_reimbursement"]["items"]) == 0,
+          f"{len(res['dup_reimbursement']['items'])}")
+    check("同日重付 0 命中（张红/汪松涛分属两个批次）",
+          len(res["same_day_duplicate"]["items"]) == 0,
+          f"{len(res['same_day_duplicate']['items'])}")
+    check("金额被改按快照差异算，0 命中（旧口径拿已付额当被改额，83 行会无脑命中）",
+          len(res["amount_changed"]["items"]) == 0,
+          f"{len(res['amount_changed']['items'])}")
+
+    print("\n== 四、客户欠款：不许把自己的解析缺口报成别人的问题 ==")
+    rv = res["receivable_stalled"]
+    check("客户欠款可用", rv["status"] in ("hit", "clear"), rv["note"][:60])
+    check("正文里没有「未登记」字样", all("未登记" not in i["line"] for i in rv["items"]))
+    check("每一条都有真实欠款方", all(len(i["detail"]["party"]) >= 2 for i in rv["items"]))
+    check("排除数为 0（join 主合同后应当全部解得出）", "已排除" not in (rv["note"] or ""), rv["note"][:40])
+
+    print("\n== 五、首报制台账 ==")
+    with tempfile.TemporaryDirectory() as td:
+        L = Ledger(os.path.join(td, "t.sqlite3"))
+        items = [i for r in res.values() for i in r["items"]][:5]
+        check("首次全是新的", len(L.unreported(items)) == len(items))
+        L.record_reported(items)
+        check("第二次一条不剩", len(L.unreported(items)) == 0)
+        fp = items[0]["fingerprint"]
+        check("能标记已回应", L.mark_answered(fp, "测试原话", "msg1"))
+        check("已回应的不会再出现在待办里", fp not in [x["fingerprint"] for x in L.open_items()])
+        check("重复标记已回应返回 False", not L.mark_answered(fp, "又一次", "msg2"))
+
+    print("\n== 六、回应锚定（用杨婷 09-09 那三张真图）==")
+    seed = os.path.expanduser("~/.local/share/kmfa-payment-alert/seed")
+    cache_txt = ""
+    venv = os.path.expanduser("~/.local/share/kmfa-payment-alert/venv/bin/python")
+    imgs = sorted(f for f in os.listdir(seed) if f.endswith(".png")) if os.path.isdir(seed) else []
+    if imgs and os.path.exists(venv):
+        import subprocess
+        r = subprocess.run([venv, os.path.join(HERE, "payment_ocr.py")]
+                           + [os.path.join(seed, f) for f in imgs],
+                           capture_output=True, text=True, timeout=600)
+        cache_txt = r.stdout
+    if cache_txt:
+        cases = [("王玉鹤 10,168.00 尾号0374 2026-02-06", "26.2.9"),
+                 ("张红 12,718.46 尾号0087 2025-12-26", "25.12.26"),
+                 ("刘文亮 2,000.00 尾号6363 2026-08-10", "26.8.11"),
+                 ("刘文亮 2,922.50 尾号6363 2026-09-02", "26.9.3")]
+        for line, want in cases:
+            q = match_line(line, cache_txt) or ""
+            check(f"锚定 {line[:22]}", want in q, q[:40])
+        check("负控：金额差 1 分就匹配不上",
+              match_line("王玉鹤 10,168.01 尾号0374 2026-02-06", cache_txt) is None)
+        check("负控：只有名字没有金额不算命中",
+              match_line("王玉鹤 尾号0374", cache_txt) is None)
+    else:
+        check("锚定测试有素材可用", False, "seed 图或 venv 缺失")
+
+    print("\n== 七、消息模板 ==")
+    items = res["receivable_stalled"]["items"][:3]
+    text = S.render(items, res, {"reported": 1, "answered": 6},
+                    {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
+    check("有分节编号", "**1. " in text)
+    check("段落之间是空行（钉钉按 Markdown 渲染，单换行会被吃掉）", "\n\n" in text)
+    check("有要办", "**要办：**" in text)
+    check("正文不含裸竖线（会被当表格语法）", "|" not in text.replace("／", ""))
+    check("写了数据截止", "数据截止" in text)
+    check("停更有提示", "停更" in text or "没更新" in text)
+    check("说明了是增量", "本次新增" in text)
+
+    print(f"\n{'='*54}")
+    if FAILED:
+        print(f"失败 {len(FAILED)} 条：")
+        for f in FAILED:
+            print(f"  - {f}")
+        return 1
+    print("全部通过")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
