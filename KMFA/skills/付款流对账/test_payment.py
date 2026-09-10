@@ -187,6 +187,24 @@ def main():
     check("领导批过的都在阈值内执行了，所以「批了没付」是 0 条",
           not any(f["check_id"] == "approved_not_paid" for f in fs))
 
+    print("\n== 九之三、领导已授权 + 已付款 = 闭环，不许再骚扰 ==")
+    # 老板 2026-09-11：「如果已经领导授权了付款了，那么你的关注点就不应该是
+    # 为什么要说明。领导已经做完了授权行为，你就只用查他的下一个环节。」
+    #
+    # 2026-09-08 那笔 41,516.05 的真实链条：11:39 杨婷申请（红圈流程未通过）、
+    # 14:40 张霖泽批、15:05 林全意批、17:31 回执上来。当天就闭环了。
+    ids = [d["msgid"] for d in wide["批示"]]
+    check("批示不止读请示群，生产付款群里的也读得到",
+          any(d["time"].startswith("2026-09-08 14:40") for d in wide["批示"]),
+          "张霖泽 09-08 14:40 的授权发在生产付款群")
+    check("林全意 09-08 15:05 的授权也读得到",
+          any(d["time"].startswith("2026-09-08 15:05") for d in wide["批示"]))
+    check("09-08 那笔绕流程已闭环，一个字都不报",
+          not any("41,516.05" in f["line"] and f["check_id"] == "bypass_approval" for f in fs))
+    check("09-04 那笔也一样（17:36 就有回执）",
+          not any(f["when"].startswith("2026-09-04") for f in fs))
+    check("14 天里员工侧确实一条都不该报", fs == [], str(fs)[:120])
+
     print("\n== 十、申请单 OCR 解析（把「有张图」变成「哪两笔多少钱」）==")
     from decimal import Decimal as D
     t, parts = EV._total_by_arithmetic([D("15000"), D("20000"), D("35000"), D("5000"), D("3")])

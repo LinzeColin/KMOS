@@ -129,10 +129,19 @@ def classify(msgs):
                "has_img": bool(IMG.search(t)), "has_file": bool(FILE.search(t))}
 
         if m["group"] == PROD_GROUP:
+            # 领导的批示两个群都会发。2026-09-08 那笔 41,516.05，张霖泽和林全意
+            # 的授权都发在**生产付款群**里，只读请示群就会当成「没人批」，
+            # 于是一笔当天就闭环的事被当成异常反复上报。
+            if s in LEADERS:
+                if any(w in t for w in REJECT_WORDS):
+                    decide.append({**rec, "verdict": "否决"})
+                elif any(w in t for w in APPROVE_WORDS) or rec["amounts"]:
+                    decide.append({**rec, "verdict": "同意"})
+                continue
             # 生产付款群里杨婷发的转账截图/明细就是回执。
             # 但 @了领导的是对话或对告警的批注反馈（2026-09-09 10:47 杨婷那条就是），
             # 真回执从不 @人，只是把凭证甩上来。
-            if noisy or s in LEADERS:
+            if noisy:
                 continue
             talking = "@" in t and not rec["amounts"]
             if talking:
@@ -280,9 +289,23 @@ def findings(ev, now=None, min_days=None):
     #      正常走完流程的，41,516.05 才是绕流程的）。整条报会连累无辜那笔。
     #    · 发起人往往不是发消息的人。09-04 和 09-08 两次都写着「李工说这个款
     #      比较急」，杨婷只是转达。追到转达人头上比不追更糟。
+    approvals = [d for d in ev["批示"] if d.get("verdict") == "同意"]
+
     for a in ev["申请"]:
+        # 老板 2026-09-11：「如果已经领导授权了付款了，那么你的关注点就不应该是
+        # 为什么要说明。是因为领导已经做完了授权行为，那么你就只用查他的下一个
+        # 环节就好了。」
+        #
+        # 绕流程本身是员工发起的没错，但领导事后授权 + 钱已经付出去 = 这件事
+        # 当场就闭环了。2026-09-08 那笔 41,516.05 就是：11:39 申请、14:40 张霖泽
+        # 批、15:05 林全意批、17:31 回执上来。再去要「补流程说明」，就是拿一件
+        # 已经解决的事反复骚扰——正是老板一开始就骂过的那种。
+        settled = ([d for d in approvals if d["time"] > a["time"]]
+                   and [r for r in receipts if r["time"] > a["time"]])
         for seg in _split_requests(a["text"]):
             if not any(w in seg for w in BYPASS_WORDS):
+                continue
+            if settled:
                 continue
             amts = amounts_of(seg)
             amt = "、".join(f"{x:,.2f}" for x in amts) or "金额在图里"
