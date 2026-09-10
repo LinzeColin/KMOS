@@ -36,12 +36,16 @@ TITLES = {
     "same_day_duplicate": ("同一天给同一个人转了两遍", "组", "两笔都出去了，是不是多付了"),
     "status_regressed":   ("审批状态倒退成驳回或撤销", "笔", "确认是正常撤单还是被卡住了"),
     "receivable_stalled": ("客户欠款半年以上没再收到钱（余额 10 万以上）", "个合同", "财务和销售认领，按金额从大到小推"),
+    "receivable_major":   ("大客户欠款压了两年以上", "家", "销售认领，按金额从大到小要回来"),
 }
-# 客户欠款（receivable_stalled）不在每日消息里。它是存量事实不是当天事件，
-# 92 个合同 2307 万这个数老板已经反复听过，天天重播只会磨掉机制的可信度。
-# 需要时用 `python3 payment_checks.py receivable` 单独出，不进群。
+# 欠款怎么进：老板 2026-09-11「不是不进，是要高价值的进」。
+# 按合同逐条列的那份（receivable_stalled，92 条）永远不进——一次刷 92 行没有重点，
+# 而且同一家客户会被拆成十几条。进的是按客户合并、欠 50 万以上的那 9 家
+# （receivable_major），合计 1,164 万，占总额一半。每家只报一次。
+#
+# 顺序：先说今天发生的事，再说压着的老账。
 ORDER = ["apply_stalled", "chase_unpaid", "transfer_failed", "dup_reimbursement",
-         "amount_changed", "same_day_duplicate", "status_regressed"]
+         "amount_changed", "same_day_duplicate", "status_regressed", "receivable_major"]
 DAILY_EXCLUDED = ("receivable_stalled",)
 MAX_LINES_PER_SECTION = 5
 
