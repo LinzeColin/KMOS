@@ -176,34 +176,53 @@ def main():
     check("模板里也没有这两项", "apply_stalled" not in S.ORDER and "chase_unpaid" not in S.ORDER)
     wide = EV.scan(days=14, now=dt.datetime(2026, 9, 11, 8, 20, tzinfo=EV.BJ))
     fs = EV.findings(wide, now=dt.datetime(2026, 9, 11, 8, 20, tzinfo=EV.BJ))
-    check("14 天里报出来的每一条都指向员工",
-          all(f["check_id"] in ("approved_not_paid", "bypass_approval") for f in fs), str(fs)[:80])
-    check("领导说「不付」是决定，不是异常",
-          not any("不付" in f["line"] for f in fs))
-    reject = [d for d in wide["批示"] if d.get("verdict") == "否决"]
-    check("否决被正确识别出来（这几条一条都不许报）", len(reject) >= 2)
-    okd = [d for d in wide["批示"] if d.get("verdict") == "同意"]
-    check("同意也识别得到（这才是要追执行的）", len(okd) >= 2)
-    check("领导批过的都在阈值内执行了，所以「批了没付」是 0 条",
-          not any(f["check_id"] == "approved_not_paid" for f in fs))
+    check("报出来的每一条都指向员工",
+          all(f["check_id"] in ("approved_not_paid", "bypass_approval", "application_unclear")
+              for f in fs), str(fs)[:80])
 
-    print("\n== 九之三、领导已授权 + 已付款 = 闭环，不许再骚扰 ==")
-    # 老板 2026-09-11：「如果已经领导授权了付款了，那么你的关注点就不应该是
-    # 为什么要说明。领导已经做完了授权行为，你就只用查他的下一个环节。」
+    print("\n== 九之三、授权是钉钉表情，而且只在付款请示群 ==")
+    # 老板 2026-09-11：「我们一般都是通过钉钉的表情回复去授权的，请示群不可能有
+    # 授权同意，上游授权只会发生在付款请示群，不会发生在生产付款群。」
     #
-    # 2026-09-08 那笔 41,516.05 的真实链条：11:39 杨婷申请（红圈流程未通过）、
-    # 14:40 张霖泽批、15:05 林全意批、17:31 回执上来。当天就闭环了。
-    ids = [d["msgid"] for d in wide["批示"]]
-    check("批示不止读请示群，生产付款群里的也读得到",
-          any(d["time"].startswith("2026-09-08 14:40") for d in wide["批示"]),
-          "张霖泽 09-08 14:40 的授权发在生产付款群")
-    check("林全意 09-08 15:05 的授权也读得到",
-          any(d["time"].startswith("2026-09-08 15:05") for d in wide["批示"]))
-    check("09-08 那笔绕流程已闭环，一个字都不报",
-          not any("41,516.05" in f["line"] and f["check_id"] == "bypass_approval" for f in fs))
-    check("09-04 那笔也一样（17:36 就有回执）",
-          not any(f["when"].startswith("2026-09-04") for f in fs))
-    check("14 天里员工侧确实一条都不该报", fs == [], str(fs)[:120])
+    # 我先前在正文里找「同意/付了」，找错了地方；还一度把生产付款群里领导说的
+    # 「新都化工钢筋采购费41516.05元付承兑」当成授权来源——那是在下指令，不是审批。
+    ok = [a for a in wide["申请"] if EV.approved_by(a)]
+    check("授权读的是 emotionReplyList 里的 OK", len(ok) >= 10, f"{len(ok)} 笔已授权")
+    check("09-08 16:04 那笔有林全意的 OK",
+          any(a["time"].startswith("2026-09-08 16:04") and "林全意" in EV.approved_by(a)
+              for a in wide["申请"]))
+    check("09-09 16:35 那笔没有任何 OK —— 没批就是没批",
+          all(EV.approved_by(a) == [] for a in wide["申请"]
+              if a["time"].startswith("2026-09-09 16:35")))
+    # 09-09 那笔没批，绝不能因为「挂着没人批」被点名。
+    # （它会出现在「正文不写金额」的统计里，那是提交质量，跟批没批无关。）
+    check("没打 OK 的一律不报「没人批/没付款」（那是管理层的节奏，不是员工失职）",
+          not any(f["when"].startswith("2026-09-09 16:35")
+                  and f["check_id"] in ("approved_not_paid", "bypass_approval") for f in fs))
+    check("生产付款群不产生授权",
+          all(d["group"] == EV.APPLY_GROUP for d in wide["批示"]) if wide["批示"] else True)
+    check("非领导打的 OK 不算授权",
+          EV.approved_by({"emoji": [{"emoji": "OK", "replyUsers": ["杨婷"]}]}) == [])
+    check("领导打的 OK 才算", EV.approved_by(
+          {"emoji": [{"emoji": "OK", "replyUsers": ["林全意"]}]}) == ["林全意"])
+    check("没有表情字段时不炸", EV.approved_by({}) == [])
+    unpaid = [a for a in ok if not [r for r in wide["回执"] if r["time"] > a["time"]]]
+    check("已授权的申请全部都有后续回执，所以「批了没付」是 0 条",
+          unpaid == [] and not any(f["check_id"] == "approved_not_paid" for f in fs),
+          f"{len(unpaid)} 笔已批未付")
+
+    print("\n== 九之四、请示正文不写金额（真正该管的员工侧问题）==")
+    # 实测 17 笔申请里 10 笔正文只有「领导请批示。」，金额和事由全埋在图里，
+    # 领导每批一笔就要点开一张图。10 笔全是同一个人交的，财务冯璐每次都写在正文。
+    q = [f for f in fs if f["check_id"] == "application_unclear"]
+    check("这条查得出来", len(q) == 1, str([f["check_id"] for f in fs]))
+    check("按人聚合成一条，不是一笔一条", q and q[0]["count"] >= 3)
+    check("一周只报一次（指纹带周序号）", q and "W" in q[0]["fingerprint"].split(":")[-1])
+    check("偶尔一次不算问题（少于 3 笔不报）",
+          EV.findings({"申请": [{"time": "2026-09-09 16:35:29", "sender": "某人", "text": "[图]领导请批示。",
+                                "msgid": "z1", "amounts": [], "emoji": []}],
+                       "催办": [], "批示": [], "回执": []},
+                      now=dt.datetime(2026, 9, 11, 8, 20, tzinfo=EV.BJ)) == [])
 
     print("\n== 十、申请单 OCR 解析（把「有张图」变成「哪两笔多少钱」）==")
     from decimal import Decimal as D

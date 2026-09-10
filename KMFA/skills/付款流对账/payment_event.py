@@ -32,9 +32,27 @@ BJ          = dt.timezone(dt.timedelta(hours=8))
 APPLY_TRIGGER = ("请批示", "请领导批示", "申请付款", "现申请", "请示")
 # ── 催办：申请已经提了、还在等 ────────────────────────────────────
 CHASE_TRIGGER = ("今天付吗", "可以付吗", "快点付", "来催了", "催一下", "还没付", "什么时候付")
-# ── 批示：领导表态 ────────────────────────────────────────────────
-APPROVE_WORDS = ("付了", "快点付", "全部付", "可以付", "同意", "付承兑", "好的", "好")
+# ── 授权：老板 2026-09-11「我们一般都是通过钉钉的表情回复去授权的，
+#    请示群不可能有授权同意，上游授权只会发生在付款请示群，不会发生在生产付款群。」
+#
+#    实测 2026-08-28~09-10：请示群 93 条里 20 条带 emotionReplyList，全是领导
+#    对申请打的 OK；生产付款群 47 条里只有 2 条，且都不是授权。
+#    我原先在正文里找「同意/付了」这类词，找错了地方——真信号在表情里。
+OK_EMOJI = ("OK", "ok", "好的", "赞", "GOOD", "Good")
+# 领导在正文里也会直接下指令（「这个2790快点付了」），当补充信号，不是主信号
+APPROVE_WORDS = ("付了", "快点付", "全部付", "可以付", "同意", "付承兑")
 REJECT_WORDS  = ("不付", "暂时不付", "先不付", "不同意", "缓一缓", "先不")
+
+
+def approved_by(msg):
+    """谁给这条消息打了授权表情。没人打就返回空——那就是还没批。"""
+    who = []
+    for e in msg.get("emoji") or []:
+        if str(e.get("emoji", "")) in OK_EMOJI:
+            for u in e.get("replyUsers") or []:
+                if u in LEADERS and u not in who:
+                    who.append(u)
+    return who
 # ── 回执：钱真的出去了的证据 ──────────────────────────────────────
 RECEIPT_MARK  = ("批量转账明细", "生产付款明细", "已转", "已支付", "付的承兑", "付款明细")
 # ── 噪声：长得像但根本不是付款事件的东西 ──────────────────────────
@@ -109,6 +127,7 @@ def fetch(group, since_bj, until_bj=None, limit=100):
             "text":   _clean(str(c)),
             "msgid":  x.get("openMessageId", ""),
             "group":  group,
+            "emoji":  x.get("emotionReplyList") or [],
         })
     if until_bj is not None:
         cut = until_bj.strftime("%Y-%m-%d %H:%M:%S")
@@ -129,14 +148,9 @@ def classify(msgs):
                "has_img": bool(IMG.search(t)), "has_file": bool(FILE.search(t))}
 
         if m["group"] == PROD_GROUP:
-            # 领导的批示两个群都会发。2026-09-08 那笔 41,516.05，张霖泽和林全意
-            # 的授权都发在**生产付款群**里，只读请示群就会当成「没人批」，
-            # 于是一笔当天就闭环的事被当成异常反复上报。
+            # 生产付款群里领导说的话不是授权。老板明确讲过：上游授权只发生在
+            # 付款请示群。生产群里那些是在问情况、给指令，不是审批动作。
             if s in LEADERS:
-                if any(w in t for w in REJECT_WORDS):
-                    decide.append({**rec, "verdict": "否决"})
-                elif any(w in t for w in APPROVE_WORDS) or rec["amounts"]:
-                    decide.append({**rec, "verdict": "同意"})
                 continue
             # 生产付款群里杨婷发的转账截图/明细就是回执。
             # 但 @了领导的是对话或对告警的批注反馈（2026-09-09 10:47 杨婷那条就是），
@@ -251,9 +265,9 @@ def _originator(seg):
 def findings(ev, now=None, min_days=None):
     """返回可上报的异常。每条自带 fingerprint，交给台账做首报制。
 
-    只写「文本本身就能证明」的两条。回执金额与申请金额的逐笔勾稽要解开
-    「批量转账明细.pdf」，那件没做完之前一条都不报——宁可少报，
-    也不拿半成品去消耗这个机制的可信度。
+    三条，全部指向员工。老板 2026-09-11 的方向：
+    「不要找老板的麻烦，你的目标是要确保员工那边的工作效率，他们的工作内容是准确的。」
+    所以「领导还没批」永远不报——那是管理层的节奏，不是员工的失职。
     """
     now = now or dt.datetime.now(BJ)
     min_days = MIN_DAYS if min_days is None else min_days
@@ -263,49 +277,32 @@ def findings(ev, now=None, min_days=None):
     def receipt_after(ts):
         return [r for r in receipts if r["time"] > ts]
 
-    # ── 1. 领导批了，钱没出去 ─────────────────────────────────────
-    #    这是员工责任的正身：管理层已经把事情做了，剩下的是执行。
-    for d in ev["批示"]:
-        if d.get("verdict") != "同意":
-            continue                      # 领导说不付，那是决定，不是异常
-        if _days_since(d["time"], now) < min_days:
+    # ── 1. 领导已经打了 OK，钱却没出去 ────────────────────────────
+    #    授权是钉钉表情，不是正文措辞，而且只认付款请示群。
+    #    领导做完授权动作之后，剩下的全是执行，这才是员工责任的正身。
+    for a in ev["申请"]:
+        who = approved_by(a)
+        if not who or _days_since(a["time"], now) < min_days:
             continue
-        if receipt_after(d["time"]):
+        if receipt_after(a["time"]):
             continue
-        days = _days_since(d["time"], now)
+        days = _days_since(a["time"], now)
+        amt = "、".join(f"{x:,.2f}" for x in a["amounts"]) or "金额在图里"
         out.append({
-            "fingerprint": f"evt:unpaid:{d['msgid']}",
+            "fingerprint": f"evt:unpaid:{a['msgid']}",
             "check_id": "approved_not_paid",
-            "when": d["time"], "who": d["sender"], "days": days,
-            "line": f"{_fmt(d['time'])} {d['sender']}已批「{_quote(d['text'])}」，"
-                    f"过了 {days} 天，生产付款群没有对应回执，出纳没交待",
+            "when": a["time"], "who": a["sender"], "days": days, "amount": amt,
+            "line": f"{_fmt(a['time'])} {a['sender']}提的付款请示（{amt}）"
+                    f"{'、'.join(who)}已经打 OK 授权，过了 {days} 天生产付款群还没有回执",
         })
 
-    # ── 2. 绕过红圈审批流先申请付款 ───────────────────────────────
-    #    先斩后奏是员工发起的，留痕归档，一次记一次。
-    #
-    #    两个坑，都是真数据咬出来的：
-    #    · 一条钉钉消息里常常塞两笔独立申请（09-08 那条：500 元标书费是
-    #      正常走完流程的，41,516.05 才是绕流程的）。整条报会连累无辜那笔。
-    #    · 发起人往往不是发消息的人。09-04 和 09-08 两次都写着「李工说这个款
-    #      比较急」，杨婷只是转达。追到转达人头上比不追更糟。
-    approvals = [d for d in ev["批示"] if d.get("verdict") == "同意"]
-
+    # ── 2. 绕开红圈审批流先申请付款 ───────────────────────────────
+    #    领导事后打了 OK 且钱已付 = 当场闭环，不回头要说明。
     for a in ev["申请"]:
-        # 老板 2026-09-11：「如果已经领导授权了付款了，那么你的关注点就不应该是
-        # 为什么要说明。是因为领导已经做完了授权行为，那么你就只用查他的下一个
-        # 环节就好了。」
-        #
-        # 绕流程本身是员工发起的没错，但领导事后授权 + 钱已经付出去 = 这件事
-        # 当场就闭环了。2026-09-08 那笔 41,516.05 就是：11:39 申请、14:40 张霖泽
-        # 批、15:05 林全意批、17:31 回执上来。再去要「补流程说明」，就是拿一件
-        # 已经解决的事反复骚扰——正是老板一开始就骂过的那种。
-        settled = ([d for d in approvals if d["time"] > a["time"]]
-                   and [r for r in receipts if r["time"] > a["time"]])
+        if approved_by(a) and receipt_after(a["time"]):
+            continue
         for seg in _split_requests(a["text"]):
             if not any(w in seg for w in BYPASS_WORDS):
-                continue
-            if settled:
                 continue
             amts = amounts_of(seg)
             amt = "、".join(f"{x:,.2f}" for x in amts) or "金额在图里"
@@ -319,6 +316,30 @@ def findings(ev, now=None, min_days=None):
                 "line": f"{_fmt(a['time'])} {asker}{relay}绕开红圈审批流直接申请付款"
                         f"（{amt}）：「{_quote(seg, 52)}」",
             })
+
+    # ── 3. 申请正文不写金额，逼领导逐张点图 ───────────────────────
+    #    实测 2026-08-28~09-10：17 笔申请里 10 笔正文只有「领导请批示。」，
+    #    金额和事由全埋在图里，领导每批一笔就要点开一张图。
+    #    10 笔全是同一个人交的，财务冯璐每次都把金额写在正文里——
+    #    这不是做不到，是没做。改起来只要多打一行字。
+    #
+    #    一周只报一次（指纹带周序号），不天天念。
+    lazy = {}
+    for a in ev["申请"]:
+        if a["amounts"] or _days_since(a["time"], now) < 1:
+            continue
+        lazy.setdefault(a["sender"], []).append(a)
+    for who, items in lazy.items():
+        if len(items) < 3:                 # 偶尔一次不算问题，成了习惯才算
+            continue
+        yw = now.strftime("%G-W%V")
+        out.append({
+            "fingerprint": f"quality:noamount:{who}:{yw}",
+            "check_id": "application_unclear",
+            "when": items[-1]["time"], "who": who, "count": len(items),
+            "line": f"{who} 近期 {len(items)} 笔付款请示正文只写「领导请批示」，"
+                    f"金额和事由全在图里，领导每批一笔就得点开一张图核对",
+        })
 
     out.sort(key=lambda x: x["when"])
     return out
