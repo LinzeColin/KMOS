@@ -225,18 +225,26 @@ def main():
           unpaid == [] and not any(f["check_id"] == "approved_not_paid" for f in fs),
           f"{len(unpaid)} 笔已批未付")
 
-    print("\n== 九之四、请示正文不写金额（真正该管的员工侧问题）==")
-    # 实测 17 笔申请里 10 笔正文只有「领导请批示。」，金额和事由全埋在图里，
-    # 领导每批一笔就要点开一张图。10 笔全是同一个人交的，财务冯璐每次都写在正文。
-    q = [f for f in fs if f["check_id"] == "application_unclear"]
-    check("这条查得出来", len(q) == 1, str([f["check_id"] for f in fs]))
-    check("按人聚合成一条，不是一笔一条", q and q[0]["count"] >= 3)
-    check("一周只报一次（指纹带周序号）", q and "W" in q[0]["fingerprint"].split(":")[-1])
-    check("偶尔一次不算问题（少于 3 笔不报）",
-          EV.findings({"申请": [{"time": "2026-09-09 16:35:29", "sender": "某人", "text": "[图]领导请批示。",
-                                "msgid": "z1", "amounts": [], "emoji": []}],
-                       "催办": [], "批示": [], "回执": []},
-                      now=dt.datetime(2026, 9, 11, 8, 20, tzinfo=EV.BJ)) == [])
+    print("\n== 九之四、不许把自己的解析缺口报成别人的问题 ==")
+    # 老板 2026-09-11：「你说的不现实，杨婷只能发图片，是你的错误。」
+    #
+    # 我曾经加过一条「申请正文不写金额，逼领导点图」，点名交图的人。
+    # 那是把流程成本推给员工——她的岗位就只能甩图；而且金额在图里，
+    # **读图本来就是本系统的活**，我手上就有 OCR。
+    # 这跟第四组那条「欠款方未登记」是同一类错误，一律不许再出现。
+    src = open(os.path.join(HERE, "payment_event.py"), encoding="utf-8").read()
+    check("「正文不写金额」这类判定已删除", "application_unclear" not in src)
+    check("模板里也没有", "application_unclear" not in S.ORDER and "application_unclear" not in S.TITLES)
+    check("报出来的每一条都不是在怪员工没打字",
+          all(f["check_id"] in ("approved_not_paid", "bypass_approval") for f in fs), str(fs)[:80])
+    # 图里的金额必须由本系统读出来，而不是要求别人打字
+    img = [a for a in wide["申请"] if not a["amounts"] and "mediaId" in a["text"]]
+    check("确实有一批只有图、正文没金额的申请", len(img) >= 5, f"{len(img)} 笔")
+    info = EV.read_application([a for a in wide["申请"]
+                                if a["time"].startswith("2026-09-09 16:35")][0])
+    check("本系统能自己把这些图读出金额",
+          info.get("total") == Decimal("35000"), str(info.get("total")))
+    check("读出来的笔数也对（15,000 + 20,000）", len(info.get("parts") or []) == 2)
 
     print("\n== 十、申请单 OCR 解析（把「有张图」变成「哪两笔多少钱」）==")
     from decimal import Decimal as D
