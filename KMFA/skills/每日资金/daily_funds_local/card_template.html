@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>资金账户日报</title>
+<style>
+/* 卡片是要截成 PNG 发钉钉的，固定浅色，不跟随主题 */
+:root{
+  --ink:#161A17; --mut:#7C8278; --faint:#A8AD9F;
+  --rule:#E3E0D6; --bg:#FCFBF8; --sunk:#F4F2EB;
+  --bank:#2F6B4F; --bank-soft:#DCEBE1;
+  --bill:#B0803C; --bill-soft:#F2E6D3;
+  --due:#86BA9C;
+  --down:#9C3A2C; --down-soft:#F6E3DF;
+  --f:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --m:"SF Mono","Menlo","Consolas",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#fff}
+body{font-family:var(--f);-webkit-font-smoothing:antialiased}
+
+.card{
+  width:1000px;background:var(--bg);color:var(--ink);
+  display:flex;flex-direction:column;
+}
+.pad{padding:0 52px}
+
+/* header */
+.bar{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:2px solid var(--ink);padding:52px 0 16px}
+.title{font-size:33px;font-weight:700;letter-spacing:.02em}
+.date{font-family:var(--m);font-size:27px;color:var(--mut);font-variant-numeric:tabular-nums}
+
+/* hero */
+.hero{padding:44px 0 34px}
+.hero .lab{font-size:27px;color:var(--mut);letter-spacing:.08em}
+.hero .big{font-size:114px;font-weight:900;line-height:1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;margin-top:6px}
+.hero .big .u{font-size:50px;font-weight:500;margin-left:12px;color:var(--mut);letter-spacing:0}
+.delta{display:inline-flex;align-items:baseline;gap:12px;margin-top:18px;
+  font-family:var(--m);font-size:29px;font-weight:700;padding:8px 20px;
+  background:var(--bank-soft);color:var(--bank);font-variant-numeric:tabular-nums}
+.delta.neg{background:var(--down-soft);color:var(--down)}
+.delta small{font-family:var(--f);font-weight:400;font-size:24px;opacity:.75}
+.stale{margin-top:14px;font-size:24px;color:var(--down)}
+
+/* split */
+.splitbar{display:flex;height:34px;background:var(--sunk);overflow:hidden}
+.splitbar i{display:block;height:100%}
+/* 14 天内到期承兑与银行存款同色系，两侧各留一道细缝才分得开 */
+.splitbar i.due{margin:0 3px}
+[hidden]{display:none!important}
+.card{position:relative}
+.preview{position:absolute;top:14px;right:52px;font-size:20px;color:#fff;background:var(--down);padding:4px 12px;letter-spacing:.08em}
+.legend{display:flex;gap:56px;margin-top:18px}
+.legend .k{display:flex;align-items:center;gap:12px;font-size:25px;color:var(--mut)}
+.legend .k b{width:20px;height:20px;display:inline-block}
+.legend .v{font-family:var(--m);font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.legend .p{font-family:var(--m);font-size:23px;color:var(--mut);margin-top:1px}
+
+/* panels */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);
+  margin:44px 52px 0;border:1px solid var(--rule)}
+.cell{background:var(--bg);padding:24px 26px 18px}
+.cell .h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.cell .t{font-size:28px;font-weight:700}
+.cell .d{font-family:var(--m);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.cell svg{display:block;width:100%;height:auto}
+.wm{font-family:var(--m);font-size:19px;fill:var(--faint);font-variant-numeric:tabular-nums}
+
+/* foot */
+.foot{margin-top:34px;padding:26px 52px 44px;border-top:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:center;gap:24px}
+.foot .note{font-size:22px;color:var(--mut);line-height:1.55}
+.gate{font-family:var(--m);font-size:22px;font-weight:700;padding:8px 18px;white-space:nowrap;
+  background:var(--bank-soft);color:var(--bank)}
+.gate.warn{background:var(--sunk);color:var(--mut)}
+</style></head>
+<body>
+<div class="card" id="card">
+  <div class="pad">
+    <div class="bar"><div class="title">资金账户日报</div><div class="date" id="cdate"></div></div>
+    <div class="hero">
+      <div class="lab">全部公司 · 可动用资金合计</div>
+      <div class="big"><span id="hero"></span><span class="u">万元</span></div>
+      <div id="deltawrap"></div>
+      <div id="stalewrap"></div>
+    </div>
+    <div class="splitbar" id="splitbar"></div>
+    <div class="legend">
+      <div><div class="k"><b style="background:var(--bank)"></b>银行存款</div>
+           <div class="v" id="bankv"></div><div class="p" id="bankp"></div></div>
+      <div id="dueitem" hidden><div class="k"><b style="background:var(--due)"></b>14 天内到期承兑</div>
+           <div class="v" id="duev"></div><div class="p" id="duep"></div></div>
+      <div><div class="k"><b style="background:var(--bill)"></b>电子汇票</div>
+           <div class="v" id="billv"></div><div class="p" id="billp"></div></div>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="foot">
+    <div class="note">口径：各公司银行存款 + 电子汇票，不含库存现金<br>数据源：付款请示群 · 资金账户明细表<span id="duenote" hidden><br>到期承兑：付款请示群 · 现存票据<span id="duesrc"></span>逐张到期日，按报表日逐日滚动</span></div>
+    <div id="gate"></div>
+  </div>
+</div>
+
+<script>
+/* 渲染期由 Python 把这一行替换成真实数据 */
+const PAYLOAD = __PAYLOAD__;
+
+const W = n => (n/1e6).toLocaleString("zh-CN",{minimumFractionDigits:2,maximumFractionDigits:2}); // 分 -> 万元
+const D = PAYLOAD.series.map(p => ({...p, ms: Date.parse(p.d+"T00:00:00Z"), t: p.b + p.e}));
+const last = D[D.length-1];
+const prev = D.length > 1 ? D[D.length-2] : null;
+
+document.getElementById("cdate").textContent = last.d;
+document.getElementById("hero").textContent = W(last.t);
+
+if (prev) {
+  const dv = last.t - prev.t, neg = dv < 0;
+  document.getElementById("deltawrap").innerHTML =
+    '<div class="delta'+(neg?' neg':'')+'">'+(neg?'▼ ':'▲ ')+W(Math.abs(dv))+
+    ' 万 <small>较 '+prev.d.slice(5)+'</small></div>';
+}
+if (PAYLOAD.stale_days > 0) {
+  const sd = PAYLOAD.stale_days;
+  document.getElementById("stalewrap").innerHTML =
+    '<div class="stale">※ 最新数据为 '+last.d+
+    (sd >= 2 ? '，已 '+sd+' 天没有新表' : '，今日的表尚未发出') + '</div>';
+}
+
+const pb = last.t ? last.b/last.t*100 : 0;
+/* 14 天内到期承兑是电子汇票的一部分：从汇票段里切出来，紧挨银行存款画，
+   左→右读作「现金 → 两周内变现 → 更晚」，图例顺序与色块顺序一致。
+   汇票段用 flex 吃掉剩余宽度：到期段触发最小可见宽度时由它让出这几个像素，
+   银行存款段始终精确。没有这个数就保持原样，不画 0。 */
+const due = PAYLOAD.bill_due14;
+const hasDue = typeof due === "number" && due >= 0 && due <= last.e && last.t > 0;
+const pd = hasDue ? due/last.t*100 : 0;
+document.getElementById("splitbar").innerHTML =
+  '<i style="flex:0 0 '+pb+'%;background:var(--bank)"></i>' +
+  (hasDue && due > 0 ? '<i class="due" style="flex:0 0 max(14px,'+pd+'%);background:var(--due)"></i>' : '') +
+  '<i style="flex:1 1 0;background:var(--bill)"></i>';
+if (hasDue) {
+  document.getElementById("duev").textContent = W(due)+" 万";
+  document.getElementById("duep").textContent = "占汇票 "+(last.e ? due/last.e*100 : 0).toFixed(1)+"%";
+  document.getElementById("duesrc").textContent =
+    PAYLOAD.bill_due14_src ? "（"+PAYLOAD.bill_due14_src.slice(5)+"）" : "";
+  document.getElementById("dueitem").hidden = false;
+  document.getElementById("duenote").hidden = false;
+}
+if (PAYLOAD.preview) {
+  const r = document.createElement("div"); r.className = "preview";
+  r.textContent = "模版预览 · 未上线"; document.getElementById("card").appendChild(r);
+}
+document.getElementById("bankv").textContent = W(last.b)+" 万";
+document.getElementById("billv").textContent = W(last.e)+" 万";
+document.getElementById("bankp").textContent = pb.toFixed(1)+"%";
+document.getElementById("billp").textContent = (100-pb).toFixed(1)+"%";
+
+const grid = document.getElementById("grid"), DAY = 864e5;
+[30,60,90,180].forEach(days => {
+  const from = last.ms - days*DAY;
+  const pts = D.filter(p => p.ms >= from);
+  const cell = document.createElement("div"); cell.className = "cell";
+  const vals = pts.map(p => p.t);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const chg = pts.length > 1 ? last.t - pts[0].t : 0;
+
+  /* 小图只画一条线：可动用合计。构成拆分由顶部分割条负责，
+     两条线叠在 400×150 的小图里会互相压扁，反而看不懂。 */
+  const w = 400, h = 150, padL = 6, padR = 152, padT = 20, padB = 20;
+  const x = p => padL + (p.ms - from)/((last.ms - from)||1) * (w - padL - padR);
+  const span = (hi - lo) || 1;
+  const y = v => h - padB - ((v - lo)/span) * (h - padT - padB);
+
+  const line = pts.map((p,i) => (i?"L":"M") + x(p).toFixed(1) + "," + y(p.t).toFixed(1)).join(" ");
+  const area = line + " L" + x(pts[pts.length-1]).toFixed(1) + "," + (h-padB) +
+                      " L" + x(pts[0]).toFixed(1) + "," + (h-padB) + " Z";
+
+  // 源表收支未闭合的天：灰点
+  const flags = pts.filter(p => p.imbalance)
+    .map(p => '<circle cx="'+x(p).toFixed(1)+'" cy="'+y(p.t).toFixed(1)+'" r="4" '+
+              'fill="#FCFBF8" stroke="#A8AD9F" stroke-width="2"/>').join("");
+
+  const xEnd = w - padR + 10;
+  const water = (v, label) =>
+    '<line x1="'+padL+'" y1="'+y(v).toFixed(1)+'" x2="'+(w-padR)+'" y2="'+y(v).toFixed(1)+'" '+
+      'stroke="#CDD1C3" stroke-width="1" stroke-dasharray="3 5"/>'+
+    '<text class="wm" x="'+xEnd+'" y="'+(y(v)+7).toFixed(1)+'">'+label+' '+W(v)+'</text>';
+
+  cell.innerHTML =
+    '<div class="h"><div class="t">'+days+' 天</div>'+
+    '<div class="d" style="color:'+(chg>=0?'var(--bank)':'var(--down)')+'">'+
+      (chg>=0?'+':'−')+W(Math.abs(chg))+'</div></div>'+
+    '<svg viewBox="0 0 '+w+' '+h+'">'+
+      water(hi,'最高') + water(lo,'最低') +
+      '<path d="'+area+'" fill="var(--bill-soft)"/>'+
+      '<path d="'+line+'" fill="none" stroke="var(--bill)" stroke-width="2.8" '+
+        'stroke-linejoin="round" stroke-linecap="round"/>'+
+      flags +
+      '<circle cx="'+x(last).toFixed(1)+'" cy="'+y(last.t).toFixed(1)+'" r="5.5" '+
+        'fill="var(--bill)" stroke="#FCFBF8" stroke-width="2.5"/>'+
+    '</svg>';
+  grid.appendChild(cell);
+});
+
+// 卡片上不再显示对不上的天数（用户要求）。
+// 勾稽本身没有取消——硬门照样拦，只是不把这个数摆到老板面前。
+const gateEl = document.getElementById("gate");
+if (gateEl) gateEl.outerHTML = '';
+</script>
+</body></html>
