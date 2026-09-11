@@ -6,7 +6,7 @@
 
 一律 Decimal，不用 float。
 """
-import datetime as dt, json, os, sqlite3, sys
+import datetime as dt, json, os, re, sqlite3, sys, zipfile
 from decimal import Decimal, InvalidOperation
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +17,7 @@ RUNTIME = os.environ.get("PAYMENT_ALERT_DB_DIR",
                          os.path.expanduser("~/.local/share/kmfa-payment-alert/db"))
 P2 = os.path.join(RUNTIME, "p2", "payment_reconciliation.sqlite3")
 P3 = os.path.join(RUNTIME, "p3", "payment_reconciliation_downstream.sqlite3")
-HONGQUAN = ("/Volumes/share/03_资料库/MetaData/KMFA_MetaData/财务/"
-            "一级原始数据/业务原始/202609/红圈")
+BUSINESS_RAW = "/Volumes/share/03_资料库/MetaData/KMFA_MetaData/财务/一级原始数据/业务原始"
 
 RECEIVABLE_MIN = Decimal("100000")
 RECEIVABLE_DAYS = 180
@@ -228,13 +227,108 @@ def status_regressed(db):
 
 
 # ---------------------------------------------------------------- 6 客户欠款
-def _latest(dirpath, must_contain=""):
+# 归档按上海月份写到 业务原始/<YYYYMM>/红圈/<对象>/。2026-09-11 查实旧写法错在两处：
+# 月份目录写死（10 月起会永远读 9 月）；按文件名字典序取最后一个——「红圈主合同 2026-09-09.xlsx」
+# 排在「20260911_红圈主合同_…_任务303902702477.xlsx」后面（汉字大于数字），读到的是两天前的主合同。
+# 所以：跨月份目录扫；日期只从文件名取（先去掉归档撞名时加的 md5 后缀，按日期区间导出的只是一部分数据、不算）；
+# 最新那天的件打不开就退到前一天；同一天几份按工作簿自带生成时间（换成 UTC）比，有一份读不到就改按任务号。
+# 共享盘 mtime 不可信，一律不看。
+_NAME_DATE8 = re.compile(r"(?<!\d)(20[12]\d)(\d{2})(\d{2})(?!\d)")
+_NAME_DATE10 = re.compile(r"(?<!\d)(20[12]\d)-(\d{2})-(\d{2})(?!\d)")
+_NAME_TASK = re.compile(r"任务(\d+)")
+_MD5_SUFFIX = re.compile(r"_[0-9a-f]{12}(?=\.xlsx$)")
+_DATE_RANGE = re.compile(r"(?<!\d)20[12]\d{5}至20[12]\d{5}(?!\d)")
+_CORE_CREATED = re.compile(r"<dcterms:created[^>]*>\s*([^<\s]+)\s*<")
+_W3CDTF = re.compile(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$")
+CORE_XML_MAX_BYTES = 64 * 1024
+
+
+def name_date(name):
+    """文件名里最晚的日期（20260911 或 2026-09-11）。
+
+    先去掉归档撞名时加的 `_<md5前12位>` 后缀——它可能碰巧长得像日期（`_20261231abcd`）；
+    数字串必须独立成段，任务号里截不出日期。
+    """
+    name = _MD5_SUFFIX.sub("", name)
+    days = []
+    for pattern in (_NAME_DATE8, _NAME_DATE10):
+        for y, m, d in pattern.findall(name):
+            try:
+                days.append(dt.date(int(y), int(m), int(d)))
+            except ValueError:
+                pass
+    return max(days) if days else None
+
+
+def _readable_workbook(path):
+    """zip 完整、确实是工作簿才参与排序；PK 开头但写到一半的件跳过，好让更早的可读件顶上。"""
     try:
-        names = [n for n in os.listdir(dirpath)
-                 if n.endswith(".xlsx") and not n.startswith("._") and must_contain in n]
+        with zipfile.ZipFile(path) as book:
+            return "xl/workbook.xml" in book.namelist()
+    except Exception:
+        return False
+
+
+def _created_utc(path):
+    """工作簿自己记的生成时间（docProps/core.xml 的 dcterms:created）换算成 UTC；读不到、太大或不认识返回 None。"""
+    try:
+        with zipfile.ZipFile(path) as book:
+            info = book.getinfo("docProps/core.xml")
+            if info.file_size > CORE_XML_MAX_BYTES:
+                return None
+            text = book.read(info).decode("utf-8", "ignore")
+    except Exception:          # 截断的 zip 会抛 zlib.error、EOFError 等，一律当读不到
+        return None
+    found = _CORE_CREATED.search(text)
+    stamp = _W3CDTF.match(found.group(1)) if found else None
+    if not stamp:
+        return None
+    y, mo, d, h, mi, sec, frac, zone = stamp.groups()
+    try:
+        moment = dt.datetime(int(y), int(mo), int(d), int(h), int(mi), int(sec or 0),
+                             int(round(float(frac) * 1_000_000)) if frac else 0)
+    except ValueError:
+        return None
+    if zone and zone != "Z":
+        sign = 1 if zone[0] == "+" else -1
+        moment -= sign * dt.timedelta(hours=int(zone[1:3]), minutes=int(zone[4:6]))
+    return moment
+
+
+def latest_hongquan(obj, must_contain="", root=None):
+    """业务原始/*/红圈/<obj>/ 里最新的一份完整导出；一份都没有返回 None。"""
+    root = root or BUSINESS_RAW
+    try:
+        months = sorted(os.listdir(root))
     except OSError:
         return None
-    return os.path.join(dirpath, sorted(names)[-1]) if names else None
+    ranked = []
+    for month in months:
+        folder = os.path.join(root, month, "红圈", obj)
+        try:
+            names = sorted(os.listdir(folder))
+        except OSError:
+            continue
+        for name in names:
+            if (name.startswith("._") or not name.endswith(".xlsx") or must_contain not in name
+                    or _DATE_RANGE.search(name)):
+                continue
+            day = name_date(name)
+            if day is None:
+                continue
+            task = _NAME_TASK.search(name)
+            ranked.append((day, int(task.group(1)) if task else -1, os.path.join(folder, name)))
+    for day in sorted({day for day, _, _ in ranked}, reverse=True):
+        same_day = [(task, path) for d, task, path in ranked if d == day and _readable_workbook(path)]
+        if not same_day:
+            continue                                   # 这一天的件全坏：退到前一天的可读件
+        if len(same_day) == 1:
+            return same_day[0][1]
+        stamped = [(_created_utc(path), task, path) for task, path in same_day]
+        if all(created is not None for created, _, _ in stamped):
+            return max(stamped)[2]
+        return max((task, created or dt.datetime.min, path) for created, task, path in stamped)[2]
+    return None
 
 
 def receivable_stalled(receipt_path=None, contract_path=None, today=None):
@@ -247,8 +341,8 @@ def receivable_stalled(receipt_path=None, contract_path=None, today=None):
     还取不到就**剔除出正文**，只在诊断行计数。绝不把自己的解析缺口当成别人的问题。
     """
     today = today or dt.date.today()
-    receipt = receipt_path or _latest(os.path.join(HONGQUAN, "收款登记"), "全历史导出")
-    contract = contract_path or _latest(os.path.join(HONGQUAN, "主合同"))
+    receipt = receipt_path or latest_hongquan("收款登记", "全历史导出")
+    contract = contract_path or latest_hongquan("主合同")
     if not receipt:
         return "unavailable", [], "找不到红圈收款登记全历史导出"
 
@@ -334,9 +428,9 @@ def receivable_major(receipt_path=None, contract_path=None, today=None):
     首报制照旧按欠款方发指纹：报过一次就不再重复，除非这家的欠款
     又涨过一个 50 万台阶（台阶写进指纹，涨了才算新事件）。
     """
-    status, rows, note = receivable_stalled(receipt_path, contract_path, today)
+    status, rows, upstream_note = receivable_stalled(receipt_path, contract_path, today)
     if status not in ("hit", "clear"):
-        return status, [], note
+        return status, [], upstream_note
 
     by_party = {}
     for r in rows:
@@ -366,6 +460,8 @@ def receivable_major(receipt_path=None, contract_path=None, today=None):
     small = len(by_party) - len(out)
     note = (f"另有 {small} 家欠款不足 {RECEIVABLE_MAJOR:,.0f}，不占版面；"
             f"全部 {len(rows)} 个合同合计 {money(sum(Decimal(r['detail']['balance']) for r in rows))}")
+    # 上游因解析不出欠款方而剔除的合同必须留在诊断行里，不能在合并这一步悄悄丢掉
+    note = "；".join(x for x in (note, upstream_note) if x)
     return ("hit" if out else "clear"), out, note
 
 
