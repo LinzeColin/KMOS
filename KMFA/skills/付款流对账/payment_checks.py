@@ -451,6 +451,7 @@ def receivable_major(receipt_path=None, contract_path=None, today=None):
             "check_id": "receivable_major",
             "fingerprint": f"recvmajor:{party}:{step}",
             "amount": g["amt"],
+            "title": party,
             "line": f"{party} 欠 {money(g['amt'])}（{span}），最久一笔 {g['last']} 收到钱",
             "detail": {"party": party, "balance": str(g["amt"]),
                        "contracts": g["n"], "days": g["days"], "last": g["last"]},
