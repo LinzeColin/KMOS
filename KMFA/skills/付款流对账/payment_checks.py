@@ -451,17 +451,21 @@ def receivable_major(receipt_path=None, contract_path=None, today=None):
             "check_id": "receivable_major",
             "fingerprint": f"recvmajor:{party}:{step}",
             "amount": g["amt"],
-            "line": f"{party} 欠 {money(g['amt'])}（{span}），最久一笔 {g['last']} 收到钱，"
-                    f"到今天 {g['days']} 天",
+            "line": f"{party} 欠 {money(g['amt'])}（{span}），最久一笔 {g['last']} 收到钱",
             "detail": {"party": party, "balance": str(g["amt"]),
                        "contracts": g["n"], "days": g["days"], "last": g["last"]},
         })
     out.sort(key=lambda x: -x["amount"])
     small = len(by_party) - len(out)
-    note = (f"另有 {small} 家欠款不足 {RECEIVABLE_MAJOR:,.0f}，不占版面；"
-            f"全部 {len(rows)} 个合同合计 {money(sum(Decimal(r['detail']['balance']) for r in rows))}")
+    # 诊断分行写：钉钉里每条独占一行（单个 \n 会被吃掉，要空行分段）
+    note_lines = [
+        f"另有 {small} 家欠款不足 {RECEIVABLE_MAJOR:,.0f}",
+        f"全部 {len(rows)} 个合同合计 {money(sum(Decimal(r['detail']['balance']) for r in rows))}",
+    ]
     # 上游因解析不出欠款方而剔除的合同必须留在诊断行里，不能在合并这一步悄悄丢掉
-    note = "；".join(x for x in (note, upstream_note) if x)
+    if upstream_note:
+        note_lines.append(upstream_note)
+    note = "\n\n".join(note_lines)
     return ("hit" if out else "clear"), out, note
 
 

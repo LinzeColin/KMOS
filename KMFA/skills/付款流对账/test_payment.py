@@ -127,9 +127,45 @@ def main():
     check("有要办", "**要办：**" in text)
     check("正文不含裸竖线（会被当表格语法）", "|" not in text.replace("／", ""))
     check("写了数据截止", "数据截止" in text)
-    check("停更有提示", "停更" in text or "没更新" in text)
-    check("说明了是增量", "本次新增" in text)
     check("金额齐全时给出小计", "，共 41,516.05" in text)
+
+    print("\n== 七之二、模板改版（老板 2026-09-11）==")
+    two = [
+        {"fingerprint": "a", "check_id": "bypass_approval", "amount": "1", "line": "AAA"},
+        {"fingerprint": "b", "check_id": "bypass_approval", "amount": "2", "line": "BBB"},
+    ]
+    t2 = S.render(two, res, {"reported": 0, "answered": 0},
+                  {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
+    check("多条之间空行分段（不再单换行挤一坨）", "- AAA\n\n- BBB" in t2, repr(t2))
+    check("删了「注意…没更新」", "没更新" not in t2)
+    check("删了「本次新增」增量行", "本次新增" not in t2)
+    res_bad = dict(res)
+    res_bad["transfer_failed"] = {"status": "unavailable", "items": [], "note": "共享盘超时"}
+    t3 = S.render(two, res_bad, {"reported": 0, "answered": 0},
+                  {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
+    check("数据源「本轮不可用」完整告警保留",
+          "（钱没转出去：本轮不可用 —— 共享盘超时）" in t3, repr(t3[-160:]))
+    # 台账去重仍在跑，但计数永不再上版：喂非零 reported/answered 也不许冒出增量尾注
+    t_nz = S.render(two, res, {"reported": 9, "answered": 9},
+                    {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
+    check("非零台账计数也不显示增量/已结清",
+          all(k not in t_nz for k in ("本次新增", "已结清", "已答复", "已上报过")), repr(t_nz))
+    # 明细带尾随换行，规整成干净单行，不出三连空行
+    dirty = [
+        {"fingerprint": "a", "check_id": "bypass_approval", "amount": "1", "line": "AAA\n"},
+        {"fingerprint": "b", "check_id": "bypass_approval", "amount": "2", "line": "BBB"},
+    ]
+    t_dirty = S.render(dirty, res, {"reported": 0, "answered": 0},
+                       {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
+    check("明细带尾随换行也规整成单行，不出三连空行",
+          "\n\n\n" not in t_dirty and "- AAA\n\n- BBB" in t_dirty, repr(t_dirty))
+    maj0 = res["receivable_major"]
+    check("欠款行删了「到今天 N 天」", all("到今天" not in it["line"] for it in maj0["items"]))
+    check("欠款行仍以「收到钱」收尾", all("收到钱" in it["line"] for it in maj0["items"]))
+    mnote = maj0.get("note", "")
+    check("诊断行删了「不占版面」", "不占版面" not in mnote)
+    check("诊断两句用空行分开、不再用分号挤一行",
+          "\n\n" in mnote and "；全部" not in mnote, repr(mnote))
 
     print("\n== 八、欠款怎么进：按客户合并、只进高价值 ==")
     # 老板 2026-09-11：「不是不进，是要高价值的进。」

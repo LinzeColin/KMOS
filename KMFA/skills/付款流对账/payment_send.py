@@ -21,8 +21,6 @@ from decimal import Decimal
 PRODUCTION_PAYMENT_GROUP = "cid0UmWYRhaMEbiNez2FIpDPA=="
 OWNER_USER = "01256723246324629191"          # 张霖泽，失败告警只走这里，任何阶段都不进群
 
-STALE_DAYS = {"红圈付款审批": 3, "红圈收款登记": 3, "周付款计划": 10, "下游转账凭证": 10}
-DEFAULT_STALE_DAYS = 10
 
 TITLE_PREFIX = "**付款异常 "      # 告警正文的唯一合法开头，见 send() 里的硬闸 -1
 SEND_WINDOW_BJ = (8, 12)                     # 北京 08:00 ≤ t < 12:00
@@ -102,10 +100,11 @@ def render(new_items, results, ledger_counts, sources, today=None):
             head += f"，共 {money(sum(amts))}"
         parts.append(head)
         shown = items[:MAX_LINES_PER_SECTION]
-        bullets = [f"- {i['line'].replace('|', '／')}" for i in shown]
+        # 明细恒为干净单行：折叠任何换行/多余空白，避免 \n\n 拼接出三连空行
+        bullets = [f"- {' '.join(i['line'].replace('|', '／').split())}" for i in shown]
         if len(items) > len(shown):
             bullets.append(f"- 另有 {len(items) - len(shown)} 条")
-        parts.append("\n".join(bullets))
+        parts.append("\n\n".join(bullets))
         note = results.get(cid, {}).get("note")
         if note:
             parts.append(note)
@@ -115,25 +114,12 @@ def render(new_items, results, ledger_counts, sources, today=None):
     if parts[-1] == "---":
         parts.pop()
 
-    # ---- 页脚：数据截止、增量说明、已结清、诊断 ----
+    # ---- 页脚：数据截止 + 数据源本轮不可用 ----
     foot = []
     cut = "；".join(f"{k} {v}" for k, v in sources.items() if v)
     if cut:
         foot.append(f"数据截止：{cut}")
-    stale = [(k, _stale_days(v)) for k, v in sources.items()
-             if v and _stale_days(v) is not None
-             and _stale_days(v) > STALE_DAYS.get(k, DEFAULT_STALE_DAYS)]
-    if stale:
-        who = "、".join(f"{k} 已 {d} 天没更新" for k, d in stale)
-        foot.append(f"**注意：{who}**，靠它的检查只看得到截止日之前的事。")
-    ans = ledger_counts.get("answered", 0)
-    rep = ledger_counts.get("reported", 0)
-    tail = f"本次新增 {len(new_items)} 条"
-    if rep:
-        tail += f"；历史 {rep} 条已上报过，不重复"
-    if ans:
-        tail += f"；{ans} 条群里已答复，已结清"
-    foot.append(tail)
+    # 注意/本次新增不再上版（老板 2026-09-11）；台账去重仍在跑，只是不显示计数，故 ledger_counts 保留在签名上不展示。
     for cid in ORDER:
         r = results.get(cid, {})
         if r.get("status") in ("error", "unavailable"):
@@ -142,13 +128,6 @@ def render(new_items, results, ledger_counts, sources, today=None):
         parts.append("---")
         parts.append("\n\n".join(foot))
     return "\n\n".join(parts)
-
-
-def _stale_days(datestr):
-    try:
-        return (bj_now().date() - dt.date.fromisoformat(str(datestr)[:10])).days
-    except Exception:
-        return None
 
 
 # ------------------------------------------------------------------ 投递
