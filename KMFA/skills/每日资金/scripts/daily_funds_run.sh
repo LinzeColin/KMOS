@@ -14,8 +14,13 @@
 #
 # 出图确实要落一个临时 PNG，跑完就删——渲染不可能不落盘。
 set -uo pipefail
+# automation 的环境一般带 HOME；万一没有就按当前用户推出来，别让 set -u 在第一个 $HOME 上把脚本打死
+export HOME="${HOME:-$(eval echo "~$(id -un)")}"
 
-SKILL="/Users/linzezhang/Documents/Codex/GithubProject/KMOS/KMFA/skills/每日资金"
+# 运行位是 ~/.codex/skills/KMFA-Daily-Funds/，仓库里这份是源。
+# 路径按脚本自身位置推算，整包搬到哪都不用改一行——主工作树按规矩只 pull 不写，
+# 放在那里跑的生产代码会被恢复原状（2026-09-10 实测被清过一次）。
+SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE="${DAILY_FUNDS_SMB_DIR:-/Volumes/share/03_资料库/MetaData/IDS_MetaData/60_受限资料/财务/每日资金看板}"
 LOG="${STATE}/daily_funds_run.log"
 
@@ -24,7 +29,56 @@ export LANG=zh_CN.UTF-8
 
 # 变量紧邻中文一律写 ${VAR}：bash 会把后面的高位字节当成变量名，
 # 实测 "$TODAY_CN）已发过" 会报 unbound variable，而且只在走到那条分支时才炸。
-log() { echo "[$(date '+%F %T %Z')] $*" >> "${LOG}"; }
+TMPROOT="${DAILY_FUNDS_TMP_DIR:-/private/tmp}"
+
+# SMB 上的直接重定向会静默产生全零文件。所有持久状态均在本地暂存，
+# 再通过 rsync --inplace 写入并以 cmp 读回确认。
+publish_smb_file() {
+  local source="$1" target="$2"
+  /usr/bin/rsync -a --inplace -- "${source}" "${target}" && cmp -s "${source}" "${target}"
+}
+
+append_log_file() {
+  local source="$1" staged
+  staged=$(mktemp "${TMPROOT%/}/daily-funds-log.XXXXXX") || return 1
+  if [ -f "${LOG}" ] && ! /bin/cp "${LOG}" "${staged}"; then
+    rm -f "${staged}"
+    return 1
+  fi
+  cat "${source}" >> "${staged}"
+  if ! publish_smb_file "${staged}" "${LOG}"; then
+    rm -f "${staged}"
+    return 1
+  fi
+  rm -f "${staged}"
+}
+
+log() {
+  local line rc
+  line=$(mktemp "${TMPROOT%/}/daily-funds-line.XXXXXX") || return 1
+  printf '[%s] %s\n' "$(date '+%F %T %Z')" "$*" > "${line}"
+  append_log_file "${line}"
+  rc=$?
+  rm -f "${line}"
+  return "${rc}"
+}
+
+# 告警只发张霖泽个人，永远不进群——群里不加噪音。
+# 首报制：同一件事（key）只报一次；恢复后按前缀撤掉记录，再出问题算新事件。
+# 台账在 SMB 数据文件里，由 python 侧持锁读写；发送走 notify（自带重试、查 error 字段）。
+alert_once() {
+  local key="$1" out
+  shift
+  out=$(cd "${SKILL}" && python3 scripts/run_local_daily_funds.py alert --key "${key}" --text "$*" 2>&1)
+  case "${out}" in
+    *ALERT_SENT*|*ALERT_KNOWN*) : ;;
+    *) log "告警没发出去（${key}）：$* | ${out}" ;;
+  esac
+}
+
+alert_clear_prefix() {
+  (cd "${SKILL}" && python3 scripts/run_local_daily_funds.py alert --clear-prefix "$1" >/dev/null 2>&1) || true
+}
 
 if [ ! -d "${STATE}" ]; then
   echo "SMB 不可用: ${STATE}" >&2
@@ -34,11 +88,64 @@ fi
 # 一天只发一条。补跑（休眠唤醒、机器重启、手动重试）不该变成刷屏。
 TODAY_CN=$(TZ=Asia/Shanghai date +%F)
 STAMP="${STATE}/.sent-${TODAY_CN}"
+# 每条走到结局的路径都写一行「RUN_RESULT …」，看门狗只认这个收据。
+# 「北京时间太早、等更晚那次」和 dry run 不写：后面那次要是没来，就是没跑。
 if [ -f "${STAMP}" ]; then
-  log "今天（北京 ${TODAY_CN}）已发过，跳过"
+  log "RUN_RESULT ALREADY_SENT 今天（北京 ${TODAY_CN}）已发过，跳过"
   echo "今天已发过，跳过"
   exit 0
 fi
+
+# 仅用于无消息的恢复验证；automation 的既有调用不设置此变量。
+if [ "${DAILY_FUNDS_DRY_RUN:-0}" = "1" ]; then
+  log "dry run：未拉取素材、未发送、未写当日标记"
+  echo "NOT_SENT_DRY_RUN"
+  exit 0
+fi
+
+# 太早就不发 —— 但只在「今天还有更晚的一次触发」时才跳过。
+#
+# 为什么要读配置而不是写死：automation.toml 会被 Codex 应用反复覆盖（实测多次），
+# 所以正确性不能押在配置上，只能押在「读当下真正生效的那份」。
+#
+# 规则：BYHOUR 走本机时区（悉尼），北京 = 悉尼 − 偏移。
+#   · 现在换算到北京 ≥12 点 → 照常发。
+#   · 现在太早，但今天还排了一次能落在北京 ≥12 点的触发 → 跳过且不写标记，等那次。
+#   · 现在太早，且今天没有更晚的触发了 → 照样发，只是早了点。
+#     宁可早发一小时，也绝不能因为守卫而整天不发——那是静默停摆。
+#
+# 这样 10-04 悉尼转夏令时时无人干预：配置是双触发就等第二次，
+# 是单触发就早发一小时并在日志里说明。
+TOML="${HOME}/.codex/automations/kmfa-daily-funds/automation.toml"
+DECIDE=$(BJ_NOW="$(TZ=Asia/Shanghai date +%H)" SYD_NOW="$(date +%H)" TOML="${TOML}" python3 - <<'PYEOF'
+import os, re
+bj, syd = int(os.environ["BJ_NOW"]), int(os.environ["SYD_NOW"])
+if bj >= 12:
+    print("GO now"); raise SystemExit
+offset = (syd - bj) % 24          # 悉尼比北京快几小时
+hours = []
+try:
+    txt = open(os.environ["TOML"], encoding="utf-8").read()
+    m = re.search(r'rrule\s*=\s*"([^"]*)"', txt)
+    if m:
+        h = re.search(r"BYHOUR=([0-9,]+)", m.group(1))
+        if h: hours = [int(x) for x in h.group(1).split(",") if x.strip()]
+except Exception:
+    pass
+# 今天还有哪次触发能落在北京 >=12 点
+later = [h for h in hours if h > syd and (h - offset) % 24 >= 12]
+print("WAIT %d" % min(later) if later else "GO late")
+PYEOF
+)
+case "${DECIDE}" in
+  "GO now") : ;;
+  WAIT*)
+    log "北京 $(TZ=Asia/Shanghai date +%H) 点太早，今天还排了悉尼 ${DECIDE#WAIT } 点那次，本轮不发也不写标记"
+    echo "北京时间太早，等今天更晚的那次触发"
+    exit 0 ;;
+  *)
+    log "北京 $(TZ=Asia/Shanghai date +%H) 点早于 12 点，但今天没有更晚的触发了，照发（宁可早发也不静默停摆）" ;;
+esac
 
 # 0) 先把「付款请示群」的新素材从钉钉拉到 SMB：文件在前，图片在后。
 #
@@ -59,7 +166,7 @@ fi
 # --window-days 只有 kmfile_pipeline 有，kmvideo_pipeline 没有这个参数，
 # 照 SKILL.md 给 kmvideo 传会直接报错。
 export KMOS_ROOT="/Users/linzezhang/Documents/Codex/GithubProject/KMOS"
-KMROOT="/Users/linzezhang/Documents/Codex/GithubProject/KMOS"
+KMROOT="${DAILY_FUNDS_KMROOT:-/Users/linzezhang/Documents/Codex/GithubProject/KMOS}"
 
 # 每条归档线的时间预算。超了就放手去出卡片，归档留在后台自己跑完。
 # 单群 scan 实测 1–2 分钟，给 240s 已经是三倍余量；跑不完说明被锁着干等
@@ -95,6 +202,7 @@ archive_scan() {
   shift 4
   if [ ! -d "${dir}" ]; then
     log "找不到 ${name} skill，跳过：${dir}"
+    alert_once "archive:${name}:missing" "每日资金：找不到 ${name} 的归档 skill（${dir}），本轮没拉新素材，卡片可能滞后。"
     return 0
   fi
   reap_stale_lock "${work}"
@@ -106,16 +214,15 @@ archive_scan() {
   # 的活锁挡住干等。卡片才是交付物，不能被归档无限期扣着——超预算就放手，
   # 用 SMB 上已有的数据照常出图，卡片自己会标出滞后几天。
   #
-  # 直接把输出追加进日志，**不走管道**：
-  #   · 实时可见，十几分钟不再是一片空白；
-  #   · $! 拿到的是 python 自己的 pid。用管道的话 $! 是 tee 的 pid，
-  #     杀它只会让 python 收到 SIGPIPE 而不是 SIGTERM，而 skill 明确要求
-  #     用 SIGTERM 让它写完当前 manifest 窗口，粗暴中断会写坏 manifest。
-  # 判断「有没有被锁挡住」靠记下起始字节偏移，事后只读本轮新增那一段。
-  local mark=0
-  [ -f "${LOG}" ] && mark=$(wc -c < "${LOG}" | tr -d ' ')
-  python3 "scripts/${script}" "$@" >> "${LOG}" 2>&1 &
-  local pid=$! waited=0 rc=0
+  # 输出先落本地。SMB 只接受 rsync --inplace 加读回校验过的完整文件；$!
+  # 仍然是 python 自己的 pid，因此 TERM 仍由 pipeline 正常收尾处理。
+  local output
+  output=$(mktemp "${TMPROOT%/}/daily-funds-archive.XXXXXX") || {
+    log "无法创建 ${name} 本地输出暂存，跳过"
+    return 0
+  }
+  python3 "scripts/${script}" "$@" >> "${output}" 2>&1 &
+  local pid=$! waited=0 rc=0 finished=1
   while kill -0 "${pid}" 2>/dev/null; do
     if [ "${waited}" -ge "${ARCHIVE_BUDGET_SEC}" ]; then
       # 按 skill 的要求用 SIGTERM，让它写完当前 manifest 窗口再退。
@@ -123,7 +230,12 @@ archive_scan() {
       log "${name} 超过 ${ARCHIVE_BUDGET_SEC}s 预算，发 TERM 让它收尾，本轮不等了"
       kill -TERM "${pid}" 2>/dev/null
       sleep 20
-      kill -0 "${pid}" 2>/dev/null && log "${name} 收尾中，留它在后台跑完"
+      if kill -0 "${pid}" 2>/dev/null; then
+        log "${name} 收尾中，留它在后台跑完；输出暂存于本机"
+        finished=0
+      else
+        wait "${pid}"
+      fi
       rc=124
       break
     fi
@@ -131,30 +243,77 @@ archive_scan() {
     waited=$((waited + 5))
   done
   [ "${rc}" -eq 0 ] && { wait "${pid}"; rc=$?; }
-  if tail -c "+$((mark + 1))" "${LOG}" 2>/dev/null | grep -q "另一个 pipeline 实例仍在运行"; then
+  if [ "${finished}" -eq 1 ]; then
+    append_log_file "${output}" || echo "无法安全写入归档输出日志" >&2
+  fi
+  # 归档没跑成 = 今天的素材可能不全 = 卡片的权威性没有保证。
+  # 这三种情况都不拦发送（历史数据还在，卡片自带报表日），但**一条都不许静默**：
+  # 素材缺失是无声的，只有告警能让人知道该去看一眼。
+  if grep -q "另一个 pipeline 实例仍在运行" "${output}" 2>/dev/null; then
     log "${name} 被锁挡住，本次没有拉到新数据"
+    alert_once "archive:${name}:locked" "每日资金：${name} 被另一个 pipeline 的锁挡住，本轮没拉到新素材，卡片可能滞后。"
   elif [ "${rc}" -eq 124 ]; then
-    : # 超预算，上面已经记过了
+    alert_once "archive:${name}:budget" "每日资金：${name} 超过 ${ARCHIVE_BUDGET_SEC}s 预算被中断，本轮素材可能不全。"
   elif [ "${rc}" -eq 0 ]; then
     log "${name} 完成"
+    alert_clear_prefix "archive:${name}:"
   else
     log "${name} 失败（退出码 ${rc}），继续"
+    alert_once "archive:${name}:failed" "每日资金：${name} 归档失败（退出码 ${rc}），本轮素材可能不全。查 ${LOG}"
   fi
+  [ "${finished}" -eq 1 ] && rm -f "${output}"
 }
 
+# 主体任务之前先归档本群素材，确保读数用的是当天最全的一份。
+#
+# window-days 取 4，不是 1：BYDAY 只排周一到周五，周五那轮到周一那轮之间隔 3 天。
+# 窗口只有 1 天时，财务在周六发的余额表对周一这轮是不可见的——直接漏一天。
+# 4 天 = 周五→周一的 3 天，再留 1 天冗余给「某一轮没触发」。
+# 实测代价：窗口 1 约 57s，窗口 4 约 137s，都在 240s 预算内。
+# 长假（国庆/春节）超出 4 天的缺口由 STALE_ALERT_DAYS 兜底告警，人工 backfill 补。
 archive_scan "KMFile 付款请示群" "${KMROOT}/KMFile/skills/KMFile-Archive" \
              kmfile_pipeline.py  /private/tmp/kmfile_work \
-             scan --only-group 付款请示群 --since-manifest --window-days 1
+             scan --only-group 付款请示群 --since-manifest --window-days 4
 archive_scan "KMMedia 付款请示群" "${KMROOT}/KMVideo/skills/KMMedia-Archive" \
              kmvideo_pipeline.py /private/tmp/kmvideo_work \
              scan --only-group 付款请示群 --since-manifest --media-type photo
 
 cd "${SKILL}" || { log "进不去 skill 目录"; exit 1; }
 
-# 1) 把新截图读成数字。拉不到不是致命错——SMB 上还有历史数据，
-#    卡片会自己标出滞后天数，比什么都不发强。
-if ! python3 scripts/run_local_daily_funds.py poll >> "${LOG}" 2>&1; then
-  log "poll 失败，继续用已有数据出图"
+# 1) 把新截图读成数字。
+#
+# poll 的退出码分三档，处理方式完全不同，绝不能一视同仁：
+#
+#   0  正常跑完（含「上游今天还没发新表」）。今天没新表是常态，不是故障，
+#      卡片自己会标滞后天数。
+#   2  取到候选但一张都没入库（读图全失败 / 文件全不在盘上）。
+#      数据没更新但代码是活的——照发历史数据，同时私聊告警。
+#   其它（traceback 走 1）代码崩了。**一律拒发。**
+#
+# 这一档以前写的是「继续用已有数据出图」，代价实测过：2026-09-10
+# smb_source.fetch 少一行 import hashlib，poll 崩在第一条候选上，
+# 于是把 09-08 的数字当当天卡片发进了群，脚本还报「已发送」、
+# automation 记「正常发送完成 ACTION: NONE」——一条告警都没有。
+# 给管理层看错数字，比当天不发严重得多。
+RUN_OUTPUT=$(mktemp "${TMPROOT%/}/daily-funds-run.XXXXXX") || {
+  echo "无法创建本地运行输出暂存" >&2
+  exit 2
+}
+POLL_RC=0
+python3 scripts/run_local_daily_funds.py poll >> "${RUN_OUTPUT}" 2>&1 || POLL_RC=$?
+append_log_file "${RUN_OUTPUT}" || true
+rm -f "${RUN_OUTPUT}"
+
+if [ "${POLL_RC}" -eq 0 ]; then
+  alert_clear_prefix "poll:"
+elif [ "${POLL_RC}" -eq 2 ]; then
+  log "poll 取到候选但一张都没入库（读不出或被闸门拦下），照发历史数据并告警"
+  alert_once "poll:unread" "每日资金：poll 取到了新截图但一张都没读进库（读不出或被闸门拦下），今天的卡片用的是历史数据。查 ${LOG}"
+else
+  log "RUN_RESULT REFUSED_POLL_CRASH poll 崩溃（退出码 ${POLL_RC}），拒绝发送"
+  alert_once "poll:crash" "每日资金：poll 崩溃（退出码 ${POLL_RC}），今天不发卡片，避免把旧数字当当天数据发进群。查 ${LOG}"
+  echo "poll 崩溃（退出码 ${POLL_RC}），已拒发并私聊告警" >&2
+  exit 2
 fi
 
 # 2) 出图 + 发送到「付款请示群」。
@@ -172,19 +331,76 @@ fi
 # 可能已经发完并写下标记了。只在开头查会导致群里出现两条重复。
 # 实测 2026-09-07：16:46 启动时无标记，16:49 另一轮发了，16:54 本轮才走到发送。
 if [ -f "${STAMP}" ]; then
-  log "归档期间已有另一轮发过了，本轮不重复发"
+  log "RUN_RESULT ALREADY_SENT 归档期间已有另一轮发过了，本轮不重复发"
   echo "已有另一轮发送完成，本轮跳过"
   exit 0
 fi
 
 export DAILY_FUNDS_ALLOW_GROUP=1
-if python3 scripts/run_local_daily_funds.py send --to-group >> "${LOG}" 2>&1; then
-  : > "${STAMP}"
-  find "${STATE}" -maxdepth 1 -name '.sent-*' -mtime +10 -delete 2>/dev/null
-  log "已发送"
-  echo "已发送（图 + 文字）到付款请示群"
-else
-  log "发送失败，详见 ${LOG}"
-  echo "发送失败，详见 ${LOG}" >&2
+SEND_OUTPUT=$(mktemp "${TMPROOT%/}/daily-funds-send.XXXXXX") || {
+  echo "无法创建本地发送输出暂存" >&2
+  exit 2
+}
+SEND_RC=0
+python3 scripts/run_local_daily_funds.py send --to-group >> "${SEND_OUTPUT}" 2>&1 || SEND_RC=$?
+append_log_file "${SEND_OUTPUT}" || true
+rm -f "${SEND_OUTPUT}"
+
+# send 的退出码：0 已发群；4 持锁检查发现今天已发过；3 数据过旧未发群（python 已首报）；
+# 2 发送失败（python 已告警）；其它 = 崩溃，python 没机会告警，这里补报。
+case "${SEND_RC}" in
+  0) : ;;
+  4)
+    log "RUN_RESULT ALREADY_SENT 另一轮已经发过群，本轮不重复发"
+    echo "今天已发过，跳过"
+    exit 0 ;;
+  2|3)
+    log "RUN_RESULT NOT_SENT 未发群（退出码 ${SEND_RC}，python 已私聊），详见 ${LOG}"
+    echo "发送失败或数据过旧未发群，详见 ${LOG}" >&2
+    exit 2 ;;
+  *)
+    log "RUN_RESULT SEND_CRASHED 发送步骤崩溃（退出码 ${SEND_RC}）"
+    alert_once "send_step:crash" "每日资金：发送步骤崩溃（退出码 ${SEND_RC}），今天的卡片没发出去。查 ${LOG}"
+    echo "发送步骤崩溃（退出码 ${SEND_RC}），已私聊告警" >&2
+    exit 2 ;;
+esac
+alert_clear_prefix "send_step:"
+
+MARKER=$(mktemp "${TMPROOT%/}/daily-funds-marker.XXXXXX") || {
+  log "RUN_RESULT SENT_MARKER_FAILED 已发群，但无法创建幂等标记暂存"
+  alert_once "marker_failed:${TODAY_CN}" "每日资金：今天的卡片已经发进群，但当日标记没写上。查 ${LOG}"
+  exit 2
+}
+: > "${MARKER}"
+if ! publish_smb_file "${MARKER}" "${STAMP}"; then
+  rm -f "${MARKER}"
+  log "RUN_RESULT SENT_MARKER_FAILED 已发群，但当日标记写入或读回失败"
+  alert_once "marker_failed:${TODAY_CN}" "每日资金：今天的卡片已经发进群，但当日标记没写进 SMB。后面的触发会被 python 侧的发送记录拦下；若仍看到重复发群请手动处理。查 ${LOG}"
+  echo "发送完成但幂等标记写入失败" >&2
   exit 2
 fi
+rm -f "${MARKER}"
+log "RUN_RESULT SENT 已发送"
+
+# 3)「现存票据」→ 卡片上的「14 天内到期承兑」。放在发卡片**之后**：
+#    北京 12:00 的发布时刻不能被读图拖晚。今天新发的表明天的卡片用；
+#    今天的卡片用上一张合格的表按报表日滚动（表龄 ≤10 天）。
+#    0 / 2  正常，或本轮没读出两次一致的结果——表在有效期内，下一轮再试。
+#    其它   崩溃：今天的卡片已经发了，不受影响；私聊告警。
+BILLS_OUTPUT=$(mktemp "${TMPROOT%/}/daily-funds-bills.XXXXXX") || {
+  echo "无法创建本地票据步骤输出暂存" >&2
+  echo "已发送（图 + 文字）到付款请示群"
+  exit 0
+}
+BILLS_RC=0
+python3 scripts/run_local_daily_funds.py bills >> "${BILLS_OUTPUT}" 2>&1 || BILLS_RC=$?
+append_log_file "${BILLS_OUTPUT}" || true
+rm -f "${BILLS_OUTPUT}"
+case "${BILLS_RC}" in
+  0|2) alert_clear_prefix "bills_step:" ;;
+  *)
+    log "票据表步骤崩溃（退出码 ${BILLS_RC}）"
+    alert_once "bills_step:crash" "每日资金：「现存票据」步骤崩溃（退出码 ${BILLS_RC}）。今天的卡片已正常发出，14 天内到期承兑继续用已入库的合格表。查 ${LOG}" ;;
+esac
+
+echo "已发送（图 + 文字）到付款请示群"
