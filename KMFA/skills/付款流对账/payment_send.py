@@ -100,8 +100,19 @@ def render(new_items, results, ledger_counts, sources, today=None):
             head += f"，共 {money(sum(amts))}"
         parts.append(head)
         shown = items[:MAX_LINES_PER_SECTION]
-        # 明细恒为干净单行：折叠任何换行/多余空白，避免 \n\n 拼接出三连空行
-        bullets = [f"- {' '.join(i['line'].replace('|', '／').split())}" for i in shown]
+        # 明细恒为干净单行：折叠换行/多余空白，避免 \n\n 拼出三连空行。
+        # 带 title 的项（如欠款）：公司名单独成行、加粗当小标题，详情另起一行。
+        bullets = []
+        for i in shown:
+            body = " ".join(i["line"].replace("|", "／").split())
+            title = i.get("title")
+            if title:
+                title = " ".join(str(title).replace("|", "／").split())
+                if body.startswith(title):
+                    body = body[len(title):].strip()
+                bullets.append(f"**{title}**\n\n{body}")
+            else:
+                bullets.append(f"- {body}")
         if len(items) > len(shown):
             bullets.append(f"- 另有 {len(items) - len(shown)} 条")
         parts.append("\n\n".join(bullets))

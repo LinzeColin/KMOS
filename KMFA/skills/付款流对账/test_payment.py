@@ -166,6 +166,21 @@ def main():
     check("诊断行删了「不占版面」", "不占版面" not in mnote)
     check("诊断两句用空行分开、不再用分号挤一行",
           "\n\n" in mnote and "；全部" not in mnote, repr(mnote))
+    # 欠款：公司名加粗单独成行，详情另起一行（老板 2026-09-11 二轮）
+    syn = [
+        {"fingerprint": "recvmajor:甲:1", "check_id": "receivable_major", "amount": "1",
+         "title": "测试公司甲", "line": "测试公司甲 欠 1.00（1 个合同），最久一笔 2020-01-01 收到钱"},
+        {"fingerprint": "recvmajor:乙:1", "check_id": "receivable_major", "amount": "2",
+         "title": "测试公司乙", "line": "测试公司乙 欠 2.00（1 个合同），最久一笔 2020-01-01 收到钱"},
+    ]
+    t_syn = S.render(syn, {"receivable_major": {"status": "hit", "items": syn, "note": ""}},
+                     {"reported": 0, "answered": 0}, {}, today=dt.date(2026, 9, 11))
+    check("欠款公司名加粗、单独成行", "**测试公司甲**\n\n欠 1.00（" in t_syn, repr(t_syn))
+    check("公司名与详情断开、不再挤同一行",
+          "测试公司甲 欠" not in t_syn and "测试公司乙 欠" not in t_syn)
+    check("详情行不再重复公司名", t_syn.count("测试公司甲") == 1)
+    check("真实欠款项都带 title=公司名",
+          all(it.get("title") for it in res["receivable_major"]["items"]))
 
     print("\n== 八、欠款怎么进：按客户合并、只进高价值 ==")
     # 老板 2026-09-11：「不是不进，是要高价值的进。」
