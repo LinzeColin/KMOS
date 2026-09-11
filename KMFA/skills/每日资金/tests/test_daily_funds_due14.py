@@ -414,5 +414,68 @@ class TestWatchdog(unittest.TestCase):
         self.r.watchdog(self._args(self._toml("ACTIVE")))
         self.assertEqual(self.sent, [])
 
+
+class TestChunkedBillRead(unittest.TestCase):
+    """长表分段读：每段带表头、段间重叠、按序号拼回；重叠行读得不一样就整次作废。"""
+
+    def setUp(self):
+        from daily_funds_local import vision
+        self.v = vision
+        self.dir = Path(tempfile.mkdtemp())
+        self._orig = (vision._api_key, vision._ask, vision._bill_chunks)
+        vision._api_key = lambda: "k"
+
+    def tearDown(self):
+        self.v._api_key, self.v._ask, self.v._bill_chunks = self._orig
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def _img(self, h):
+        from PIL import Image
+        p = self.dir / ("img_%d.png" % h)
+        im = Image.new("RGB", (400, h), "white")
+        for y in range(0, 40):
+            for x in range(0, 400, 7):
+                im.putpixel((x, y), (0, 0, 0))     # 表头有字
+        im.save(p)
+        return str(p)
+
+    def test_plan_depends_on_height(self):
+        self.assertEqual(self.v.bill_read_plan(self._img(1300)), [(1, 1), (2, 1)])
+        self.assertIn((2, 2), self.v.bill_read_plan(self._img(2000)))
+
+    def test_chunks_carry_header_and_overlap(self):
+        from PIL import Image
+        self.v._bill_chunks = self._orig[2]
+        paths = self.v._bill_chunks(self._img(2000), 2, scale=1)
+        self.assertEqual(len(paths), 2)
+        a, b = (Image.open(p) for p in paths)
+        self.assertEqual(a.getpixel((0, 0)), (0, 0, 0))        # 两段顶上都是表头
+        self.assertEqual(b.getpixel((0, 0)), (0, 0, 0))
+        body = 2000 - 40
+        self.assertGreater(a.size[1] + b.size[1] - 2 * (40 + 6), body)   # 有重叠，拼回来比原图正文高
+
+    def _run(self, chunk_data):
+        self.v._bill_chunks = lambda path, parts, scale=2: ["c%d" % i for i in range(parts)]
+        it = iter(chunk_data)
+        self.v._ask = lambda prompt, img, key, model: next(it)
+        return self.v.read_bill_list("x.png", parts=len(chunk_data))
+
+    def test_overlap_rows_dedupe_and_total_from_last_part(self):
+        r1 = {"seq": 1, "due": "2026-09-16", "days": 9, "amount": "1000.00"}
+        r2 = {"seq": 2, "due": "2026-09-20", "days": 13, "amount": "2000.00"}
+        r3 = {"seq": 3, "due": "2026-09-23", "days": 16, "amount": "4000.00"}
+        out = self._run([{"rows": [r1, r2], "total": ""}, {"rows": [r2, r3], "total": "7000.00"}])
+        self.assertEqual([r["seq"] for r in out["rows"]], [1, 2, 3])
+        self.assertEqual(out["total"], "7000.00")
+        rows, total, errors = bills.parse_read(out)
+        self.assertTrue(bills.check_rows(rows, total, D("2026-09-07"), errors).ok)
+
+    def test_disagreeing_overlap_is_rejected(self):
+        r2a = {"seq": 2, "due": "2026-09-20", "days": 13, "amount": "2000.00"}
+        r2b = {"seq": 2, "due": "2026-09-20", "days": 13, "amount": "2600.00"}
+        from daily_funds_local.vision import VisionError
+        with self.assertRaises(VisionError):
+            self._run([{"rows": [r2a], "total": ""}, {"rows": [r2b], "total": "2000.00"}])
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

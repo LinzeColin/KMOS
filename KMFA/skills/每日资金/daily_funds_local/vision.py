@@ -202,22 +202,72 @@ def _to_facts(data: dict, layout: str) -> DayFacts:
     )
 
 
-def read_bill_list(image_path: str, *, scale: int = 1, model: Optional[str] = None) -> dict:
-    """读「现存票据」，返回模型给的原始 JSON（交给 bills.parse_read / check_rows）。"""
-    key = _api_key()
-    src = image_path
-    if scale > 1:
+# 长表（实测 40 行以上、图高近 2000 像素）整张送进去每行分到的像素太少，
+# 「距离到期日」和到期日会被读错，而且同一字形会反复读错，重试救不了。
+# 超过这个高度就改成分段读：每段都带表头，段与段之间留重叠，按序号拼回去。
+TALL_BILL_IMAGE_PX = 1500
+
+PROMPT_BILLS_PART = """这是「现存票据」表截图的一段：最上面一行是表头，下面是从整张表里截出来的连续若干行。
+列依次是：序号 / 收到票据日期 / 汇票出票日 / 汇票到期日 / 距离到期日 / 收款银行 / 票据类别 / 出票行（承兑行）/ 票据号 / 票据金额 / 客户名。
+
+只输出这一段里**完整可见**的票据行（被截断、看不全的行不要输出），每行读这四样：
+- seq：序号
+- due：汇票到期日
+- days：距离到期日（整数）
+- amount：票据金额
+如果这一段里有最底部的「合计」行，把那一格印的数字逐位抄进 total；没有就输出空字符串。
+绝对不要自己把各行加起来代替合计。
+
+输出：
+{"rows":[{"seq":17,"due":"2026-09-24","days":78,"amount":"12345.67"}],"total":""}
+
+规则：
+- 只输出 JSON，不要任何解释、不要 markdown 代码围栏。
+- 金额去掉「¥」和千分位逗号，保留两位小数的字符串原样输出。
+- 日期输出 YYYY-MM-DD。
+"""
+
+
+def bill_read_plan(image_path: str) -> list:
+    """每次读图用的 (放大倍数, 分几段)。短表只整张读（实测近 8 周全部一次过）。"""
+    try:
         from PIL import Image
-        im = Image.open(image_path).convert("RGB")
-        im = im.resize((im.width * scale, im.height * scale), Image.LANCZOS)
-        src = image_path + ".x%d.png" % scale
-        im.save(src)
-    b64 = base64.b64encode(open(src, "rb").read()).decode("ascii")
+        height = Image.open(image_path).size[1]
+    except Exception:
+        height = 0
+    if height > TALL_BILL_IMAGE_PX:
+        return [(1, 1), (2, 2), (2, 1), (2, 3)]
+    return [(1, 1), (2, 1)]
+
+
+def _bill_chunks(image_path: str, parts: int, *, header_px: int = 40,
+                 overlap_px: int = 90, scale: int = 2) -> list:
+    from PIL import Image
+    im = Image.open(image_path).convert("RGB")
+    w, h = im.size
+    step = (h - header_px) / parts
+    head = im.crop((0, 0, w, header_px))
+    out = []
+    for i in range(parts):
+        y0 = max(header_px, int(header_px + i * step) - (overlap_px if i else 0))
+        y1 = min(h, int(header_px + (i + 1) * step) + (overlap_px if i < parts - 1 else 0))
+        canvas = Image.new("RGB", (w, header_px + 6 + (y1 - y0)), "white")
+        canvas.paste(head, (0, 0))
+        canvas.paste(im.crop((0, y0, w, y1)), (0, header_px + 6))
+        canvas = canvas.resize((canvas.width * scale, canvas.height * scale), Image.LANCZOS)
+        path = "%s.part%d_of%d.png" % (image_path, i, parts)
+        canvas.save(path)
+        out.append(path)
+    return out
+
+
+def _ask(prompt: str, image_path: str, key: str, model: Optional[str]) -> dict:
+    b64 = base64.b64encode(open(image_path, "rb").read()).decode("ascii")
     payload = {
         "model": model or os.environ.get("DAILY_FUNDS_VISION_MODEL") or DEFAULT_MODEL,
         "temperature": 0,
         "messages": [{"role": "user", "content": [
-            {"type": "text", "text": PROMPT_BILLS},
+            {"type": "text", "text": prompt},
             {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}},
         ]}],
     }
@@ -227,3 +277,42 @@ def read_bill_list(image_path: str, *, scale: int = 1, model: Optional[str] = No
         return _extract_json(body["choices"][0]["message"]["content"])
     except (KeyError, IndexError, ValueError) as exc:
         raise VisionError("票据表返回解析失败: %s" % type(exc).__name__)
+
+
+def _row_key(row: dict) -> tuple:
+    return (re.sub(r"\D", "", str(row.get("due", ""))), str(row.get("days", "")).strip(),
+            re.sub(r"[^\d.]", "", str(row.get("amount", ""))))
+
+
+def read_bill_list(image_path: str, *, scale: int = 1, parts: int = 1,
+                   model: Optional[str] = None) -> dict:
+    """读「现存票据」，返回 {"rows": [...], "total": ...}（交给 bills.parse_read / check_rows）。"""
+    key = _api_key()
+    if parts > 1:
+        merged: dict = {}
+        total = ""
+        conflicts = []
+        for chunk in _bill_chunks(image_path, parts, scale=max(scale, 1)):
+            data = _ask(PROMPT_BILLS_PART, chunk, key, model)
+            for row in data.get("rows") or []:
+                try:
+                    seq = int(str(row.get("seq")).strip())
+                except (TypeError, ValueError):
+                    continue          # 序号读不出的行丢掉，序号连续性闸门会拦下
+                if seq in merged and _row_key(merged[seq]) != _row_key(row):
+                    conflicts.append(seq)
+                merged.setdefault(seq, row)
+            if str(data.get("total") or "").strip():
+                total = data["total"]
+        # 重叠区同一行两段读得不一样，说明至少一段读错了——不猜哪段对，整次作废重读
+        if conflicts:
+            raise VisionError("分段读的重叠行对不上: %s" % sorted(set(conflicts))[:6])
+        return {"rows": [merged[k] for k in sorted(merged)], "total": total}
+    src = image_path
+    if scale > 1:
+        from PIL import Image
+        im = Image.open(image_path).convert("RGB")
+        im = im.resize((im.width * scale, im.height * scale), Image.LANCZOS)
+        src = image_path + ".x%d.png" % scale
+        im.save(src)
+    return _ask(PROMPT_BILLS, src, key, model)

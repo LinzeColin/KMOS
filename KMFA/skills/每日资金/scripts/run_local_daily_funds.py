@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from daily_funds_local import bills, card, gate, notify     # noqa: E402
 from daily_funds_local.smb_source import SmbArchive, SmbUnavailable  # noqa: E402
 from daily_funds_local.store import Store, data_dir         # noqa: E402
-from daily_funds_local.vision import VisionError, read_bill_list, read_card  # noqa: E402
+from daily_funds_local.vision import VisionError, bill_read_plan, read_bill_list, read_card  # noqa: E402
 
 
 HARD_GATE_ATTEMPTS = 3   # 硬门失败即重读；实测单次误读率约 15%
@@ -191,12 +191,14 @@ def ingest_bills(args) -> int:
             print("  %s 还没归档到，下一轮再试" % m["posted_at"])
             continue
         outcome, detail = "failed", ""
+        plan = bill_read_plan(path)
         for attempt in range(args.attempts):
             if time.monotonic() - t0 > args.budget:
                 detail = "BUDGET"
                 break
             try:
-                data = read_bill_list(path, scale=1 if attempt % 2 == 0 else 2)
+                scale, parts = plan[attempt % len(plan)]
+                data = read_bill_list(path, scale=scale, parts=parts)
             except VisionError as exc:
                 detail = str(exc)[:160]
                 continue
