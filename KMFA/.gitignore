@@ -7,6 +7,8 @@ data/private/
 data/raw/
 .codex_private_runtime/
 project-cost-table-skill/private_runtime/
+# 每日资金：带真实截图金额的回归测试等私有内容，KMOS 是公开仓
+skills/每日资金/private_runtime/
 project-cost-table-skill/private_seed/
 project-cost-table-skill/.pytest_cache/
 project-cost-table-skill/**/__pycache__/

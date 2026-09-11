@@ -95,8 +95,9 @@ def _run_once(args, timeout: int = 120) -> dict:
         raise SendError("dws %s 返回不是 JSON: %s" % (args[:3], rc.stdout.strip()[:160]))
     # dws 出错时退出码是 0，错误只在这个字段里——必须单独查。
     err = body.get("error")
-    if isinstance(err, dict):
-        raise SendError("dws %s: %s" % (args[:3], str(err.get("message"))[:200]))
+    if err:                     # dict 或字符串都算失败，只要不为空
+        msg = err.get("message") if isinstance(err, dict) else err
+        raise SendError("dws %s: %s" % (args[:3], str(msg)[:200]))
     if body.get("success") is False:
         raise SendError("dws %s 业务失败: %s" % (args[:3], str(body.get("errorMsg"))[:160]))
     return body
@@ -118,33 +119,29 @@ def auth_ok() -> bool:
         return False
 
 
-def auth_days_left() -> Optional[int]:
-    """refresh token 还剩几天。拿不到返回 None（当作未知，不误报）。"""
+def auth_expiry() -> Optional[tuple]:
+    """(refresh token 还剩几天, 到期时刻原文)。拿不到返回 None（当作未知，不误报）。"""
     try:
         raw = auth_status().get("refresh_expires_at") or ""
         exp = dt.datetime.fromisoformat(raw)
     except Exception:
         return None
     now = dt.datetime.now(exp.tzinfo) if exp.tzinfo else dt.datetime.now()
-    return (exp - now).days
+    return (exp - now).days, raw
 
 
-def warn_if_auth_expiring() -> Optional[str]:
-    """快到期就私聊提醒。返回提醒内容，没到阈值返回 None。
+def auth_expiry_notice() -> Optional[tuple]:
+    """快到期时返回 (首报键, 提醒文案)，没到阈值返回 None。不在这里发——调用方按首报去重。
 
-    这个函数存在的唯一理由：重新登录必须人来点，自动化补不了。
-    能做的只是别让它在某天早上突然静默停摆。
+    键用到期时刻原文，不用剩余天数：天数每天变，拿它当键就成了每天报一次。
+    重新登录必须人来点，自动化补不了；能做的只是别让它某天早上突然静默停摆。
     """
-    days = auth_days_left()
-    if days is None or days > AUTH_WARN_DAYS:
+    got = auth_expiry()
+    if got is None or got[0] > AUTH_WARN_DAYS:
         return None
-    msg = ("钉钉授权还有 %d 天到期，到期后资金日报会发不出去。\n"
-           "在这台 Mac 上跑一次：dws auth login" % days)
-    try:
-        send_failure(msg)
-    except Exception:
-        pass
-    return msg
+    days, raw = got
+    return ("auth_expiring:%s" % raw,
+            "钉钉授权还有 %d 天到期，到期后资金日报会发不出去。\n在这台 Mac 上跑一次：dws auth login" % days)
 
 
 def upload_image(path: str) -> str:

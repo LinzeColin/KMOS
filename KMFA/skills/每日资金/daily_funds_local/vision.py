@@ -11,9 +11,11 @@
 from __future__ import annotations
 
 import base64
+import datetime as dt
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from typing import Optional
@@ -139,19 +141,23 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
-def _normalize_date(raw: str, fallback_year: str = "2026") -> str:
+def _normalize_date(raw: str, message_date: Optional[str] = None) -> str:
+    """表上多半只写「09月09日」。年份从消息日期推，不写死：一月初发的「12月31日」是上一年的。"""
     raw = (raw or "").strip()
     m = re.search(r"(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})", raw)
     if m:
         return "%s-%02d-%02d" % (m.group(1), int(m.group(2)), int(m.group(3)))
     m = re.search(r"(\d{1,2})[-/月](\d{1,2})", raw)
     if m:
-        return "%s-%02d-%02d" % (fallback_year, int(m.group(1)), int(m.group(2)))
+        month, day = int(m.group(1)), int(m.group(2))
+        ref = dt.date.fromisoformat(message_date) if message_date else dt.date.today()
+        year = ref.year - 1 if month > ref.month + 1 else ref.year
+        return "%d-%02d-%02d" % (year, month, day)
     return raw
 
 
 def read_card(image_path: str, layout: str, *, model: Optional[str] = None,
-              retries: int = 1) -> DayFacts:
+              retries: int = 1, message_date: Optional[str] = None) -> DayFacts:
     key = _api_key()
     # 先裁成聚焦图：只留日期条 + 底部三行汇总，放大 2x。
     # 整张表的四十行账户明细会挤占分辨率，是确定性误读的根因（见 crop.py）。
@@ -175,13 +181,13 @@ def read_card(image_path: str, layout: str, *, model: Optional[str] = None,
             body = _post(payload, key)
             text = body["choices"][0]["message"]["content"]
             data = _extract_json(text)
-            return _to_facts(data, layout)
+            return _to_facts(data, layout, message_date)
         except (VisionError, GateError, KeyError, ValueError) as exc:
             last = exc
     raise VisionError("Vision 解析失败: %s" % last)
 
 
-def _to_facts(data: dict, layout: str) -> DayFacts:
+def _to_facts(data: dict, layout: str, message_date: Optional[str] = None) -> DayFacts:
     def grp(name: str):
         g = data.get(name) or {}
         return (to_fen(g.get("open")), to_fen(g.get("in")),
@@ -193,7 +199,7 @@ def _to_facts(data: dict, layout: str) -> DayFacts:
     cash = grp("cash") if layout == "A" else (0, 0, 0, 0)
 
     return DayFacts(
-        report_date=_normalize_date(data.get("report_date", "")),
+        report_date=_normalize_date(data.get("report_date", ""), message_date),
         layout=layout,
         bank_open=bank[0], bank_in=bank[1], bank_out=bank[2], bank_close=bank[3],
         bill_open=bill[0], bill_in=bill[1], bill_out=bill[2], bill_close=bill[3],
@@ -261,7 +267,21 @@ def _bill_chunks(image_path: str, parts: int, *, header_px: int = 40,
     return out
 
 
-def _ask(prompt: str, image_path: str, key: str, model: Optional[str]) -> dict:
+VISION_CALL_TIMEOUT = 240
+
+
+def _timeout_left(deadline: Optional[float]) -> int:
+    """单次调用的超时取「剩余预算」和 240 秒里小的那个。预算见底就不再发起新调用。"""
+    if deadline is None:
+        return VISION_CALL_TIMEOUT
+    left = deadline - time.monotonic()
+    if left < 15:
+        raise VisionError("BUDGET")
+    return int(min(VISION_CALL_TIMEOUT, left))
+
+
+def _ask(prompt: str, image_path: str, key: str, model: Optional[str],
+         deadline: Optional[float] = None) -> dict:
     b64 = base64.b64encode(open(image_path, "rb").read()).decode("ascii")
     payload = {
         "model": model or os.environ.get("DAILY_FUNDS_VISION_MODEL") or DEFAULT_MODEL,
@@ -271,8 +291,8 @@ def _ask(prompt: str, image_path: str, key: str, model: Optional[str]) -> dict:
             {"type": "image_url", "image_url": {"url": "data:image/png;base64," + b64}},
         ]}],
     }
-    # 三十行逐张输出比三行汇总慢得多，给足超时
-    body = _post(payload, key, timeout=240)
+    # 三十行逐张输出比三行汇总慢得多，给足超时——但不能越过调用方的总预算
+    body = _post(payload, key, timeout=_timeout_left(deadline))
     try:
         return _extract_json(body["choices"][0]["message"]["content"])
     except (KeyError, IndexError, ValueError) as exc:
@@ -285,7 +305,7 @@ def _row_key(row: dict) -> tuple:
 
 
 def read_bill_list(image_path: str, *, scale: int = 1, parts: int = 1,
-                   model: Optional[str] = None) -> dict:
+                   model: Optional[str] = None, deadline: Optional[float] = None) -> dict:
     """读「现存票据」，返回 {"rows": [...], "total": ...}（交给 bills.parse_read / check_rows）。"""
     key = _api_key()
     if parts > 1:
@@ -293,7 +313,7 @@ def read_bill_list(image_path: str, *, scale: int = 1, parts: int = 1,
         total = ""
         conflicts = []
         for chunk in _bill_chunks(image_path, parts, scale=max(scale, 1)):
-            data = _ask(PROMPT_BILLS_PART, chunk, key, model)
+            data = _ask(PROMPT_BILLS_PART, chunk, key, model, deadline)
             for row in data.get("rows") or []:
                 try:
                     seq = int(str(row.get("seq")).strip())
@@ -315,4 +335,4 @@ def read_bill_list(image_path: str, *, scale: int = 1, parts: int = 1,
         im = im.resize((im.width * scale, im.height * scale), Image.LANCZOS)
         src = image_path + ".x%d.png" % scale
         im.save(src)
-    return _ask(PROMPT_BILLS, src, key, model)
+    return _ask(PROMPT_BILLS, src, key, model, deadline)

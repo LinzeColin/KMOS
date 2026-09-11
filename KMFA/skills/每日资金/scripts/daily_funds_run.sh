@@ -14,6 +14,8 @@
 #
 # 出图确实要落一个临时 PNG，跑完就删——渲染不可能不落盘。
 set -uo pipefail
+# automation 的环境一般带 HOME；万一没有就按当前用户推出来，别让 set -u 在第一个 $HOME 上把脚本打死
+export HOME="${HOME:-$(eval echo "~$(id -un)")}"
 
 # 运行位是 ~/.codex/skills/KMFA-Daily-Funds/，仓库里这份是源。
 # 路径按脚本自身位置推算，整包搬到哪都不用改一行——主工作树按规矩只 pull 不写，
@@ -61,11 +63,21 @@ log() {
   return "${rc}"
 }
 
-# 失败告警只发张霖泽个人，永远不进群——群里不加噪音。
-# 走 notify.send_failure，它自带重试和「dws 退出码恒为 0，错误在返回体里」的处理。
-alert_owner() {
-  python3 -c 'import sys; sys.path.insert(0, "'"${SKILL}"'"); from daily_funds_local import notify; notify.send_failure(sys.argv[1])' "$*" >/dev/null 2>&1 \
-    || log "告警发送失败（原文：$*）"
+# 告警只发张霖泽个人，永远不进群——群里不加噪音。
+# 首报制：同一件事（key）只报一次；恢复后按前缀撤掉记录，再出问题算新事件。
+# 台账在 SMB 数据文件里，由 python 侧持锁读写；发送走 notify（自带重试、查 error 字段）。
+alert_once() {
+  local key="$1" out
+  shift
+  out=$(cd "${SKILL}" && python3 scripts/run_local_daily_funds.py alert --key "${key}" --text "$*" 2>&1)
+  case "${out}" in
+    *ALERT_SENT*|*ALERT_KNOWN*) : ;;
+    *) log "告警没发出去（${key}）：$* | ${out}" ;;
+  esac
+}
+
+alert_clear_prefix() {
+  (cd "${SKILL}" && python3 scripts/run_local_daily_funds.py alert --clear-prefix "$1" >/dev/null 2>&1) || true
 }
 
 if [ ! -d "${STATE}" ]; then
@@ -76,8 +88,10 @@ fi
 # 一天只发一条。补跑（休眠唤醒、机器重启、手动重试）不该变成刷屏。
 TODAY_CN=$(TZ=Asia/Shanghai date +%F)
 STAMP="${STATE}/.sent-${TODAY_CN}"
+# 每条走到结局的路径都写一行「RUN_RESULT …」，看门狗只认这个收据。
+# 「北京时间太早、等更晚那次」和 dry run 不写：后面那次要是没来，就是没跑。
 if [ -f "${STAMP}" ]; then
-  log "今天（北京 ${TODAY_CN}）已发过，跳过"
+  log "RUN_RESULT ALREADY_SENT 今天（北京 ${TODAY_CN}）已发过，跳过"
   echo "今天已发过，跳过"
   exit 0
 fi
@@ -188,6 +202,7 @@ archive_scan() {
   shift 4
   if [ ! -d "${dir}" ]; then
     log "找不到 ${name} skill，跳过：${dir}"
+    alert_once "archive:${name}:missing" "每日资金：找不到 ${name} 的归档 skill（${dir}），本轮没拉新素材，卡片可能滞后。"
     return 0
   fi
   reap_stale_lock "${work}"
@@ -236,14 +251,15 @@ archive_scan() {
   # 素材缺失是无声的，只有告警能让人知道该去看一眼。
   if grep -q "另一个 pipeline 实例仍在运行" "${output}" 2>/dev/null; then
     log "${name} 被锁挡住，本次没有拉到新数据"
-    alert_owner "每日资金：${name} 被另一个 pipeline 的锁挡住，本轮没拉到新素材，卡片可能滞后。"
+    alert_once "archive:${name}:locked" "每日资金：${name} 被另一个 pipeline 的锁挡住，本轮没拉到新素材，卡片可能滞后。"
   elif [ "${rc}" -eq 124 ]; then
-    alert_owner "每日资金：${name} 超过 ${ARCHIVE_BUDGET_SEC}s 预算被中断，本轮素材可能不全。"
+    alert_once "archive:${name}:budget" "每日资金：${name} 超过 ${ARCHIVE_BUDGET_SEC}s 预算被中断，本轮素材可能不全。"
   elif [ "${rc}" -eq 0 ]; then
     log "${name} 完成"
+    alert_clear_prefix "archive:${name}:"
   else
     log "${name} 失败（退出码 ${rc}），继续"
-    alert_owner "每日资金：${name} 归档失败（退出码 ${rc}），本轮素材可能不全。查 ${LOG}"
+    alert_once "archive:${name}:failed" "每日资金：${name} 归档失败（退出码 ${rc}），本轮素材可能不全。查 ${LOG}"
   fi
   [ "${finished}" -eq 1 ] && rm -f "${output}"
 }
@@ -289,37 +305,16 @@ append_log_file "${RUN_OUTPUT}" || true
 rm -f "${RUN_OUTPUT}"
 
 if [ "${POLL_RC}" -eq 0 ]; then
-  :
+  alert_clear_prefix "poll:"
 elif [ "${POLL_RC}" -eq 2 ]; then
-  log "poll 取到候选但一张都没入库，照发历史数据并告警"
-  alert_owner "每日资金：poll 取到了新截图但一张都没读进库，今天的卡片用的是历史数据。查 ${LOG}"
+  log "poll 取到候选但一张都没入库（读不出或被闸门拦下），照发历史数据并告警"
+  alert_once "poll:unread" "每日资金：poll 取到了新截图但一张都没读进库（读不出或被闸门拦下），今天的卡片用的是历史数据。查 ${LOG}"
 else
-  log "poll 崩溃（退出码 ${POLL_RC}），拒绝发送"
-  alert_owner "每日资金：poll 崩溃（退出码 ${POLL_RC}），今天不发卡片，避免把旧数字当当天数据发进群。查 ${LOG}"
+  log "RUN_RESULT REFUSED_POLL_CRASH poll 崩溃（退出码 ${POLL_RC}），拒绝发送"
+  alert_once "poll:crash" "每日资金：poll 崩溃（退出码 ${POLL_RC}），今天不发卡片，避免把旧数字当当天数据发进群。查 ${LOG}"
   echo "poll 崩溃（退出码 ${POLL_RC}），已拒发并私聊告警" >&2
   exit 2
 fi
-
-# 1.5)「现存票据」→ 卡片上的「14 天内到期承兑」。
-#
-# 这一步只影响卡片上的一个色块，所以处理方式和 poll 不同：
-#   0 / 2  正常，或本轮读图没过校验——表在有效期内，下一轮再试。卡片用最近一张
-#          合格的表按报表日滚动；太旧就不画，并由 send 首报告警。数字不会错。
-#   其它   崩溃。卡片照发（色块只用已经过闸门入库的表），但必须私聊告警。
-BILLS_OUTPUT=$(mktemp "${TMPROOT%/}/daily-funds-bills.XXXXXX") || {
-  echo "无法创建本地票据步骤输出暂存" >&2
-  exit 2
-}
-BILLS_RC=0
-python3 scripts/run_local_daily_funds.py bills >> "${BILLS_OUTPUT}" 2>&1 || BILLS_RC=$?
-append_log_file "${BILLS_OUTPUT}" || true
-rm -f "${BILLS_OUTPUT}"
-case "${BILLS_RC}" in
-  0|2) : ;;
-  *)
-    log "票据表步骤崩溃（退出码 ${BILLS_RC}），卡片照发，色块按已入库的合格表计算"
-    alert_owner "每日资金：「现存票据」步骤崩溃（退出码 ${BILLS_RC}），卡片照发，14 天内到期承兑按已入库的合格表计算。查 ${LOG}" ;;
-esac
 
 # 2) 出图 + 发送到「付款请示群」。
 #
@@ -336,7 +331,7 @@ esac
 # 可能已经发完并写下标记了。只在开头查会导致群里出现两条重复。
 # 实测 2026-09-07：16:46 启动时无标记，16:49 另一轮发了，16:54 本轮才走到发送。
 if [ -f "${STAMP}" ]; then
-  log "归档期间已有另一轮发过了，本轮不重复发"
+  log "RUN_RESULT ALREADY_SENT 归档期间已有另一轮发过了，本轮不重复发"
   echo "已有另一轮发送完成，本轮跳过"
   exit 0
 fi
@@ -346,27 +341,66 @@ SEND_OUTPUT=$(mktemp "${TMPROOT%/}/daily-funds-send.XXXXXX") || {
   echo "无法创建本地发送输出暂存" >&2
   exit 2
 }
-if python3 scripts/run_local_daily_funds.py send --to-group >> "${SEND_OUTPUT}" 2>&1; then
-  append_log_file "${SEND_OUTPUT}" || true
-  rm -f "${SEND_OUTPUT}"
-  MARKER=$(mktemp "${TMPROOT%/}/daily-funds-marker.XXXXXX") || {
-    echo "发送完成但无法创建幂等标记暂存" >&2
-    exit 2
-  }
-  : > "${MARKER}"
-  if ! publish_smb_file "${MARKER}" "${STAMP}"; then
-    rm -f "${MARKER}"
-    log "发送完成但幂等标记写入或读回失败"
-    echo "发送完成但幂等标记写入失败" >&2
-    exit 2
-  fi
+SEND_RC=0
+python3 scripts/run_local_daily_funds.py send --to-group >> "${SEND_OUTPUT}" 2>&1 || SEND_RC=$?
+append_log_file "${SEND_OUTPUT}" || true
+rm -f "${SEND_OUTPUT}"
+
+# send 的退出码：0 已发群；4 持锁检查发现今天已发过；3 数据过旧未发群（python 已首报）；
+# 2 发送失败（python 已告警）；其它 = 崩溃，python 没机会告警，这里补报。
+case "${SEND_RC}" in
+  0) : ;;
+  4)
+    log "RUN_RESULT ALREADY_SENT 另一轮已经发过群，本轮不重复发"
+    echo "今天已发过，跳过"
+    exit 0 ;;
+  2|3)
+    log "RUN_RESULT NOT_SENT 未发群（退出码 ${SEND_RC}，python 已私聊），详见 ${LOG}"
+    echo "发送失败或数据过旧未发群，详见 ${LOG}" >&2
+    exit 2 ;;
+  *)
+    log "RUN_RESULT SEND_CRASHED 发送步骤崩溃（退出码 ${SEND_RC}）"
+    alert_once "send_step:crash" "每日资金：发送步骤崩溃（退出码 ${SEND_RC}），今天的卡片没发出去。查 ${LOG}"
+    echo "发送步骤崩溃（退出码 ${SEND_RC}），已私聊告警" >&2
+    exit 2 ;;
+esac
+alert_clear_prefix "send_step:"
+
+MARKER=$(mktemp "${TMPROOT%/}/daily-funds-marker.XXXXXX") || {
+  log "RUN_RESULT SENT_MARKER_FAILED 已发群，但无法创建幂等标记暂存"
+  alert_once "marker_failed:${TODAY_CN}" "每日资金：今天的卡片已经发进群，但当日标记没写上。查 ${LOG}"
+  exit 2
+}
+: > "${MARKER}"
+if ! publish_smb_file "${MARKER}" "${STAMP}"; then
   rm -f "${MARKER}"
-  log "已发送"
-  echo "已发送（图 + 文字）到付款请示群"
-else
-  append_log_file "${SEND_OUTPUT}" || true
-  rm -f "${SEND_OUTPUT}"
-  log "发送失败，详见 ${LOG}"
-  echo "发送失败，详见 ${LOG}" >&2
+  log "RUN_RESULT SENT_MARKER_FAILED 已发群，但当日标记写入或读回失败"
+  alert_once "marker_failed:${TODAY_CN}" "每日资金：今天的卡片已经发进群，但当日标记没写进 SMB。后面的触发会被 python 侧的发送记录拦下；若仍看到重复发群请手动处理。查 ${LOG}"
+  echo "发送完成但幂等标记写入失败" >&2
   exit 2
 fi
+rm -f "${MARKER}"
+log "RUN_RESULT SENT 已发送"
+
+# 3)「现存票据」→ 卡片上的「14 天内到期承兑」。放在发卡片**之后**：
+#    北京 12:00 的发布时刻不能被读图拖晚。今天新发的表明天的卡片用；
+#    今天的卡片用上一张合格的表按报表日滚动（表龄 ≤10 天）。
+#    0 / 2  正常，或本轮没读出两次一致的结果——表在有效期内，下一轮再试。
+#    其它   崩溃：今天的卡片已经发了，不受影响；私聊告警。
+BILLS_OUTPUT=$(mktemp "${TMPROOT%/}/daily-funds-bills.XXXXXX") || {
+  echo "无法创建本地票据步骤输出暂存" >&2
+  echo "已发送（图 + 文字）到付款请示群"
+  exit 0
+}
+BILLS_RC=0
+python3 scripts/run_local_daily_funds.py bills >> "${BILLS_OUTPUT}" 2>&1 || BILLS_RC=$?
+append_log_file "${BILLS_OUTPUT}" || true
+rm -f "${BILLS_OUTPUT}"
+case "${BILLS_RC}" in
+  0|2) alert_clear_prefix "bills_step:" ;;
+  *)
+    log "票据表步骤崩溃（退出码 ${BILLS_RC}）"
+    alert_once "bills_step:crash" "每日资金：「现存票据」步骤崩溃（退出码 ${BILLS_RC}）。今天的卡片已正常发出，14 天内到期承兑继续用已入库的合格表。查 ${LOG}" ;;
+esac
+
+echo "已发送（图 + 文字）到付款请示群"

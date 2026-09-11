@@ -20,6 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+# 测试用自己的锁文件，不跟正在跑的生产/验证进程抢那把全局锁
+os.environ.setdefault("DAILY_FUNDS_LOCK", os.path.join(tempfile.gettempdir(), "kmfa-daily-funds-test-%d.lock" % os.getpid()))
 
 from daily_funds_local import bills, card  # noqa: E402
 from daily_funds_local.store import Store  # noqa: E402
@@ -282,25 +284,28 @@ class TestTemplateDom(unittest.TestCase):
 
 
 class TestRunScriptBranches(unittest.TestCase):
-    """跑真脚本的控制流，只把归档、poll、bills、发送、告警换成桩。
+    """跑真脚本的控制流，只把归档、poll、send、bills、告警换成桩。
 
     2026-09-10 的「poll 崩溃仍发旧数据」修复，第二天就被一次 pull 冲回了旧版且无人察觉。
     所以这些分支必须由测试钉住，而不是靠记得。"""
 
-    def _run(self, poll_rc, bills_rc):
+    def _run(self, poll_rc=0, send_rc=0, bills_rc=0, marker_ok=True):
         src = (ROOT / "scripts" / "daily_funds_run.sh").read_text(encoding="utf-8")
         subs = [
             ('python3 scripts/run_local_daily_funds.py poll >> "${RUN_OUTPUT}" 2>&1 || POLL_RC=$?',
              'bash -c "exit ${STUB_POLL_RC}" || POLL_RC=$?'),
+            ('python3 scripts/run_local_daily_funds.py send --to-group >> "${SEND_OUTPUT}" 2>&1 || SEND_RC=$?',
+             'bash -c "exit ${STUB_SEND_RC}" || SEND_RC=$?'),
             ('python3 scripts/run_local_daily_funds.py bills >> "${BILLS_OUTPUT}" 2>&1 || BILLS_RC=$?',
-             'bash -c "exit ${STUB_BILLS_RC}" || BILLS_RC=$?'),
-            ('if python3 scripts/run_local_daily_funds.py send --to-group >> "${SEND_OUTPUT}" 2>&1; then',
-             'if echo SENT >> "${SEND_OUTPUT}"; then'),
-            ('alert_owner() {\n', 'alert_owner() {\n  echo "ALERT $*" >> "${STUB_ALERTS}"; return 0\n'),
+             'touch "${STUB_BILLS_RAN}"; bash -c "exit ${STUB_BILLS_RC}" || BILLS_RC=$?'),
+            ('alert_once() {\n', 'alert_once() {\n  echo "ALERT $*" >> "${STUB_ALERTS}"; return 0\n'),
+            ('alert_clear_prefix() {\n', 'alert_clear_prefix() {\n  return 0\n'),
             ('archive_scan "KMFile', 'true archive_scan "KMFile'),
             ('archive_scan "KMMedia', 'true archive_scan "KMMedia'),
             ('case "${DECIDE}" in', 'DECIDE="GO now"\ncase "${DECIDE}" in'),
         ]
+        if not marker_ok:
+            subs.append(('if ! publish_smb_file "${MARKER}" "${STAMP}"; then', 'if ! false; then'))
         for old, new in subs:
             self.assertEqual(src.count(old), 1, "脚本结构变了，桩对不上：%s" % old[:50])
             src = src.replace(old, new)
@@ -312,29 +317,56 @@ class TestRunScriptBranches(unittest.TestCase):
         state.mkdir()
         alerts = work / "alerts.txt"
         alerts.write_text("")
-        env = dict(os.environ, STUB_POLL_RC=str(poll_rc), STUB_BILLS_RC=str(bills_rc),
-                   STUB_ALERTS=str(alerts), DAILY_FUNDS_SMB_DIR=str(state), DAILY_FUNDS_TMP_DIR=str(work))
+        ran = work / "bills_ran"
+        env = dict(os.environ, STUB_POLL_RC=str(poll_rc), STUB_SEND_RC=str(send_rc), STUB_BILLS_RC=str(bills_rc),
+                   STUB_ALERTS=str(alerts), STUB_BILLS_RAN=str(ran),
+                   DAILY_FUNDS_SMB_DIR=str(state), DAILY_FUNDS_TMP_DIR=str(work))
         rc = subprocess.run(["/bin/bash", str(script)], env=env, capture_output=True, text=True).returncode
         sent = any(state.glob(".sent-*"))
         n = len([l for l in alerts.read_text().splitlines() if l])
+        log = (state / "daily_funds_run.log").read_text(encoding="utf-8") if (state / "daily_funds_run.log").exists() else ""
+        out = (rc, sent, n, ran.exists(), log)
         shutil.rmtree(work, ignore_errors=True)
-        return rc, sent, n
+        return out
 
     def test_normal(self):
-        self.assertEqual(self._run(0, 0), (0, True, 0))
+        rc, sent, n, bills_ran, log = self._run()
+        self.assertEqual((rc, sent, n, bills_ran), (0, True, 0, True))
+        self.assertIn("RUN_RESULT SENT", log)
 
     def test_poll_read_nothing_sends_and_alerts(self):
-        self.assertEqual(self._run(2, 0), (0, True, 1))
+        self.assertEqual(self._run(poll_rc=2)[:4], (0, True, 1, True))
 
     def test_poll_crash_refuses_to_send(self):
-        self.assertEqual(self._run(1, 0), (2, False, 1))
+        rc, sent, n, bills_ran, log = self._run(poll_rc=1)
+        self.assertEqual((rc, sent, n, bills_ran), (2, False, 1, False))
+        self.assertIn("RUN_RESULT REFUSED_POLL_CRASH", log)
 
     def test_bills_unreadable_is_quiet(self):
-        self.assertEqual(self._run(0, 2), (0, True, 0))
+        self.assertEqual(self._run(bills_rc=2)[:4], (0, True, 0, True))
 
-    def test_bills_crash_sends_card_but_alerts(self):
-        self.assertEqual(self._run(0, 1), (0, True, 1))
+    def test_bills_crash_after_card_is_sent_alerts(self):
+        self.assertEqual(self._run(bills_rc=1)[:4], (0, True, 1, True))
 
+    def test_other_trigger_already_sent(self):
+        rc, sent, n, bills_ran, log = self._run(send_rc=4)
+        self.assertEqual((rc, sent, n, bills_ran), (0, False, 0, False))
+        self.assertIn("RUN_RESULT ALREADY_SENT", log)
+
+    def test_send_failure_already_alerted_by_python(self):
+        rc, sent, n, bills_ran, log = self._run(send_rc=2)
+        self.assertEqual((rc, sent, n, bills_ran), (2, False, 0, False))
+        self.assertIn("RUN_RESULT NOT_SENT", log)
+
+    def test_send_crash_is_reported_here(self):
+        rc, sent, n, bills_ran, log = self._run(send_rc=1)
+        self.assertEqual((rc, sent, n, bills_ran), (2, False, 1, False))
+        self.assertIn("RUN_RESULT SEND_CRASHED", log)
+
+    def test_marker_failure_after_sending_alerts(self):
+        rc, sent, n, bills_ran, log = self._run(marker_ok=False)
+        self.assertEqual((rc, sent, n, bills_ran), (2, False, 1, False))
+        self.assertIn("RUN_RESULT SENT_MARKER_FAILED", log)
 
 
 class TestWatchdog(unittest.TestCase):
@@ -397,7 +429,10 @@ class TestWatchdog(unittest.TestCase):
         self.assertIn("没有任何运行记录", self.sent[0])
         prev = self.r._previous_weekday(dt.date.today())
         self.sent.clear()
-        (self.dir / "daily_funds_run.log").write_text("[%s 14:00:01 AEST] 今天已发过，跳过\n" % prev.isoformat())
+        log = self.dir / "daily_funds_run.log"
+        log.write_text("[%s 14:00:01 AEST] 北京 11 点太早，今天还排了悉尼 15 点那次，本轮不发也不写标记\n" % prev.isoformat())
+        self.assertFalse(self.r._ran_on(prev, self.dir))       # 只等了一次、后面那次没来 = 没跑
+        log.write_text(log.read_text() + "[%s 15:00:02 AEST] RUN_RESULT SENT 已发送\n" % prev.isoformat())
         self.assertTrue(self.r._ran_on(prev, self.dir))
 
     def test_reverted_script_path_is_reported(self):
@@ -457,7 +492,7 @@ class TestChunkedBillRead(unittest.TestCase):
     def _run(self, chunk_data):
         self.v._bill_chunks = lambda path, parts, scale=2: ["c%d" % i for i in range(parts)]
         it = iter(chunk_data)
-        self.v._ask = lambda prompt, img, key, model: next(it)
+        self.v._ask = lambda prompt, img, key, model, deadline=None: next(it)
         return self.v.read_bill_list("x.png", parts=len(chunk_data))
 
     def test_overlap_rows_dedupe_and_total_from_last_part(self):
@@ -476,6 +511,108 @@ class TestChunkedBillRead(unittest.TestCase):
         from daily_funds_local.vision import VisionError
         with self.assertRaises(VisionError):
             self._run([{"rows": [r2a], "total": ""}, {"rows": [r2b], "total": "2000.00"}])
+
+
+class TestReviewFixesBills(unittest.TestCase):
+    def test_days360_february_month_end_start(self):
+        self.assertEqual(bills.days360(D("2011-02-28"), D("2011-03-31")), 30)
+        self.assertEqual(bills.days360(D("2011-01-30"), D("2011-02-28")), 28)
+        self.assertEqual(bills.days360(D("2026-02-28"), D("2026-03-30")), 30)
+        self.assertEqual(bills.days360(D("2024-02-29"), D("2024-03-31")), 30)   # 闰年
+        self.assertEqual(bills.days360(D("2024-02-28"), D("2024-03-30")), 32)   # 闰年的 28 日不是月末
+
+    def test_never_uses_a_table_posted_after_the_report(self):
+        future = dict(list_0907(), media="late", posted_at="2026-09-20 11:00:00", as_of="2026-09-07")
+        self.assertIsNone(bills.pick([future], "2026-09-10"))
+        monday = dict(list_0907(), posted_at="2026-09-08 11:35:50", as_of="2026-09-07")
+        self.assertEqual(bills.pick([monday], "2026-09-07")["media"], monday["media"])   # 次日发的可以
+
+    def test_same_reading_requires_row_by_row_agreement(self):
+        a = bills.check_rows(rows_0907(), TOTAL_0907, D("2026-09-07"))
+        rows = rows_0907()
+        rows[0]["amount_fen"] += 10000
+        rows[1]["amount_fen"] -= 10000                      # 两行串位互相抵消，合计不变
+        b = bills.check_rows(rows, TOTAL_0907, D("2026-09-07"))
+        self.assertTrue(b.ok)                                # 单次读的闸门拦不住
+        self.assertFalse(bills.same_reading(a, b))           # 两次读一对就露馅
+        self.assertTrue(bills.same_reading(a, bills.check_rows(rows_0907(), TOTAL_0907, D("2026-09-07"))))
+
+
+class TestReviewFixesStore(unittest.TestCase):
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def test_second_process_waits_for_the_lock(self):
+        lock = str(self.dir / "s.lock")
+        holder = subprocess.Popen([sys.executable, "-c",
+            "import sys,time; sys.path.insert(0, %r); import os; os.environ['DAILY_FUNDS_LOCK']=%r;"
+            "from daily_funds_local.store import Store; Store(%r); print('held', flush=True); time.sleep(20)"
+            % (str(ROOT), lock, str(self.dir / "d.jsonl"))], stdout=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(holder.stdout.readline().strip(), "held")
+            rc = subprocess.run([sys.executable, "-c",
+                "import sys; sys.path.insert(0, %r); import os; os.environ['DAILY_FUNDS_LOCK']=%r;"
+                "os.environ['DAILY_FUNDS_LOCK_WAIT']='2';"
+                "from daily_funds_local.store import Store, StoreBusy\n"
+                "try:\n    Store(%r)\nexcept StoreBusy:\n    raise SystemExit(7)"
+                % (str(ROOT), lock, str(self.dir / "d.jsonl"))], capture_output=True, text=True).returncode
+            self.assertEqual(rc, 7)
+        finally:
+            holder.kill()
+            holder.wait()
+
+    def test_same_process_can_open_twice(self):
+        a = Store(str(self.dir / "d.jsonl"))
+        b = Store(str(self.dir / "d.jsonl"))
+        self.assertEqual(a.counts()["days"], b.counts()["days"])
+
+    def test_clear_alert_and_delete_bill_list(self):
+        s = Store(str(self.dir / "d.jsonl"))
+        s.mark_alert("k", "t", "x")
+        self.assertTrue(s.clear_alert("k"))
+        self.assertFalse(s.clear_alert("k"))
+        L = list_0907()
+        s.upsert_bill_list(media=L["media"], posted_at=L["posted_at"], ref_date=L["ref_date"], as_of=L["as_of"],
+                           total_fen=TOTAL_0907, bills=[list(b) for b in L["bills"]], extracted_at="x")
+        s.delete_bill_list(L["media"])
+        self.assertFalse(Store(str(self.dir / "d.jsonl")).has_bill_list(L["media"]))
+
+
+class TestReviewFixesNotify(unittest.TestCase):
+    def _run_with_body(self, body):
+        from daily_funds_local import notify
+        orig = notify.subprocess.run
+        notify.subprocess.run = lambda *a, **k: subprocess.CompletedProcess(a, 0, json.dumps(body), "")
+        try:
+            return notify._run_once(["chat", "message", "send"])
+        finally:
+            notify.subprocess.run = orig
+
+    def test_string_error_is_a_failure(self):
+        from daily_funds_local import notify
+        with self.assertRaises(notify.SendError):
+            self._run_with_body({"error": "permission denied"})
+        with self.assertRaises(notify.SendError):
+            self._run_with_body({"error": {"message": "未登录"}})
+        self.assertEqual(self._run_with_body({"success": True})["success"], True)
+
+    def test_auth_notice_key_is_stable_across_days(self):
+        from daily_funds_local import notify
+        orig = notify.auth_expiry
+        try:
+            notify.auth_expiry = lambda: (5, "2026-10-01T08:00:00+08:00")
+            k1, _ = notify.auth_expiry_notice()
+            notify.auth_expiry = lambda: (4, "2026-10-01T08:00:00+08:00")
+            k2, text = notify.auth_expiry_notice()
+            self.assertEqual(k1, k2)
+            self.assertIn("还有 4 天", text)
+            notify.auth_expiry = lambda: (30, "2026-10-26T08:00:00+08:00")
+            self.assertIsNone(notify.auth_expiry_notice())
+        finally:
+            notify.auth_expiry = orig
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

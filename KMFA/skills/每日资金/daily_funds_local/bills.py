@@ -50,9 +50,18 @@ def _date(raw) -> dt.date:
     return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
 
 
+def _last_day_of_february(d: dt.date) -> bool:
+    return d.month == 2 and (d + dt.timedelta(days=1)).month == 3
+
+
 def days360(a: dt.date, b: dt.date) -> int:
-    """Excel DAYS360（美国法），财务表「距离到期日」的口径。"""
-    ad = 30 if a.day == 31 else a.day
+    """Excel DAYS360(start, end, FALSE)（美国法），财务表「距离到期日」的口径。
+
+    起始日是月末（31 日，或二月最后一天）按 30 日算；结束日是 31 日且起始日已按 30 日算时，结束日也按 30 日算。
+    Excel 的实际实现不对结束日套用「二月月末」规则：
+    DAYS360(2011-02-28, 2011-03-31) = 30，DAYS360(2011-01-30, 2011-02-28) = 28。
+    """
+    ad = 30 if (a.day == 31 or _last_day_of_february(a)) else a.day
     bd = 30 if (b.day == 31 and ad >= 30) else b.day
     return (b.year - a.year) * 360 + (b.month - a.month) * 30 + (bd - ad)
 
@@ -115,6 +124,13 @@ def check_rows(rows: Sequence[dict], total_fen: int, posted: dt.date,
                      total_fen=total_fen, ref_date=ref.isoformat() if ref else None, reasons=reasons)
 
 
+def same_reading(a: ListCheck, b: ListCheck) -> bool:
+    """两次独立读出来逐行一致。只核总额挡不住「两行金额读串位、互相抵消」：
+    合计、资金表都对得上，但到期日和金额的对应关系错了，14 天窗口就算错。"""
+    return (a.ok and b.ok and a.bills == b.bills and a.total_fen == b.total_fen
+            and a.ref_date == b.ref_date)
+
+
 def cross_window(ref_date: str) -> Tuple[str, str]:
     d = dt.date.fromisoformat(ref_date)
     return (d - dt.timedelta(days=CROSS_LOOKBACK_DAYS)).isoformat(), ref_date
@@ -134,8 +150,10 @@ def due_within(bills: Sequence[Tuple[str, int]], report_date: str, window: int =
 
 
 def pick(lists: Sequence[dict], report_date: str) -> Optional[dict]:
-    """报表日能用的最新一张：它对上的资金表日期不晚于报表日（不拿未来的表算过去）。"""
-    ok = [x for x in lists if x["as_of"] <= report_date]
+    """报表日能用的最新一张。不拿未来的表算过去：它对上的资金表日期不晚于报表日，
+    发表日期不晚于报表日次日（周一中午发的表，对的是周日的报表）。"""
+    limit = (dt.date.fromisoformat(report_date) + dt.timedelta(days=1)).isoformat()
+    ok = [x for x in lists if x["as_of"] <= report_date and x["posted_at"][:10] <= limit]
     return max(ok, key=lambda x: x["posted_at"]) if ok else None
 
 
@@ -155,7 +173,12 @@ def card_fields(lists: Sequence[dict], report_date: str, bill_fen: int):
 
 def find_list_messages(run: Callable[[list], dict], group_id: str, since: str, start: str,
                        max_pages: int = 10) -> List[dict]:
-    """从 start 往前翻群消息到 since，挑出带「现存票据」类标签且带图的消息。"""
+    """从 start 往前翻群消息到 since，挑出带「现存票据」类标签且带图的消息。
+
+    不按发送人、不按星期几过滤：实测 06-04（周四）、07-21（周二）发的都是真表且与资金表对上。
+    来源是否可信由闸门决定——DAYS360 基准日必须落在发表前一周内、合计必须对上独立的资金表、
+    两次读法必须逐行一致。能全部通过的，就是当期那张表，与是谁转发的无关。
+    """
     seen, t = {}, start
     for _ in range(max_pages):
         body = run(["chat", "message", "list", "--group", group_id, "--time", t,

@@ -16,12 +16,14 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import shutil
 import sqlite3
 import subprocess
 import tempfile
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -86,6 +88,38 @@ class SmbWriteError(RuntimeError):
     pass
 
 
+class StoreBusy(RuntimeError):
+    pass
+
+
+# 整份重写的存储必须串行：两个进程同时从同一份旧文件装载、各写各的，后写者会用旧快照
+# 把前者整份盖掉（新余额或首报台账丢失）。锁在本机——SMB 上的文件锁不可靠（见模块头）。
+# 用 flock：持有进程一退出（包括被 kill）内核就释放，不会留下「陈旧锁伪装成正常」。
+LOCK_PATH_DEFAULT = "/private/tmp/kmfa-daily-funds-store.lock"
+LOCK_WAIT_SEC = 900
+_PROCESS_LOCK = None      # 进程级：同一进程里再开 Store 不能自己跟自己抢锁
+
+
+def _acquire_process_lock() -> None:
+    global _PROCESS_LOCK
+    if _PROCESS_LOCK is not None:
+        return
+    path = os.environ.get("DAILY_FUNDS_LOCK") or LOCK_PATH_DEFAULT
+    wait = float(os.environ.get("DAILY_FUNDS_LOCK_WAIT") or LOCK_WAIT_SEC)
+    fh = open(path, "a+")
+    deadline = time.monotonic() + wait
+    while True:
+        try:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except (BlockingIOError, OSError):
+            if time.monotonic() >= deadline:
+                fh.close()
+                raise StoreBusy("资金数据文件被另一个进程占用超过 %d 秒" % wait)
+            time.sleep(1)
+    _PROCESS_LOCK = fh
+
+
 @dataclass
 class Row:
     report_date: str
@@ -110,6 +144,7 @@ class Store:
 
     def __init__(self, path: Optional[str] = None) -> None:
         self.path = Path(path or os.environ.get("DAILY_FUNDS_DATA") or data_path())
+        _acquire_process_lock()      # 装载之前拿锁：读—改—写整段串行
         self.conn = sqlite3.connect(":memory:")
         self.conn.executescript(SCHEMA)
         self._defer = 0        # >0 时暂不刷盘，退出批量时统一刷一次
@@ -211,8 +246,9 @@ class Store:
         if rc.returncode != 0 or not back.exists():
             raise SmbWriteError("写完读不回来: %s" % rc.stderr.strip()[:160])
         got = back.read_text(encoding="utf-8")
-        if got.count("\n") != len(lines):
-            raise SmbWriteError("回读行数不符：写 %d 行，读回 %d 行"
+        # 比完整内容，不只比行数：行数对、内容是旧的或残缺的，同样是写失败
+        if got != payload:
+            raise SmbWriteError("回读内容与写入不一致：写 %d 行，读回 %d 行"
                                 % (len(lines), got.count("\n")))
         shutil.rmtree(tmpdir, ignore_errors=True)
 
@@ -274,6 +310,27 @@ class Store:
              json.dumps(bills, ensure_ascii=False), image_sha256, extracted_at))
         self.conn.commit()
         self._flush()
+
+    def delete_bill_list(self, media: str) -> None:
+        self.conn.execute("DELETE FROM bill_list WHERE media = ?", (media,))
+        self.conn.commit()
+        self._flush()
+
+    def clear_alert(self, key: str) -> bool:
+        """事件已恢复：撤掉首报记录，下次再出问题算新事件。返回是否真有记录被撤。"""
+        cur = self.conn.execute("DELETE FROM alert_sent WHERE key = ?", (key,))
+        self.conn.commit()
+        if cur.rowcount:
+            self._flush()
+        return bool(cur.rowcount)
+
+    def clear_alerts_with_prefix(self, prefix: str) -> int:
+        esc = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        cur = self.conn.execute("DELETE FROM alert_sent WHERE key LIKE ? ESCAPE '\\'", (esc + "%",))
+        self.conn.commit()
+        if cur.rowcount:
+            self._flush()
+        return cur.rowcount
 
     def mark_alert(self, key: str, text: str = "", sent_at: str = "") -> None:
         """首报制台账：发过的告警按指纹记下，永不重发。"""
