@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import os
 import re
@@ -248,7 +249,35 @@ def run_rsync(source: Path, target: Path) -> None:
         raise ArchiveFailure("rsync_failed")
 
 
-def ensure_archive_root(archive_root: Path) -> None:
+def archive_mount_point(archive_root: Path) -> Optional[Path]:
+    """归档根在 /Volumes/<卷名>/ 下时返回挂载点；测试用的临时目录返回 None（不查挂载）。"""
+
+    parts = Path(archive_root).parts
+    if len(parts) >= 3 and parts[0] == "/" and parts[1] == "Volumes":
+        return Path("/Volumes") / parts[2]
+    return None
+
+
+def smb_mounted(mount_point: Path, mount_table: Optional[str] = None) -> bool:
+    """挂载表里这个点确实是 smbfs 才算共享盘在线。
+
+    共享盘掉线后 macOS 常把 /Volumes/share 留成一个本机空目录：这时 mkdir、rsync、md5 读回
+    全都会在本机「成功」，文件其实没进共享盘，源件却被删了。所以只认挂载表，不认目录在不在。
+    """
+
+    if mount_table is None:
+        try:
+            mount_table = subprocess.run(["/sbin/mount"], capture_output=True, text=True, timeout=30).stdout
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+    needle = " on %s (smbfs" % mount_point
+    return any(needle in line for line in mount_table.splitlines())
+
+
+def ensure_archive_root(archive_root: Path, mount_table: Optional[str] = None) -> None:
+    mount_point = archive_mount_point(archive_root)
+    if mount_point is not None and not smb_mounted(mount_point, mount_table):
+        raise SmbUnavailable("share_not_mounted")
     try:
         archive_root.mkdir(parents=True, exist_ok=True)
         if not archive_root.is_dir():
@@ -259,31 +288,126 @@ def ensure_archive_root(archive_root: Path) -> None:
         raise SmbUnavailable("archive_root_unavailable") from exc
 
 
-def archive_file(source: Path, target: Path) -> str:
+WRITE_ATTEMPTS = 2
+INCOMING_PREFIX = ".__incoming__"      # 以 ._ 开头：下游一律跳过，写到一半的件永远不会被当成正式件
+
+
+def is_partial_file(path: Path) -> bool:
+    """共享盘上写坏的残件：0 字节；xlsx/zip 却没有 zip 文件头；或有文件头但 zip 不完整（写到一半）。"""
+
+    try:
+        if path.stat().st_size == 0:
+            return True
+        if path.suffix.lower() in {".xlsx", ".zip"}:
+            with path.open("rb") as handle:
+                if handle.read(4) != b"PK\x03\x04":
+                    return True
+            return not zipfile.is_zipfile(str(path))
+    except OSError:
+        return False
+    return False
+
+
+def remove_partial(target: Path) -> None:
+    for path in (target, target.with_name("._" + target.name)):
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def put_verified(source: Path, target: Path, expected_md5: str) -> None:
+    """先写同目录的临时名、读回 md5 一致再改成正式名：正式名上不会出现写到一半的文件。
+
+    2026-09-11 一次投递在共享盘上留下 0 字节空壳、整批中止；写后读回不一致就再写一次，
+    仍不一致就删掉临时件再报错，正式名始终保持原样。
+    """
+
+    incoming = target.with_name(INCOMING_PREFIX + target.name)
+    failure = ArchiveFailure("target_md5_mismatch")
+    for _ in range(WRITE_ATTEMPTS):
+        try:
+            run_rsync(source, incoming)
+            if md5_file(incoming) != expected_md5:
+                failure = ArchiveFailure("target_md5_mismatch")
+                continue
+            os.replace(str(incoming), str(target))
+            return
+        except ArchiveFailure as exc:
+            failure = exc
+        except OSError:
+            failure = ArchiveFailure("target_readback_failed")
+    remove_partial(incoming)
+    raise failure
+
+
+def archive_file(source: Path, target: Path) -> Tuple[str, Path]:
+    """投递单个文件，返回 (md5, 最终落盘路径)。同名位置上的残件视为没写成、直接重写。"""
+
     source_md5 = md5_file(source)
-    if target.exists():
+    if target.exists() and not is_partial_file(target):
         try:
             if md5_file(target) == source_md5:
-                return source_md5
+                return source_md5, target
         except OSError as exc:
             raise ArchiveFailure("target_readback_failed") from exc
 
         digest_target = target.with_name("%s_%s%s" % (target.stem, source_md5[:12], target.suffix))
-        if digest_target.exists():
+        if digest_target.exists() and not is_partial_file(digest_target):
             try:
                 if md5_file(digest_target) == source_md5:
-                    return source_md5
+                    return source_md5, digest_target
             except OSError as exc:
                 raise ArchiveFailure("target_readback_failed") from exc
         target = digest_target
 
-    run_rsync(source, target)
-    try:
-        if md5_file(target) != source_md5:
-            raise ArchiveFailure("target_md5_mismatch")
-    except OSError as exc:
-        raise ArchiveFailure("target_readback_failed") from exc
-    return source_md5
+    put_verified(source, target, source_md5)
+    return source_md5, target
+
+
+KEY_COLUMNS = {
+    "主合同": "合同编号",
+    "投标主合同": "合同编号",
+    "项目开票": "发票号码",
+    "收款登记": "收款编号",
+    "项目资金支出": "申请编号",
+    "招标信息": "招标项目名称",
+    "投标记录": "投标名称",
+    "付款审批（日常费用）": "付款编号",
+}
+
+
+def looks_like_export(path: Path, business_type: str) -> bool:
+    """人工或旧流程落进 Downloads 的件，先证明是完整的红圈导出再入库：zip 完整、表头含该对象主键列、至少一行数据。"""
+
+    if path.suffix.lower() != ".xlsx" or is_partial_file(path):
+        return False
+    rows = xlsx_text_rows(path)
+    key = KEY_COLUMNS.get(business_type, "")
+    return len(rows) >= 2 and bool(key) and any(key in cell for cell in rows[0])
+
+
+def split_valid(sources: Sequence[Tuple[Path, str]], quarantine: Path) -> Tuple[List[Tuple[Path, str]], List[str]]:
+    """不像完整红圈导出的件移到隔离区（不入库、也不留在 Downloads），返回 (可入库的件, 被隔离的文件名)。"""
+
+    valid: List[Tuple[Path, str]] = []
+    moved: List[str] = []
+    for path, business_type in sources:
+        if looks_like_export(path, business_type):
+            valid.append((path, business_type))
+            continue
+        try:
+            quarantine.mkdir(parents=True, exist_ok=True)
+            os.replace(str(path), str(quarantine / ("%d_%s" % (int(time.time()), path.name))))
+        except OSError:
+            pass
+        moved.append(path.name)
+    return valid, moved
+
+
+def runtime_root() -> Path:
+    base = os.environ.get("HONGQUAN_BASE")
+    return Path(base).expanduser() if base else Path.home() / ".local" / "share" / "kmfa-hongquan"
 
 
 def manifest_header() -> str:
@@ -307,7 +431,7 @@ def append_manifest(
 
     try:
         current = manifest.read_text(encoding="utf-8") if manifest.exists() else manifest_header()
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         raise ArchiveFailure("manifest_read_failed") from exc
 
     additions: List[str] = []
@@ -338,59 +462,66 @@ def append_manifest(
     with tempfile.TemporaryDirectory(prefix="hongquan-manifest-") as temporary:
         local_manifest = Path(temporary) / manifest.name
         local_manifest.write_text(content, encoding="utf-8")
-        local_md5 = md5_file(local_manifest)
-        run_rsync(local_manifest, manifest)
-        try:
-            if md5_file(manifest) != local_md5:
-                raise ArchiveFailure("manifest_md5_mismatch")
-        except OSError as exc:
-            raise ArchiveFailure("manifest_readback_failed") from exc
+        put_verified(local_manifest, manifest, md5_file(local_manifest))
+
+
+_HELD_LOCKS: Dict[str, int] = {}
 
 
 def lock_path_for(archive_root: Path) -> Path:
     identity = hashlib.md5(str(archive_root).encode("utf-8")).hexdigest()
-    return Path(tempfile.gettempdir()) / ("hongquan_archive_%s.lock" % identity)
-
-
-def holder_is_alive(lock_path: Path) -> bool:
-    try:
-        pid = int(lock_path.read_text(encoding="utf-8").splitlines()[0])
-    except (OSError, ValueError, IndexError):
-        return False
-    if pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+    return runtime_root() / "locks" / ("hongquan_archive_%s.lock" % identity)
 
 
 def acquire_lock(lock_path: Path) -> bool:
+    """内核文件锁：持有进程一死就自动释放——不会有陈旧锁，也不怕 PID 被别的进程复用。"""
+
+    if str(lock_path) in _HELD_LOCKS:
+        return False
     try:
-        descriptor = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    except FileExistsError:
-        if holder_is_alive(lock_path):
-            return False
-        try:
-            lock_path.unlink()
-        except OSError:
-            return False
-        return acquire_lock(lock_path)
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+    except OSError:
+        return False
     try:
-        os.write(descriptor, ("%d\n%d\n" % (os.getpid(), int(time.time()))).encode("ascii"))
-    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
         os.close(descriptor)
+        return False
+    os.ftruncate(descriptor, 0)
+    os.write(descriptor, ("%d\n%d\n" % (os.getpid(), int(time.time()))).encode("ascii"))
+    _HELD_LOCKS[str(lock_path)] = descriptor
     return True
 
 
-def release_lock(lock_path: Path) -> None:
+def holder_is_alive(lock_path: Path) -> bool:
+    """有进程正持有这把锁就返回 True；只探测，不占用。"""
+
+    if str(lock_path) in _HELD_LOCKS:
+        return True
     try:
-        lock_path.unlink()
+        descriptor = os.open(str(lock_path), os.O_RDONLY)
     except OSError:
-        pass
+        return False
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return True
+    else:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        return False
+    finally:
+        os.close(descriptor)
+
+
+def release_lock(lock_path: Path) -> None:
+    descriptor = _HELD_LOCKS.pop(str(lock_path), None)
+    if descriptor is None:
+        return
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
 
 
 def resolve_paths() -> Tuple[Path, Path]:
@@ -404,8 +535,53 @@ def resolve_paths() -> Tuple[Path, Path]:
     return downloads, archive_root
 
 
-def run(verify_only: bool) -> int:
-    downloads, archive_root = resolve_paths()
+def archive_sources(sources: Sequence[Tuple[Path, str]], archive_root: Path) -> int:
+    """逐件投递并追加清单；全部读回校验通过后才删源件，返回件数。
+
+    任何一件失败都抛 ``ArchiveFailure``：已投递的件留在共享盘、源件一律不删，
+    下一轮同 md5 直接认领，补写清单后再删源件。调用方负责加锁。
+    """
+
+    now = shanghai_now()
+    snapshot_ym = now.strftime("%Y%m")
+    export_date = now.strftime("%Y%m%d")
+    report_period = os.environ.get("HONGQUAN_REPORT_PERIOD", snapshot_ym)
+    manifest = archive_root / snapshot_ym / "红圈" / "00_归档清单" / (
+        "%s_红圈业务源归档清单.md" % export_date
+    )
+    ensure_archive_root(archive_root)          # 写之前确认共享盘仍在线，掉线的挂载点上不建任何目录
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+
+    manifest_rows: List[Tuple[str, str, Path, str, str, str, str]] = []
+    completed_sources: List[Path] = []
+    for source, business_type in sources:
+        all_history = False
+        status = "原件已归档"
+        if business_type in {"收款登记", "付款审批（日常费用）"}:
+            all_history, status = all_history_status(source, business_type)
+        filename = output_filename(source, business_type, snapshot_ym, export_date, all_history)
+        target_dir = archive_root / snapshot_ym / "红圈" / business_type
+        target_dir.mkdir(parents=True, exist_ok=True)
+        file_md5, target = archive_file(source, target_dir / filename)
+        manifest_rows.append(
+            (business_type, source.name, target, report_period, snapshot_ym, status, file_md5)
+        )
+        completed_sources.append(source)
+
+    append_manifest(manifest, manifest_rows)
+    ensure_archive_root(archive_root)          # 删源件前再确认一次：中途掉线就保留源件
+    for source in completed_sources:
+        try:
+            source.unlink()
+        except OSError as exc:
+            raise ArchiveFailure("source_cleanup_failed") from exc
+    return len(completed_sources)
+
+
+def run(verify_only: bool, downloads: Optional[Path] = None, archive_root: Optional[Path] = None) -> int:
+    default_downloads, default_root = resolve_paths()
+    downloads = downloads or default_downloads
+    archive_root = archive_root or default_root
     try:
         ensure_archive_root(archive_root)
     except SmbUnavailable:
@@ -422,51 +598,16 @@ def run(verify_only: bool) -> int:
         return 0
 
     try:
-        sources = candidate_sources(downloads)
+        sources, quarantined = split_valid(candidate_sources(downloads), runtime_root() / "quarantine")
+        for name in quarantined:
+            print("QUARANTINED %s" % name)
         if not sources:
             print("ARCHIVE_NONE")
             return 0
-
-        now = shanghai_now()
-        snapshot_ym = now.strftime("%Y%m")
-        export_date = now.strftime("%Y%m%d")
-        report_period = os.environ.get("HONGQUAN_REPORT_PERIOD", snapshot_ym)
-        manifest = archive_root / snapshot_ym / "红圈" / "00_归档清单" / (
-            "%s_红圈业务源归档清单.md" % export_date
-        )
-        manifest.parent.mkdir(parents=True, exist_ok=True)
-
-        manifest_rows: List[Tuple[str, str, Path, str, str, str, str]] = []
-        completed_sources: List[Path] = []
-        for source, business_type in sources:
-            all_history = False
-            status = "原件已归档"
-            if business_type in {"收款登记", "付款审批（日常费用）"}:
-                all_history, status = all_history_status(source, business_type)
-            filename = output_filename(source, business_type, snapshot_ym, export_date, all_history)
-            target_dir = archive_root / snapshot_ym / "红圈" / business_type
-            target_dir.mkdir(parents=True, exist_ok=True)
-            target = target_dir / filename
-            file_md5 = archive_file(source, target)
-            if target.exists() and md5_file(target) != file_md5:
-                # ``archive_file`` may choose a digest suffix if the first name
-                # is occupied by a different source; discover that deterministic
-                # sibling for the manifest.
-                target = target.with_name("%s_%s%s" % (target.stem, file_md5[:12], target.suffix))
-            manifest_rows.append(
-                (business_type, source.name, target, report_period, snapshot_ym, status, file_md5)
-            )
-            completed_sources.append(source)
-
-        append_manifest(manifest, manifest_rows)
-        for source in completed_sources:
-            try:
-                source.unlink()
-            except OSError as exc:
-                raise ArchiveFailure("downloads_cleanup_failed") from exc
-        print("ARCHIVE_OK n=%d" % len(completed_sources))
+        count = archive_sources(sources, archive_root)
+        print("ARCHIVE_OK n=%d" % count)
         return 0
-    except (ArchiveFailure, OSError):
+    except (ArchiveFailure, OSError, ValueError):
         print("ARCHIVE_FAILED")
         return 2
     finally:
