@@ -259,31 +259,69 @@ def ensure_archive_root(archive_root: Path) -> None:
         raise SmbUnavailable("archive_root_unavailable") from exc
 
 
-def archive_file(source: Path, target: Path) -> str:
+WRITE_ATTEMPTS = 2
+
+
+def is_partial_file(path: Path) -> bool:
+    """共享盘上写坏的残件：0 字节，或者 xlsx/zip 却没有 zip 文件头（全零写入也属此类）。"""
+
+    try:
+        if path.stat().st_size == 0:
+            return True
+        if path.suffix.lower() in {".xlsx", ".zip"}:
+            with path.open("rb") as handle:
+                return handle.read(4) != b"PK\x03\x04"
+    except OSError:
+        return False
+    return False
+
+
+def remove_partial(target: Path) -> None:
+    for path in (target, target.with_name("._" + target.name)):
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def archive_file(source: Path, target: Path) -> Tuple[str, Path]:
+    """投递单个文件，返回 (md5, 最终落盘路径)。
+
+    共享盘写入会偶发失败：2026-09-11 一次投递在共享盘上留下 0 字节空壳，
+    整批中止、七份文件全滞留 Downloads。所以：同名位置上的残件视为没写成、直接重写；
+    写后读回不一致就再写一次；仍不一致就删掉残件再报错，下一轮从干净状态重来。
+    """
+
     source_md5 = md5_file(source)
-    if target.exists():
+    if target.exists() and not is_partial_file(target):
         try:
             if md5_file(target) == source_md5:
-                return source_md5
+                return source_md5, target
         except OSError as exc:
             raise ArchiveFailure("target_readback_failed") from exc
 
         digest_target = target.with_name("%s_%s%s" % (target.stem, source_md5[:12], target.suffix))
-        if digest_target.exists():
+        if digest_target.exists() and not is_partial_file(digest_target):
             try:
                 if md5_file(digest_target) == source_md5:
-                    return source_md5
+                    return source_md5, digest_target
             except OSError as exc:
                 raise ArchiveFailure("target_readback_failed") from exc
         target = digest_target
 
-    run_rsync(source, target)
-    try:
-        if md5_file(target) != source_md5:
-            raise ArchiveFailure("target_md5_mismatch")
-    except OSError as exc:
-        raise ArchiveFailure("target_readback_failed") from exc
-    return source_md5
+    failure = ArchiveFailure("target_md5_mismatch")
+    for _ in range(WRITE_ATTEMPTS):
+        try:
+            run_rsync(source, target)
+            if md5_file(target) == source_md5:
+                return source_md5, target
+            failure = ArchiveFailure("target_md5_mismatch")
+        except ArchiveFailure as exc:
+            failure = exc
+        except OSError:
+            failure = ArchiveFailure("target_readback_failed")
+    remove_partial(target)
+    raise failure
 
 
 def manifest_header() -> str:
@@ -404,8 +442,51 @@ def resolve_paths() -> Tuple[Path, Path]:
     return downloads, archive_root
 
 
-def run(verify_only: bool) -> int:
-    downloads, archive_root = resolve_paths()
+def archive_sources(sources: Sequence[Tuple[Path, str]], archive_root: Path) -> int:
+    """逐件投递并追加清单；全部读回校验通过后才删源件，返回件数。
+
+    任何一件失败都抛 ``ArchiveFailure``：已投递的件留在共享盘、源件一律不删，
+    下一轮同 md5 直接认领，补写清单后再删源件。调用方负责加锁。
+    """
+
+    now = shanghai_now()
+    snapshot_ym = now.strftime("%Y%m")
+    export_date = now.strftime("%Y%m%d")
+    report_period = os.environ.get("HONGQUAN_REPORT_PERIOD", snapshot_ym)
+    manifest = archive_root / snapshot_ym / "红圈" / "00_归档清单" / (
+        "%s_红圈业务源归档清单.md" % export_date
+    )
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+
+    manifest_rows: List[Tuple[str, str, Path, str, str, str, str]] = []
+    completed_sources: List[Path] = []
+    for source, business_type in sources:
+        all_history = False
+        status = "原件已归档"
+        if business_type in {"收款登记", "付款审批（日常费用）"}:
+            all_history, status = all_history_status(source, business_type)
+        filename = output_filename(source, business_type, snapshot_ym, export_date, all_history)
+        target_dir = archive_root / snapshot_ym / "红圈" / business_type
+        target_dir.mkdir(parents=True, exist_ok=True)
+        file_md5, target = archive_file(source, target_dir / filename)
+        manifest_rows.append(
+            (business_type, source.name, target, report_period, snapshot_ym, status, file_md5)
+        )
+        completed_sources.append(source)
+
+    append_manifest(manifest, manifest_rows)
+    for source in completed_sources:
+        try:
+            source.unlink()
+        except OSError as exc:
+            raise ArchiveFailure("source_cleanup_failed") from exc
+    return len(completed_sources)
+
+
+def run(verify_only: bool, downloads: Optional[Path] = None, archive_root: Optional[Path] = None) -> int:
+    default_downloads, default_root = resolve_paths()
+    downloads = downloads or default_downloads
+    archive_root = archive_root or default_root
     try:
         ensure_archive_root(archive_root)
     except SmbUnavailable:
@@ -426,45 +507,8 @@ def run(verify_only: bool) -> int:
         if not sources:
             print("ARCHIVE_NONE")
             return 0
-
-        now = shanghai_now()
-        snapshot_ym = now.strftime("%Y%m")
-        export_date = now.strftime("%Y%m%d")
-        report_period = os.environ.get("HONGQUAN_REPORT_PERIOD", snapshot_ym)
-        manifest = archive_root / snapshot_ym / "红圈" / "00_归档清单" / (
-            "%s_红圈业务源归档清单.md" % export_date
-        )
-        manifest.parent.mkdir(parents=True, exist_ok=True)
-
-        manifest_rows: List[Tuple[str, str, Path, str, str, str, str]] = []
-        completed_sources: List[Path] = []
-        for source, business_type in sources:
-            all_history = False
-            status = "原件已归档"
-            if business_type in {"收款登记", "付款审批（日常费用）"}:
-                all_history, status = all_history_status(source, business_type)
-            filename = output_filename(source, business_type, snapshot_ym, export_date, all_history)
-            target_dir = archive_root / snapshot_ym / "红圈" / business_type
-            target_dir.mkdir(parents=True, exist_ok=True)
-            target = target_dir / filename
-            file_md5 = archive_file(source, target)
-            if target.exists() and md5_file(target) != file_md5:
-                # ``archive_file`` may choose a digest suffix if the first name
-                # is occupied by a different source; discover that deterministic
-                # sibling for the manifest.
-                target = target.with_name("%s_%s%s" % (target.stem, file_md5[:12], target.suffix))
-            manifest_rows.append(
-                (business_type, source.name, target, report_period, snapshot_ym, status, file_md5)
-            )
-            completed_sources.append(source)
-
-        append_manifest(manifest, manifest_rows)
-        for source in completed_sources:
-            try:
-                source.unlink()
-            except OSError as exc:
-                raise ArchiveFailure("downloads_cleanup_failed") from exc
-        print("ARCHIVE_OK n=%d" % len(completed_sources))
+        count = archive_sources(sources, archive_root)
+        print("ARCHIVE_OK n=%d" % count)
         return 0
     except (ArchiveFailure, OSError):
         print("ARCHIVE_FAILED")

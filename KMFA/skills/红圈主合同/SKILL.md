@@ -5,6 +5,13 @@ description: 从红圈 cloud.hecom.cn 导出、下载并归档主合同 DWS/Exce
 
 # 红圈主合同DWS
 
+> **每日导出已改为接口脚本（2026-09-11 起）**：automation `kmfa-hongquan-daily` 只运行
+> `hongquan_export.py`——在已登录的红圈页面里调红圈自己的导出接口，文件从华为云 OBS 直接下到
+> `~/.local/share/kmfa-hongquan/staging/`，校验字节数与行数后由 `hongquan_archive.py` 投递共享盘；
+> 全程不点页面、不经过 `~/Downloads`。7 个对象（投标管理下的「主合同」与项目管理是同一对象）、
+> 字段与页面默认导出逐列比对一致；「付款审批（日常费用）」只导业务类型「日常费用」，与页面列表一致。
+> 下面的点页面流程只用于人工临时补导；人工导出落在 Downloads 的文件，下一轮会被自动收进共享盘。
+
 ## Scope
 
 Use Chrome with the user's existing 红圈 session. If UI control is needed, use Computer Use and target stable labels, buttons, and Finder paths rather than screen coordinates.
