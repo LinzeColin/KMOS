@@ -12,12 +12,13 @@ token 只在内存的请求头里，不打印、不写盘、只发往 *.hecom.cn
 附件接口顺带返回的临时 OBS 凭据当场丢弃，只留 bucket / objectKey / endpoint；OBS 上的导出文件公共可读，直接下载。
 
 automation 调 ``--background``：几秒内返回，第一行报上一轮最终结果 ``PREVIOUS <标记>``，
-最后一行报本轮启动结果 ``EXPORT_STARTED`` / ``EXPORT_LOCKED`` / ``SMB_UNAVAILABLE``；导出在后台跑完。
+最后一行报本轮启动结果 ``EXPORT_STARTED`` / ``EXPORT_RUNNING`` / ``SMB_UNAVAILABLE`` / ``LAUNCH_FAILED``；导出在后台跑完。
 不带参数时前台跑完整一轮，stdout 最后一行是唯一的固定标记：
   EXPORT_OK n=<件数>                      全部对象导出并归档          退出码 0
   EXPORT_LOCKED                           上一轮还在跑，本轮让路      退出码 0
   EXPORT_PARTIAL ok=<件数> failed=<对象>  部分对象失败，成功的已归档  退出码 2
   ARCHIVE_FAILED                          投递共享盘失败              退出码 2
+  EXPORT_CRASHED <异常类名>               意外中断（已记终态并告警）  退出码 2
   SMB_UNAVAILABLE                         共享盘不可用                退出码 1
   HECOM_NO_TAB                            Chrome 里打不开红圈页面     退出码 3
   HECOM_LOGIN_REQUIRED                    红圈登录失效                退出码 3
@@ -61,6 +62,13 @@ OBJECT_READY_SECONDS = 120
 DOWNLOAD_ATTEMPTS = 3
 PAGE_READY_SECONDS = 90
 LOGIN_HINTS = re.compile(r"登录|token|过期|失效", re.I)
+SECRET_LIKE = re.compile(r"[A-Za-z0-9+/=_\-]{20,}")
+
+
+def redact(text: str) -> str:
+    """写进日志、last_run.json 的文字：像凭据的长串一律打码，只留 200 字。"""
+
+    return SECRET_LIKE.sub("***", str(text))[:200]
 STATE_FIELDS = ["state", "totalCount", "exportedCount", "resultSize", "resultDesc"]
 ATTACHMENT_FIELDS = ["bucket", "objectKey", "endpoint"]
 
@@ -248,7 +256,7 @@ def _osascript(script: str, *args: str) -> str:
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise NoHecomTab("osascript_unavailable") from exc
     if done.returncode != 0:
-        raise NoHecomTab("osascript_failed:" + (done.stderr.strip().splitlines() or [""])[-1][:120])
+        raise NoHecomTab("osascript_failed:" + redact((done.stderr.strip().splitlines() or [""])[-1][:120]))
     out = done.stdout.strip()
     return "" if out == "missing value" else out
 
@@ -269,11 +277,21 @@ def close_tab(tab_id: str) -> None:
             pass
 
 
+class _RefuseRedirect(urllib.request.HTTPRedirectHandler):
+    """红圈接口与 OBS 下载都不该跳转：一跳就当失败。urllib 默认跟随跳转时会把 accessToken 等请求头原样带到新主机。"""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_RefuseRedirect)
+
+
 def post_json(url: str, headers: Dict[str, str], body: Dict) -> Tuple[int, object]:
     request = urllib.request.Request(url, data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
                                      headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=CALL_TIMEOUT_SECONDS) as response:
+        with _OPENER.open(request, timeout=CALL_TIMEOUT_SECONDS) as response:
             status, raw = response.status, response.read()
     except urllib.error.HTTPError as exc:
         status, raw = exc.code, exc.read()
@@ -359,7 +377,7 @@ class HecomSession:
                     self.ensure_ready()        # 页面可能已经换过 token，重取一次
                     continue
                 raise LoginRequired()
-            raise ObjectFailed("%s:http%s:%s" % (path.rsplit("/", 1)[-1], status, desc[:200]))
+            raise ObjectFailed("%s:http%s:%s" % (path.rsplit("/", 1)[-1], status, redact(desc)))
         raise LoginRequired()
 
 
@@ -367,7 +385,7 @@ class HecomSession:
 
 def download_public(url: str, dest: Path) -> int:
     written = 0
-    with urllib.request.urlopen(url, timeout=300) as response, dest.open("wb") as handle:
+    with _OPENER.open(url, timeout=300) as response, dest.open("wb") as handle:
         while True:
             block = response.read(1 << 20)
             if not block:
@@ -381,7 +399,7 @@ def remote_size(url: str) -> int:
     """OBS 上这份文件当前的字节数；还没出现或查不到返回 -1。"""
 
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=60) as response:
+        with _OPENER.open(urllib.request.Request(url, method="HEAD"), timeout=60) as response:
             return int(response.headers.get("Content-Length") or -1)
     except (OSError, ValueError):
         return -1
@@ -422,7 +440,7 @@ def export_object(page: HecomSession, spec: ObjectSpec, staging: Path,
         if state.get("state") == STATE_DONE:
             break
         if state.get("state") == STATE_FAILED:
-            raise ObjectFailed("export_failed:%s" % (state.get("resultDesc") or ""))
+            raise ObjectFailed("export_failed:%s" % redact(state.get("resultDesc") or ""))
         if clock() > deadline:
             raise ObjectFailed("export_timeout")
         sleep(POLL_SECONDS)
@@ -476,7 +494,26 @@ ALERT_TEXT = {
     "HECOM_NO_TAB": "Chrome 里打不开红圈页面（Chrome 没开，或页面加载不出来）。",
     "HECOM_LOGIN_REQUIRED": "红圈登录失效了，请在 Chrome 里重新登录一次 cloud.hecom.cn。",
     "EXPORT_PARTIAL": "有红圈对象没导出成功，其余已存进共享盘。",
+    "EXPORT_CRASHED": "红圈导出脚本意外中断，本轮没做完；已下载的会在下一轮自动补存。",
+    "LAUNCH_FAILED": "红圈导出没能在后台启动。",
 }
+
+
+def describe(exc: BaseException) -> str:
+    """失败原因：自己抛的 ObjectFailed 与系统 I/O 错误保留原因（已打码），其余意外只留异常类名。"""
+
+    if isinstance(exc, (ObjectFailed, OSError)):
+        return "%s%s" % ("" if isinstance(exc, ObjectFailed) else type(exc).__name__ + ":", redact(str(exc)))
+    return type(exc).__name__
+
+
+def lock_holder_text(lock_path: Path) -> str:
+    try:
+        pid, started = lock_path.read_text(encoding="ascii").split()[:2]
+        when = datetime.fromtimestamp(int(started), timezone(timedelta(hours=8))).strftime("%H:%M")
+    except (OSError, ValueError):
+        return ""
+    return " pid=%s started=%s" % (pid, when)
 
 
 def bj_today() -> str:
@@ -563,6 +600,8 @@ def run(page: Optional[HecomSession] = None, alert: Optional[Callable[[str], Non
         return 0
     try:
         return _run_locked(page, alert, objects, download, probe, sleep, downloads, archive_root, staging_dir())
+    except Exception as exc:  # 兜底：没预料到的异常也要落终态、告警，不能只在日志里留一段 traceback
+        return finish("EXPORT_CRASHED %s" % type(exc).__name__, 2, alert)
     finally:
         H.release_lock(lock_path)
 
@@ -578,11 +617,14 @@ def _run_locked(page, alert, objects, download, probe, sleep, downloads: Path, a
         staging.mkdir(parents=True, exist_ok=True)
         for leftover in staging.glob("*.part"):
             leftover.unlink()
-        pending = H.candidate_sources(staging) + H.candidate_sources(downloads)
+        manual, quarantined = H.split_valid(H.candidate_sources(downloads), runtime_dir() / "quarantine")
+        for name in quarantined:
+            say("DETAIL Downloads 里的 %s 不是完整的红圈导出，已移到隔离区、没有入库" % name)
+        pending = H.candidate_sources(staging) + manual
         if pending:
             say("DETAIL 先投递遗留件 %d 份" % len(pending))
             H.archive_sources(pending, archive_root)
-    except (H.ArchiveFailure, OSError):
+    except (H.ArchiveFailure, OSError, ValueError):
         return finish("ARCHIVE_FAILED", 2, alert, details)
 
     page = page or HecomSession()
@@ -595,9 +637,11 @@ def _run_locked(page, alert, objects, download, probe, sleep, downloads: Path, a
             try:
                 _, rows = export_object(page, spec, staging, download=download, probe=probe, sleep=sleep)
                 say("DETAIL %s rows=%d secs=%.0f" % (spec.label, rows, time.monotonic() - started))
-            except (ObjectFailed, OSError, ValueError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
+            except (NoHecomTab, LoginRequired):
+                raise
+            except Exception as exc:  # 单个对象的任何意外只算这个对象失败，其余照常
                 failed.append(spec.label)
-                say("DETAIL %s failed=%s" % (spec.label, str(exc)[:200]))
+                say("DETAIL %s failed=%s" % (spec.label, describe(exc)))
     except NoHecomTab as exc:
         blocker = "HECOM_NO_TAB"
         say("DETAIL %s" % (str(exc)[:200] or "no_tab"))
@@ -607,7 +651,7 @@ def _run_locked(page, alert, objects, download, probe, sleep, downloads: Path, a
     try:
         staged = H.candidate_sources(staging)
         archived = H.archive_sources(staged, archive_root) if staged else 0
-    except (H.ArchiveFailure, OSError):
+    except (H.ArchiveFailure, OSError, ValueError):
         return finish("ARCHIVE_FAILED", 2, alert, details)
     if blocker:
         return finish(blocker, 3, alert, details)
@@ -636,24 +680,25 @@ def launch_background(spawn: Optional[Callable[..., object]] = None) -> int:
         H.ensure_archive_root(archive_root)
     except H.SmbUnavailable:
         return finish("SMB_UNAVAILABLE", 1, alert)
-    if H.holder_is_alive(H.lock_path_for(archive_root)):
-        print("EXPORT_LOCKED")
+    lock_path = H.lock_path_for(archive_root)
+    if H.holder_is_alive(lock_path):
+        print("EXPORT_RUNNING%s" % lock_holder_text(lock_path))
         return 0
 
-    logs = runtime_dir() / "logs"
-    logs.mkdir(parents=True, exist_ok=True)
-    for old in sorted(logs.glob("*.log"))[:-30]:
-        try:
-            old.unlink()
-        except OSError:
-            pass
-    log = logs / (datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d_%H%M%S") + ".log")
     command = [sys.executable, str(Path(__file__).resolve())]
     if Path("/usr/bin/caffeinate").exists():
         command = ["/usr/bin/caffeinate", "-i"] + command
-    with log.open("ab") as handle:
-        child = (spawn or subprocess.Popen)(command, stdin=subprocess.DEVNULL, stdout=handle,
-                                           stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
+    try:
+        logs = runtime_dir() / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        for old in sorted(logs.glob("*.log"))[:-30]:
+            old.unlink()
+        log = logs / (datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d_%H%M%S") + ".log")
+        with log.open("ab") as handle:
+            child = (spawn or subprocess.Popen)(command, stdin=subprocess.DEVNULL, stdout=handle,
+                                               stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
+    except OSError as exc:
+        return finish("LAUNCH_FAILED %s" % type(exc).__name__, 2, alert)
     print("EXPORT_STARTED pid=%s log=%s" % (getattr(child, "pid", "?"), log))
     return 0
 

@@ -13,6 +13,7 @@ import os
 import shutil
 import sys
 import tempfile
+import urllib.error
 import zipfile
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -88,7 +89,7 @@ def sample(spec, n=3):
         return make_xlsx(["付款编号", "申请日期"], [["P%d" % i, "202%d-01-01" % (4 + i % 2)] for i in range(n)])
     if spec.label == "收款登记":
         return make_xlsx(["收款编号", "收款日期"], [["S%d" % i, "202%d-02-02" % (4 + i % 2)] for i in range(n)])
-    return make_xlsx(["编号", "名称"], [["N%d" % i, "x"] for i in range(n)])
+    return make_xlsx([H.KEY_COLUMNS[spec.label], "名称"], [["N%d" % i, "x"] for i in range(n)])
 
 
 def spec_of(label):
@@ -493,10 +494,196 @@ before = (TMP / "last_run.json").read_text(encoding="utf-8")
 with contextlib.redirect_stdout(io.StringIO()):
     E.run(page=FakePage(), alert=lambda marker: None, download=lambda url, dest: 0, probe=lambda url: 0, sleep=no_sleep)
 H.release_lock(lock)
-check("上一轮还在后台跑：报 EXPORT_LOCKED，不起第二个",
-      rc == 0 and buffer.getvalue().strip().splitlines()[-1] == "EXPORT_LOCKED" and spawned == [])
+check("上一轮还在后台跑：报 EXPORT_RUNNING（带 pid 与开始时间），不起第二个",
+      rc == 0 and buffer.getvalue().strip().splitlines()[-1].startswith("EXPORT_RUNNING pid=%d started=" % os.getpid())
+      and spawned == [])
 check("让路的那一轮不覆盖上一轮结果", (TMP / "last_run.json").read_text(encoding="utf-8") == before)
 check("不认识的参数直接拒绝，不跑导出", E.main(["--now"]) == 64)
+
+section("七、审查补丁：跳转、掉线挂载点、锁、写一半、遗留件、意外中断、打码")
+import http.server  # noqa: E402
+import subprocess  # noqa: E402
+import threading  # noqa: E402
+
+seen = []
+
+
+class Sink(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        seen.append(dict(self.headers))
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    do_POST = do_GET
+
+    def log_message(self, *args):
+        pass
+
+
+sink = http.server.HTTPServer(("127.0.0.1", 0), Sink)
+
+
+class Bounce(http.server.BaseHTTPRequestHandler):
+    def _bounce(self):
+        self.send_response(302)
+        self.send_header("Location", "http://127.0.0.1:%d/steal" % sink.server_address[1])
+        self.end_headers()
+
+    do_GET = do_POST = do_HEAD = _bounce
+
+    def log_message(self, *args):
+        pass
+
+
+bounce = http.server.HTTPServer(("127.0.0.1", 0), Bounce)
+for server in (sink, bounce):
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+status, _ = E.post_json("http://127.0.0.1:%d/app/std/export" % bounce.server_address[1],
+                        {"accessToken": TOKEN}, {})
+check("接口 302 跳去别的主机：不跟随，token 不会被带过去", status == 302 and seen == [])
+try:
+    E._OPENER.open("http://127.0.0.1:%d/obs.xlsx" % bounce.server_address[1], timeout=10)
+    followed = True
+except urllib.error.HTTPError as exc:
+    followed = exc.code != 302
+check("OBS 下载遇到跳转：不跟随、当失败", not followed and seen == [])
+sink.shutdown()
+bounce.shutdown()
+
+table = "//GUEST:@192.168.0.1/share on /Volumes/share (smbfs, nodev, nosuid, noowners, mounted by linzezhang)\n/dev/disk3s1 on / (apfs, local)"
+check("挂载表里是 smbfs 才算共享盘在线", H.smb_mounted(Path("/Volumes/share"), table))
+check("掉线后留下的同名本机目录不算在线", not H.smb_mounted(Path("/Volumes/share"), "/dev/disk3s1 on / (apfs, local)"))
+check("只有 /Volumes 下的归档根才查挂载", H.archive_mount_point(Path("/Volumes/share/03_资料库/x")) == Path("/Volumes/share")
+      and H.archive_mount_point(TMP) is None)
+ghost = Path("/Volumes/kmfa-test-not-mounted/业务原始")
+try:
+    H.ensure_archive_root(ghost, mount_table="")
+    refused = False
+except H.SmbUnavailable:
+    refused = True
+check("没挂载：直接报共享盘不可用，一个目录都不建", refused and not ghost.exists())
+
+reset()
+lock = TMP / "locks" / "probe.lock"
+child = subprocess.Popen([sys.executable, "-c",
+                          "import sys,time; sys.path.insert(0,%r); import hongquan_archive as H; from pathlib import Path; "
+                          "assert H.acquire_lock(Path(%r)); print('HELD', flush=True); time.sleep(60)" % (str(HERE), str(lock))],
+                         stdout=subprocess.PIPE, text=True)
+child.stdout.readline()
+check("别的进程持锁：探测为正在运行，本进程拿不到锁", H.holder_is_alive(lock) and not H.acquire_lock(lock))
+child.kill()
+child.wait()
+check("持锁进程被杀：锁随进程释放，不留陈旧锁", not H.holder_is_alive(lock) and H.acquire_lock(lock))
+H.release_lock(lock)
+child.stdout.close()
+
+reset()
+data = sample(spec_of("投标记录"), 4)
+src = TMP / "Downloads" / "投标记录_导出文件_9.xlsx"
+src.write_bytes(data)
+now = H.shanghai_now()
+bid_dir = month_dir() / "投标记录"
+bid_dir.mkdir(parents=True)
+name = H.output_filename(src, "投标记录", now.strftime("%Y%m"), now.strftime("%Y%m%d"), False)
+(bid_dir / name).write_bytes(b"PK\x03\x04half-written")
+with contextlib.redirect_stdout(io.StringIO()):
+    rc = H.run(False)
+check("正式名上是写到一半的 zip（有 PK 头）：当残件原地重写，不另起 md5 后缀",
+      rc == 0 and (bid_dir / name).read_bytes() == data
+      and [p.name for p in bid_dir.iterdir() if not p.name.startswith("._")] == [name])
+
+reset()
+src = TMP / "Downloads" / "招标信息_导出文件_3.xlsx"
+src.write_bytes(sample(spec_of("招标信息")))
+H.run_rsync = lambda source, target: Path(target).write_bytes(b"PK\x03\x04partial")
+with contextlib.redirect_stdout(io.StringIO()):
+    rc = H.run(False)
+H.run_rsync = real_rsync
+bid_dir = month_dir() / "招标信息"
+check("一直写坏：正式名从未出现，临时件也清掉，源件保留",
+      rc == 2 and (not bid_dir.exists() or not any(bid_dir.iterdir())) and src.exists())
+
+reset()
+manifest = month_dir() / "00_归档清单" / ("%s_红圈业务源归档清单.md" % H.shanghai_now().strftime("%Y%m%d"))
+manifest.parent.mkdir(parents=True)
+old_manifest = H.manifest_header() + "| 旧行 | 旧件 | /x/旧.xlsx | 原件未提供 | 202609 | 202609 | 20260910 | 原件已归档 | 业务观察 | abc |\n"
+manifest.write_text(old_manifest, encoding="utf-8")
+src = TMP / "Downloads" / "项目开票_导出文件_4.xlsx"
+src.write_bytes(sample(spec_of("项目开票")))
+
+
+def manifest_fails(source, target):
+    if "归档清单" in str(target):
+        raise H.ArchiveFailure("rsync_failed")
+    real_rsync(source, target)
+
+
+H.run_rsync = manifest_fails
+with contextlib.redirect_stdout(io.StringIO()):
+    rc = H.run(False)
+H.run_rsync = real_rsync
+check("清单写失败：旧清单一个字不少，源件不删", rc == 2 and manifest.read_text(encoding="utf-8") == old_manifest and src.exists())
+
+reset()
+(TMP / "Downloads" / "主合同_导出文件_11.xlsx").write_bytes(b"")
+(TMP / "Downloads" / "项目开票_导出文件_12.xlsx").write_bytes(make_xlsx(["随便什么"], [["x"]]))
+(TMP / "Downloads" / "收款登记_导出文件_13.xlsx").write_bytes(sample(spec_of("收款登记")))
+page, alerts = FakePage(), []
+with contextlib.redirect_stdout(io.StringIO()):
+    rc = E.run(page=page, alert=alerts.append, download=page.download, probe=page.probe, sleep=no_sleep)
+quarantined = sorted(p.name.split("_", 1)[1] for p in (TMP / "quarantine").iterdir())
+check("Downloads 里 0 字节或表头不对的件：移到隔离区，不入库",
+      quarantined == ["主合同_导出文件_11.xlsx", "项目开票_导出文件_12.xlsx"])
+check("完整的人工导出照常入库，Downloads 清空", rc == 0 and not any((TMP / "Downloads").iterdir()))
+
+
+class ExplodingPage(FakePage):
+    def ensure_ready(self):
+        raise RuntimeError("boom")
+
+
+reset()
+alerts = []
+with contextlib.redirect_stdout(io.StringIO()):
+    rc = E.run(page=ExplodingPage(), alert=alerts.append, download=lambda url, dest: 0, probe=lambda url: 0, sleep=no_sleep)
+last = json.loads((TMP / "last_run.json").read_text(encoding="utf-8"))
+check("没预料到的异常：落终态 EXPORT_CRASHED、告警、退出码 2",
+      rc == 2 and alerts == ["EXPORT_CRASHED RuntimeError"] and last["marker"] == "EXPORT_CRASHED RuntimeError")
+
+LEAK = "Q" * 32
+
+
+class OddPage(FakePage):
+    def call(self, path, body, obj, pick):
+        if obj == "invoiceReg3X" and path.endswith("/getExportTaskState"):
+            return {"state": 4, "totalCount": {"odd": 1}, "exportedCount": 1}
+        if obj == "collectionReg3X" and path.endswith("/export"):
+            raise E.ObjectFailed("export:http500:echo %s" % LEAK)
+        return FakePage.call(self, path, body, obj, pick)
+
+
+reset()
+page, alerts, buffer = OddPage(), [], io.StringIO()
+with contextlib.redirect_stdout(buffer):
+    rc = E.run(page=page, alert=alerts.append, download=page.download, probe=page.probe, sleep=no_sleep)
+last_text = (TMP / "last_run.json").read_text(encoding="utf-8")
+check("单个对象出意外（接口数据形状不对）：只算这个对象失败，其余照常",
+      rc == 2 and alerts == ["EXPORT_PARTIAL ok=5 failed=项目开票,收款登记"] and "DETAIL 项目开票 failed=TypeError" in buffer.getvalue())
+check("服务端回显的长串不进日志、不进 last_run.json", LEAK not in buffer.getvalue() and LEAK not in last_text and "***" in last_text)
+
+
+def broken_spawn(command, **kwargs):
+    raise OSError("exec failed")
+
+
+reset()
+buffer = io.StringIO()
+with contextlib.redirect_stdout(buffer):
+    rc = E.launch_background(spawn=broken_spawn)
+last = json.loads((TMP / "last_run.json").read_text(encoding="utf-8"))
+check("后台起不来：LAUNCH_FAILED，记终态，下一次启动能看到",
+      rc == 2 and buffer.getvalue().strip().splitlines()[-1] == "LAUNCH_FAILED OSError" and last["marker"] == "LAUNCH_FAILED OSError")
 
 shutil.rmtree(TMP, ignore_errors=True)
 print("\n" + "=" * 54)
