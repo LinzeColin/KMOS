@@ -203,10 +203,10 @@ def main():
         release_lock()
 
 
-def _source_dates():
+def _source_dates(root=None):
     """各上游最后一次更新到哪天 —— 页脚要写清楚，别让人以为看的是全量。"""
     import sqlite3
-    from payment_checks import P2, P3, HONGQUAN, _latest
+    from payment_checks import P2, P3, latest_hongquan, name_date
     src = {}
     try:
         c = sqlite3.connect(f"file:{P2}?mode=ro", uri=True)
@@ -239,10 +239,9 @@ def _source_dates():
     except Exception:
         pass
     try:
-        import re as _re
-        f = _latest(os.path.join(HONGQUAN, "收款登记"), "全历史导出")
-        m = _re.search(r"(\d{4})(\d{2})(\d{2})", os.path.basename(f or ""))
-        src["红圈收款登记"] = f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else ""
+        f = latest_hongquan("收款登记", "全历史导出", root=root)
+        d = name_date(os.path.basename(f)) if f else None
+        src["红圈收款登记"] = d.isoformat() if d else ""
     except Exception:
         pass
     return src

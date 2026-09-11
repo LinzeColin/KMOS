@@ -6,7 +6,7 @@
 
 一律 Decimal，不用 float。
 """
-import datetime as dt, json, os, sqlite3, sys
+import datetime as dt, json, os, re, sqlite3, sys, zipfile
 from decimal import Decimal, InvalidOperation
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +17,7 @@ RUNTIME = os.environ.get("PAYMENT_ALERT_DB_DIR",
                          os.path.expanduser("~/.local/share/kmfa-payment-alert/db"))
 P2 = os.path.join(RUNTIME, "p2", "payment_reconciliation.sqlite3")
 P3 = os.path.join(RUNTIME, "p3", "payment_reconciliation_downstream.sqlite3")
-HONGQUAN = ("/Volumes/share/03_资料库/MetaData/KMFA_MetaData/财务/"
-            "一级原始数据/业务原始/202609/红圈")
+BUSINESS_RAW = "/Volumes/share/03_资料库/MetaData/KMFA_MetaData/财务/一级原始数据/业务原始"
 
 RECEIVABLE_MIN = Decimal("100000")
 RECEIVABLE_DAYS = 180
@@ -228,13 +227,79 @@ def status_regressed(db):
 
 
 # ---------------------------------------------------------------- 6 客户欠款
-def _latest(dirpath, must_contain=""):
+# 归档按上海月份写到 业务原始/<YYYYMM>/红圈/<对象>/。2026-09-11 查实旧写法错在两处：
+# 月份目录写死（10 月起会永远读 9 月）；按文件名字典序取最后一个——「红圈主合同 2026-09-09.xlsx」
+# 排在「20260911_红圈主合同_…_任务303902702477.xlsx」后面（汉字大于数字），读到的是两天前的主合同。
+# 所以跨月份目录扫；日期只从文件名取；同一天几份先比工作簿自带的生成时间、再比任务号。
+# 共享盘 mtime 不可信，一律不看。
+_NAME_DATE8 = re.compile(r"(?<!\d)(20[12]\d)(\d{2})(\d{2})(?!\d)")
+_NAME_DATE10 = re.compile(r"(?<!\d)(20[12]\d)-(\d{2})-(\d{2})(?!\d)")
+_NAME_TASK = re.compile(r"任务(\d+)")
+_CORE_CREATED = re.compile(rb"<dcterms:created[^>]*>([^<]+)<")
+
+
+def name_date(name):
+    """文件名里最晚的日期（20260911 或 2026-09-11）；数字串必须独立成段，任务号里截不出日期。"""
+    days = []
+    for pattern in (_NAME_DATE8, _NAME_DATE10):
+        for y, m, d in pattern.findall(name):
+            try:
+                days.append(dt.date(int(y), int(m), int(d)))
+            except ValueError:
+                pass
+    return max(days) if days else None
+
+
+def _workbook_created(path):
+    """工作簿自己记的生成时间（红圈导出由 Apache POI 写入 docProps/core.xml），读不到返回空串。"""
     try:
-        names = [n for n in os.listdir(dirpath)
-                 if n.endswith(".xlsx") and not n.startswith("._") and must_contain in n]
+        with zipfile.ZipFile(path) as book:
+            found = _CORE_CREATED.search(book.read("docProps/core.xml"))
+    except (OSError, KeyError, zipfile.BadZipFile):
+        return ""
+    return found.group(1).decode("ascii", "ignore") if found else ""
+
+
+def latest_hongquan(obj, must_contain="", root=None):
+    """业务原始/*/红圈/<obj>/ 里最新的一份导出；一份都没有返回 None。
+
+    跳过 AppleDouble 伴生项（._ 开头，约占候选 43%）和不是 zip 头的文件（下载残件、全零写入）；
+    文件名解不出日期的不参与排序。
+    """
+    root = root or BUSINESS_RAW
+    try:
+        months = os.listdir(root)
     except OSError:
         return None
-    return os.path.join(dirpath, sorted(names)[-1]) if names else None
+    ranked = []
+    for month in months:
+        folder = os.path.join(root, month, "红圈", obj)
+        try:
+            names = os.listdir(folder)
+        except OSError:
+            continue
+        for name in names:
+            if name.startswith("._") or not name.endswith(".xlsx") or must_contain not in name:
+                continue
+            day = name_date(name)
+            if day is None:
+                continue
+            path = os.path.join(folder, name)
+            try:
+                with open(path, "rb") as handle:
+                    if handle.read(4) != b"PK\x03\x04":
+                        continue
+            except OSError:
+                continue
+            task = _NAME_TASK.search(name)
+            ranked.append((day, int(task.group(1)) if task else -1, path))
+    if not ranked:
+        return None
+    newest = max(day for day, _, _ in ranked)
+    same_day = [(task, path) for day, task, path in ranked if day == newest]
+    if len(same_day) == 1:
+        return same_day[0][1]
+    return max(same_day, key=lambda item: (_workbook_created(item[1]), item[0], os.path.basename(item[1])))[1]
 
 
 def receivable_stalled(receipt_path=None, contract_path=None, today=None):
@@ -247,8 +312,8 @@ def receivable_stalled(receipt_path=None, contract_path=None, today=None):
     还取不到就**剔除出正文**，只在诊断行计数。绝不把自己的解析缺口当成别人的问题。
     """
     today = today or dt.date.today()
-    receipt = receipt_path or _latest(os.path.join(HONGQUAN, "收款登记"), "全历史导出")
-    contract = contract_path or _latest(os.path.join(HONGQUAN, "主合同"))
+    receipt = receipt_path or latest_hongquan("收款登记", "全历史导出")
+    contract = contract_path or latest_hongquan("主合同")
     if not receipt:
         return "unavailable", [], "找不到红圈收款登记全历史导出"
 

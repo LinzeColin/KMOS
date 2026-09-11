@@ -271,6 +271,67 @@ def main():
     check("已签字的行不算绕流程",
           EV.unsigned_rows("15000 武汉 已签字现金\n20000 武汉 已签字 现金") == [])
 
+    print("\n== 十一、红圈源件：跨月份取最新（09-11 读到两天前的主合同）==")
+    import shutil, zipfile
+    root = tempfile.mkdtemp(prefix="hongquan-src-")          # 只在临时目录里造件，绝不碰共享盘
+
+    def book(rel, created=None, zeros=False):
+        path = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if zeros:                                           # 下载残件 / 全零写入 / ._ 伴生项
+            with open(path, "wb") as fh:
+                fh.write(b"\0" * 4096)
+            return path
+        with zipfile.ZipFile(path, "w") as z:
+            z.writestr("xl/workbook.xml", "<workbook/>")
+            if created:
+                z.writestr("docProps/core.xml", '<cp:coreProperties xmlns:cp="c" xmlns:dcterms="d">'
+                                                f"<dcterms:created>{created}</dcterms:created></cp:coreProperties>")
+        return path
+
+    zht = "202609/红圈/主合同/"
+    book(zht + "红圈主合同 2026-09-09.xlsx")
+    sep11 = book(zht + "20260911_红圈主合同_全部主合同_原始导出_任务303902702477.xlsx")
+    book(zht + "._20260911_红圈主合同_全部主合同_原始导出_任务303902702477.xlsx", zeros=True)
+    book(zht + "20260912_红圈主合同_全部主合同_原始导出_任务303902800001.xlsx", zeros=True)
+    got = PC.latest_hongquan("主合同", root=root)
+    check("同月里 20260911 那份赢过「红圈主合同 2026-09-09」（旧写法按字典序读错）", got == sep11,
+          got and os.path.basename(got))
+    check("日期更晚但不是 zip 的残件、._ 伴生项都不算", got == sep11)
+
+    book("202610/红圈/主合同/20261001_红圈主合同_全部主合同_原始导出_任务303999000001.xlsx")
+    oct1 = book("202610/红圈/主合同/20261001_红圈主合同_全部主合同_原始导出_任务303999000002.xlsx")
+    got = PC.latest_hongquan("主合同", root=root)
+    check("跨到 202610：读 10 月目录里的，不会停在 9 月", got == oct1, got and os.path.basename(got))
+    check("同一天两份：任务号大的是后导出的", (got or "").endswith("任务303999000002.xlsx"))
+
+    sk = "202609/红圈/收款登记/"
+    book(sk + "红圈收款登记_全历史导出_20260909.xlsx", created="2026-09-09T02:32:20Z")
+    book(sk + "红圈收款登记_全历史导出_20260911.xlsx", created="2026-09-10T23:31:03Z")
+    last = book(sk + "红圈收款登记_全历史导出_20260911_0123456789ab.xlsx", created="2026-09-11T03:47:10Z")
+    book(sk + "红圈收款登记_全历史导出_20260911_fedcba987654.xlsx", created="2026-09-11T01:10:00Z")
+    book(sk + "202609_红圈收款登记_全部收款登记_按收款日期_20260901至20261231_原始导出.xlsx")
+    got = PC.latest_hongquan("收款登记", "全历史导出", root=root)
+    check("同一天几份带 md5 后缀：按工作簿生成时间取最后导出的，不按后缀字典序", got == last,
+          got and os.path.basename(got))
+    check("收款登记只认全历史导出（按月导出的日期再晚也不算）", "全历史导出" in os.path.basename(got or ""))
+
+    check("日期不从任务号里截", PC.name_date("红圈主合同_原始导出_任务302026121599.xlsx") is None)
+    check("两种日期写法都认", PC.name_date("红圈主合同 2026-09-07.xlsx") == dt.date(2026, 9, 7)
+          and PC.name_date("202609_红圈项目开票_截至20260911_原始导出.xlsx") == dt.date(2026, 9, 11))
+    check("对象目录或根目录不存在：返回 None，不抛异常",
+          PC.latest_hongquan("不存在的对象", root=root) is None
+          and PC.latest_hongquan("主合同", root=os.path.join(root, "nope")) is None)
+
+    import payment_alert_main as MAIN
+    check("页脚「红圈收款登记」的截止日跟着最新那份走",
+          MAIN._source_dates(root=root).get("红圈收款登记") == "2026-09-11",
+          MAIN._source_dates(root=root).get("红圈收款登记"))
+    for fn in ("payment_checks.py", "payment_alert_main.py"):
+        text = open(os.path.join(HERE, fn), encoding="utf-8").read()
+        check(f"{fn} 不再写死月份目录", "业务原始/2026" not in text and "/202609/" not in text)
+    shutil.rmtree(root, ignore_errors=True)
+
     print(f"\n{'='*54}")
     if FAILED:
         print(f"失败 {len(FAILED)} 条：")
