@@ -116,6 +116,48 @@ def main():
         except Exception as exc:                     # 降级，绝不拖垮主流程
             print(f"FEEDBACK_DEGRADED {type(exc).__name__}: {exc}")
 
+        # ---- 审批数据刷新：把最新的红圈付款审批导出灌成新快照，让付款核对
+        # （dup/amount/status）看得到近几天的付款，而不是拿两周前的旧快照瞎比。
+        # 入库失败绝不静默降级：私聊告警老板，让人知道核对可能在用旧数据。
+        try:
+            import payment_ingest as ING
+            ir = ING.ingest_approval()
+            print(f"APPROVAL_INGEST {ir.get('status')} rows={ir.get('rows','-')} "
+                  f"md5={str(ir.get('md5', ''))[:8]}")
+            if ir.get("status") not in ("ingested", "already"):
+                S.alert_owner("付款异常哨兵：审批数据本轮没刷新成"
+                              f"（{ir.get('status')}：{ir.get('missing') or ir.get('path')}）。"
+                              "付款核对可能在拿旧快照，请人工看一眼。")
+        except Exception as exc:
+            print(f"APPROVAL_INGEST_CRASH {type(exc).__name__}: {exc}")
+            S.alert_owner("付款异常哨兵：审批入库崩了，付款核对可能在拿旧快照。\n"
+                          f"{type(exc).__name__}: {exc}")
+
+        # ---- 周一欠款通知：独立于付款事件，每周一单发一次（老板 2026-09-11）----
+        # 欠款=应收账款，跟付款异常不是一回事，绝不进事件日报文；只有周一提醒一次。
+        # 自带 .recv-<日期> 幂等，走 render_receivables + 各自的合法前缀。
+        if now_bj.weekday() == 0:
+            recv_stamp = os.path.join(STATE, f".recv-{today_cn}")
+            if dry or not os.path.exists(recv_stamp):
+                try:
+                    from payment_checks import receivable_major
+                    rst, ritems, rnote = receivable_major()
+                    if rst == "hit" and ritems:
+                        rtok, rdetail = S.send(
+                            S.render_receivables(ritems, rnote, now_bj.date()),
+                            dry_run=dry, now=now_bj)
+                        print(f"RECEIVABLE_WEEKLY {rtok} n={len(ritems)}")
+                        if rtok in ("SENT", "DRY_RUN"):
+                            if not dry:
+                                open(recv_stamp, "w").close()
+                        elif rtok not in ("OUT_OF_WINDOW", "HELD"):
+                            S.alert_owner(f"周一欠款通知没发出去：{rtok} {rdetail[:200]}")
+                    else:
+                        print(f"RECEIVABLE_WEEKLY skip status={rst} n={len(ritems)}")
+                except Exception as exc:
+                    print(f"RECEIVABLE_WEEKLY_CRASH {type(exc).__name__}: {exc}")
+                    S.alert_owner(f"周一欠款通知崩了：{type(exc).__name__}: {exc}")
+
         # ---- 事件闸门：没有付款事件，一个字都不发 ----
         #
         # 老板 2026-09-11：「他不是每天都有付款，有付款才发送消息，你才需要去核对……
