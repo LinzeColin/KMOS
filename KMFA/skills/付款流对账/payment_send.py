@@ -22,7 +22,9 @@ PRODUCTION_PAYMENT_GROUP = "cid0UmWYRhaMEbiNez2FIpDPA=="
 OWNER_USER = "01256723246324629191"          # 张霖泽，失败告警只走这里，任何阶段都不进群
 
 
-TITLE_PREFIX = "**付款异常 "      # 告警正文的唯一合法开头，见 send() 里的硬闸 -1
+TITLE_PREFIX = "**付款异常 "      # 付款异常告警的唯一合法开头，见 send() 里的硬闸 -1
+RECEIVABLE_PREFIX = "**大客户欠款 "  # 周一欠款通知的唯一合法开头（欠款≠付款异常，两条各自的前缀）
+LEGAL_PREFIXES = (TITLE_PREFIX, RECEIVABLE_PREFIX)
 SEND_WINDOW_BJ = (8, 12)                     # 北京 08:00 ≤ t < 12:00
 BJ = dt.timezone(dt.timedelta(hours=8))
 
@@ -51,8 +53,9 @@ TITLES = {
 ORDER = ["approved_not_paid", "bypass_approval",
          "transfer_failed", "dup_reimbursement",
          "amount_changed", "same_day_duplicate", "status_regressed", "receivable_major"]
-DAILY_EXCLUDED = ("receivable_stalled",)
+DAILY_EXCLUDED = ("receivable_stalled", "receivable_major")   # 欠款不进事件日报文，改周一单发
 MAX_LINES_PER_SECTION = 5
+RECEIVABLE_MAX_LINES = 15   # 周一欠款通知最多列几家（高价值那批一般 9 家）
 
 
 def bj_now():
@@ -141,6 +144,29 @@ def render(new_items, results, ledger_counts, sources, today=None):
     return "\n\n".join(parts)
 
 
+def render_receivables(items, note="", today=None):
+    """周一单发的大客户欠款通知。和付款异常分开，走各自的合法前缀 RECEIVABLE_PREFIX。
+    排版与付款异常一致：公司名加粗单独成行、详情另起一行（钉钉单换行会被吃，用空行分段）。"""
+    today = today or bj_now().date()
+    parts = [f"**大客户欠款 {today.month}月{today.day}日**"]
+    shown = items[:RECEIVABLE_MAX_LINES]
+    for i in shown:
+        body = " ".join(i["line"].replace("|", "／").split())
+        title = i.get("title")
+        if title:
+            title = " ".join(str(title).replace("|", "／").split())
+            if body.startswith(title):
+                body = body[len(title):].strip()
+            parts.append(f"**{title}**\n\n{body}")
+        else:
+            parts.append(f"- {body}")
+    if len(items) > len(shown):
+        parts.append(f"（还有 {len(items) - len(shown)} 家，按金额从大到小）")
+    if note:
+        parts.append(note)
+    return "\n\n".join(parts)
+
+
 # ------------------------------------------------------------------ 投递
 def _dws(args, timeout=120):
     return subprocess.run(["dws"] + args, capture_output=True, text=True, timeout=timeout)
@@ -204,8 +230,8 @@ def send(text, group=None, dry_run=False, now=None):
     #
     # 所以再加一道与时间无关的闸：正文必须是真告警的形状。
     # 「x」「测试」「hello」这类东西现在物理上出不去，谁调都出不去。
-    if not text.lstrip().startswith(TITLE_PREFIX):
-        return "NOT_AN_ALERT", (f"正文不是告警（必须以 {TITLE_PREFIX!r} 开头），"
+    if not any(text.lstrip().startswith(p) for p in LEGAL_PREFIXES):
+        return "NOT_AN_ALERT", (f"正文不是合法通知（须以 {TITLE_PREFIX!r} 或 {RECEIVABLE_PREFIX!r} 开头），"
                                 f"拒发。收到的开头是 {text.lstrip()[:20]!r}")
 
     # ---- 硬闸 0：显式禁发 ----

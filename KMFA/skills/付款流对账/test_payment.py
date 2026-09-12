@@ -207,6 +207,36 @@ def main():
     fps = [it["fingerprint"] for it in maj["items"]]
     check("同一家只出现一次", len(fps) == len(set(fps)))
 
+    print("\n== 八之二、欠款移出事件日、改周一单发（老板 2026-09-12）==")
+    check("receivable_major 已从事件日报文剔除（进了 DAILY_EXCLUDED）",
+          "receivable_major" in S.DAILY_EXCLUDED)
+    fake = {
+        "receivable_major": {"status": "hit", "note": "", "items": [
+            {"fingerprint": "r", "check_id": "receivable_major", "amount": "1",
+             "title": "某公司", "line": "某公司 欠 1"}]},
+        "dup_reimbursement": {"status": "hit", "note": "", "items": [
+            {"fingerprint": "d", "check_id": "dup_reimbursement", "amount": "1",
+             "line": "某账户 100 ×2"}]},
+    }
+    daily = [it for cid in S.ORDER for it in fake.get(cid, {}).get("items", [])
+             if cid not in S.DAILY_EXCLUDED]
+    check("事件日报文不含欠款", all(it["check_id"] != "receivable_major" for it in daily))
+    check("事件日报文仍含真付款核对", any(it["check_id"] == "dup_reimbursement" for it in daily))
+    recv = [{"fingerprint": "recvmajor:甲:1", "check_id": "receivable_major", "amount": "5000000",
+             "title": "测试公司甲",
+             "line": "测试公司甲 欠 5,000,000.00（3 个合同），最久一笔 2023-01-01 收到钱"}]
+    rtext = S.render_receivables(recv, "另有 5 家欠款不足 500,000\n\n全部 10 个合同合计 6,000,000.00",
+                                 today=dt.date(2026, 9, 14))
+    check("周一通知带合法前缀 RECEIVABLE_PREFIX", rtext.startswith(S.RECEIVABLE_PREFIX), repr(rtext[:24]))
+    check("周一通知公司名加粗单独成行", "**测试公司甲**\n\n欠 5,000,000.00" in rtext, repr(rtext))
+    check("周一通知带诊断脚注", "全部 10 个合同合计" in rtext)
+    off = dt.datetime(2026, 9, 14, 2, tzinfo=S.BJ)   # 窗口外：测发送闸，绝不触发真发送
+    check("周一通知能过告警硬闸（前缀合法，被窗口挡在 dws 之前）",
+          S.send(rtext, now=off)[0] != "NOT_AN_ALERT")
+    check("假冒欠款标题仍出不去", S.send("大客户欠款 假的", now=off)[0] == "NOT_AN_ALERT")
+    check("两个合法前缀都在册",
+          S.TITLE_PREFIX in S.LEGAL_PREFIXES and S.RECEIVABLE_PREFIX in S.LEGAL_PREFIXES)
+
     print("\n== 九、事件闸门（没有付款就不说话）==")
     import payment_event as EV
     qnow = dt.datetime(2026, 9, 6, 23, 59, tzinfo=EV.BJ)      # 窗口 09-05 → 09-06，两天全空
