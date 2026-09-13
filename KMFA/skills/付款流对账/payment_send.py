@@ -23,8 +23,9 @@ OWNER_USER = "01256723246324629191"          # 张霖泽，失败告警只走这
 
 
 TITLE_PREFIX = "**付款异常 "      # 付款异常告警的唯一合法开头，见 send() 里的硬闸 -1
-RECEIVABLE_PREFIX = "**大客户欠款 "  # 周一欠款通知的唯一合法开头（欠款≠付款异常，两条各自的前缀）
-LEGAL_PREFIXES = (TITLE_PREFIX, RECEIVABLE_PREFIX)
+# 哨兵只发付款异常，欠款（应收账款）一律不发（老板 2026-09-14）。
+# 合法前缀只此一个：任何「大客户欠款…」正文在 send() 硬闸 -1 处物理出不去。
+LEGAL_PREFIXES = (TITLE_PREFIX,)
 SEND_WINDOW_BJ = (8, 12)                     # 北京 08:00 ≤ t < 12:00
 BJ = dt.timezone(dt.timedelta(hours=8))
 
@@ -39,12 +40,11 @@ TITLES = {
     "receivable_stalled": ("客户欠款半年以上没再收到钱（余额 10 万以上）", "个合同", "财务和销售认领，按金额从大到小推"),
     "receivable_major":   ("大客户欠款压了两年以上", "家", "销售认领，按金额从大到小要回来"),
 }
-# 欠款怎么进：老板 2026-09-11「不是不进，是要高价值的进」。
-# 按合同逐条列的那份（receivable_stalled，92 条）永远不进——一次刷 92 行没有重点，
-# 而且同一家客户会被拆成十几条。进的是按客户合并、欠 50 万以上的那 9 家
-# （receivable_major），合计 1,164 万，占总额一半。每家只报一次。
-#
-# 顺序：先说今天发生的事，再说压着的老账。
+# 欠款（应收账款）不进任何报文（老板 2026-09-14：「你依旧在不断发欠款」）。
+# 历史上它两次搭车出事：09-11 把「大客户欠款 1164 万」挂在「付款异常」名下发进群，
+# 又因回读时区 bug 当天发了两遍；改「周一单发」后老板仍要求彻底停发。
+# 付款哨兵只管付款核对——付款异常≠应收账款（老板 2026-09-11 原话），欠款不是它的活。
+# receivable_* 检查函数保留（供别处取数），但既不在 ORDER、也过不了 send() 前缀闸。
 #
 # 每一项都必须能回答「哪个员工该做的哪件事没做」。老板 2026-09-11：
 # 「没有批准的，那么就是管理层的责任……不要把责任移嫁到管理层上面去。
@@ -52,10 +52,10 @@ TITLES = {
 # 所以「申请交上去没人批」这类判定已经删除——报它等于拿哨兵去追批的人。
 ORDER = ["approved_not_paid", "bypass_approval",
          "transfer_failed", "dup_reimbursement",
-         "amount_changed", "same_day_duplicate", "status_regressed", "receivable_major"]
-DAILY_EXCLUDED = ("receivable_stalled", "receivable_major")   # 欠款不进事件日报文，改周一单发
+         "amount_changed", "same_day_duplicate", "status_regressed"]
+# 欠款永不进报文：既不在渲染顺序 ORDER 里，也显式列入 DAILY_EXCLUDED，双保险。
+DAILY_EXCLUDED = ("receivable_stalled", "receivable_major")
 MAX_LINES_PER_SECTION = 5
-RECEIVABLE_MAX_LINES = 15   # 周一欠款通知最多列几家（高价值那批一般 9 家）
 
 
 def bj_now():
@@ -144,29 +144,6 @@ def render(new_items, results, ledger_counts, sources, today=None):
     return "\n\n".join(parts)
 
 
-def render_receivables(items, note="", today=None):
-    """周一单发的大客户欠款通知。和付款异常分开，走各自的合法前缀 RECEIVABLE_PREFIX。
-    排版与付款异常一致：公司名加粗单独成行、详情另起一行（钉钉单换行会被吃，用空行分段）。"""
-    today = today or bj_now().date()
-    parts = [f"**大客户欠款 {today.month}月{today.day}日**"]
-    shown = items[:RECEIVABLE_MAX_LINES]
-    for i in shown:
-        body = " ".join(i["line"].replace("|", "／").split())
-        title = i.get("title")
-        if title:
-            title = " ".join(str(title).replace("|", "／").split())
-            if body.startswith(title):
-                body = body[len(title):].strip()
-            parts.append(f"**{title}**\n\n{body}")
-        else:
-            parts.append(f"- {body}")
-    if len(items) > len(shown):
-        parts.append(f"（还有 {len(items) - len(shown)} 家，按金额从大到小）")
-    if note:
-        parts.append(note)
-    return "\n\n".join(parts)
-
-
 # ------------------------------------------------------------------ 投递
 def _dws(args, timeout=120):
     return subprocess.run(["dws"] + args, capture_output=True, text=True, timeout=timeout)
@@ -231,7 +208,7 @@ def send(text, group=None, dry_run=False, now=None):
     # 所以再加一道与时间无关的闸：正文必须是真告警的形状。
     # 「x」「测试」「hello」这类东西现在物理上出不去，谁调都出不去。
     if not any(text.lstrip().startswith(p) for p in LEGAL_PREFIXES):
-        return "NOT_AN_ALERT", (f"正文不是合法通知（须以 {TITLE_PREFIX!r} 或 {RECEIVABLE_PREFIX!r} 开头），"
+        return "NOT_AN_ALERT", (f"正文不是合法付款异常告警（须以 {TITLE_PREFIX!r} 开头），"
                                 f"拒发。收到的开头是 {text.lstrip()[:20]!r}")
 
     # ---- 硬闸 0：显式禁发 ----
@@ -243,7 +220,11 @@ def send(text, group=None, dry_run=False, now=None):
         return "OUT_OF_WINDOW", f"北京 {now:%H:%M}，发布窗口是 {SEND_WINDOW_BJ[0]:02d}:00–{SEND_WINDOW_BJ[1]:02d}:00"
 
     marker = text.split("\n", 1)[0][:24]
-    since = dt.datetime.now() - dt.timedelta(minutes=2)
+    # 回读窗口必须用北京时间：dws --time 按北京解释，而本机在悉尼（快 2 小时）。
+    # 原来用 dt.datetime.now()（本机裸时间）会把回读窗口推到未来 ~2 小时，永远读不到
+    # 刚发的消息 → 误报 SEND_FAILED → 当日戳不写 → 次轮 08:22/09:21 再发一遍。
+    # 09-11 那条欠款在群里出现两遍，就是这个 bug。now 已是北京时区（见函数开头）。
+    since = now - dt.timedelta(minutes=2)
     r = _dws(["chat", "message", "send", "--group", group, "--text", text])
     if r.returncode != 0:
         return "SEND_FAILED", (r.stderr or r.stdout)[:400]

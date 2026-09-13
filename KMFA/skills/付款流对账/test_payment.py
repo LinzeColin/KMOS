@@ -166,28 +166,24 @@ def main():
     check("诊断行删了「不占版面」", "不占版面" not in mnote)
     check("诊断两句用空行分开、不再用分号挤一行",
           "\n\n" in mnote and "；全部" not in mnote, repr(mnote))
-    # 欠款：公司名加粗单独成行，详情另起一行（老板 2026-09-11 二轮）
+    # 欠款彻底不进付款异常报文：哪怕把 receivable_major 项喂给 render 也渲不出来
     syn = [
-        {"fingerprint": "recvmajor:甲:1", "check_id": "receivable_major", "amount": "1",
-         "title": "测试公司甲", "line": "测试公司甲 欠 1.00（1 个合同），最久一笔 2020-01-01 收到钱"},
-        {"fingerprint": "recvmajor:乙:1", "check_id": "receivable_major", "amount": "2",
-         "title": "测试公司乙", "line": "测试公司乙 欠 2.00（1 个合同），最久一笔 2020-01-01 收到钱"},
+        {"fingerprint": "recvmajor:甲:1", "check_id": "receivable_major", "amount": "5000000",
+         "title": "测试公司甲", "line": "测试公司甲 欠 5,000,000.00（3 个合同），最久一笔 2020-01-01 收到钱"},
     ]
     t_syn = S.render(syn, {"receivable_major": {"status": "hit", "items": syn, "note": ""}},
                      {"reported": 0, "answered": 0}, {}, today=dt.date(2026, 9, 11))
-    check("欠款公司名加粗、单独成行", "**测试公司甲**\n\n欠 1.00（" in t_syn, repr(t_syn))
-    check("公司名与详情断开、不再挤同一行",
-          "测试公司甲 欠" not in t_syn and "测试公司乙 欠" not in t_syn)
-    check("详情行不再重复公司名", t_syn.count("测试公司甲") == 1)
+    check("欠款项喂给 render 也渲不出正文（不在 ORDER）",
+          "测试公司甲" not in t_syn and "**1. " not in t_syn, repr(t_syn))
     check("真实欠款项都带 title=公司名",
           all(it.get("title") for it in res["receivable_major"]["items"]))
 
-    print("\n== 八、欠款怎么进：按客户合并、只进高价值 ==")
-    # 老板 2026-09-11：「不是不进，是要高价值的进。」
-    # 按合同逐条那份（92 条）永远不进——一次刷 92 行没有重点，同一家会被拆成十几条。
+    print("\n== 八、欠款检查仍算得对，但永不进报文（老板 2026-09-14 起彻底停发欠款）==")
+    # 欠款（应收账款）检查函数保留、仍要算得对（供别处取数、守住解析质量），
+    # 但一律不进付款异常报文、也发不出去。付款异常≠应收账款。
     check("按合同逐条的那份被排除", "receivable_stalled" in S.DAILY_EXCLUDED)
     check("按合同逐条的那份不在渲染顺序里", "receivable_stalled" not in S.ORDER)
-    check("按客户合并的高价值那份要进", "receivable_major" in S.ORDER)
+    check("按客户合并的那份也不在渲染顺序里（欠款不进报文）", "receivable_major" not in S.ORDER)
     recv = res["receivable_stalled"]["items"][:3]
     leaked = S.render(recv, res, {"reported": 0, "answered": 0},
                       {"红圈付款审批": "2026-09-04"}, today=dt.date(2026, 9, 11))
@@ -207,8 +203,10 @@ def main():
     fps = [it["fingerprint"] for it in maj["items"]]
     check("同一家只出现一次", len(fps) == len(set(fps)))
 
-    print("\n== 八之二、欠款移出事件日、改周一单发（老板 2026-09-12）==")
-    check("receivable_major 已从事件日报文剔除（进了 DAILY_EXCLUDED）",
+    print("\n== 八之二、欠款整条移除（老板 2026-09-14：「你依旧在不断发欠款」）==")
+    # 09-11 那条「大客户欠款 1164 万」挂在「付款异常」名下发进群、还发了两遍；
+    # 改「周一单发」后老板仍要停发——欠款连发送整条从哨兵移除。
+    check("receivable_major 仍列入 DAILY_EXCLUDED（与不在 ORDER 双保险）",
           "receivable_major" in S.DAILY_EXCLUDED)
     fake = {
         "receivable_major": {"status": "hit", "note": "", "items": [
@@ -222,20 +220,43 @@ def main():
              if cid not in S.DAILY_EXCLUDED]
     check("事件日报文不含欠款", all(it["check_id"] != "receivable_major" for it in daily))
     check("事件日报文仍含真付款核对", any(it["check_id"] == "dup_reimbursement" for it in daily))
-    recv = [{"fingerprint": "recvmajor:甲:1", "check_id": "receivable_major", "amount": "5000000",
-             "title": "测试公司甲",
-             "line": "测试公司甲 欠 5,000,000.00（3 个合同），最久一笔 2023-01-01 收到钱"}]
-    rtext = S.render_receivables(recv, "另有 5 家欠款不足 500,000\n\n全部 10 个合同合计 6,000,000.00",
-                                 today=dt.date(2026, 9, 14))
-    check("周一通知带合法前缀 RECEIVABLE_PREFIX", rtext.startswith(S.RECEIVABLE_PREFIX), repr(rtext[:24]))
-    check("周一通知公司名加粗单独成行", "**测试公司甲**\n\n欠 5,000,000.00" in rtext, repr(rtext))
-    check("周一通知带诊断脚注", "全部 10 个合同合计" in rtext)
-    off = dt.datetime(2026, 9, 14, 2, tzinfo=S.BJ)   # 窗口外：测发送闸，绝不触发真发送
-    check("周一通知能过告警硬闸（前缀合法，被窗口挡在 dws 之前）",
-          S.send(rtext, now=off)[0] != "NOT_AN_ALERT")
-    check("假冒欠款标题仍出不去", S.send("大客户欠款 假的", now=off)[0] == "NOT_AN_ALERT")
-    check("两个合法前缀都在册",
-          S.TITLE_PREFIX in S.LEGAL_PREFIXES and S.RECEIVABLE_PREFIX in S.LEGAL_PREFIXES)
+    check("合法前缀只剩付款异常一个（欠款前缀已删）", S.LEGAL_PREFIXES == (S.TITLE_PREFIX,))
+    win = dt.datetime(2026, 9, 14, 8, 20, tzinfo=S.BJ)   # 窗口内：证明连窗口内也发不出去
+    check("大客户欠款正文物理出不去（前缀闸拦在 dws 之前）",
+          S.send("**大客户欠款 9月14日**\n\n某公司 欠 5,000,000.00", now=win)[0] == "NOT_AN_ALERT")
+    check("render_receivables 已删除（不再有构造欠款报文的代码）",
+          not hasattr(S, "render_receivables"))
+    main_src = open(os.path.join(HERE, "payment_alert_main.py"), encoding="utf-8").read()
+    check("主流程没有周一欠款路径（无 render_receivables / weekday 门）",
+          "render_receivables" not in main_src and "weekday" not in main_src)
+    check("主流程不再往 STATE 写 .recv 幂等戳", ".recv-" not in main_src)
+
+    print("\n== 八之三、回读用北京时间（悉尼裸时间→窗口飘到未来→误报 SEND_FAILED→次轮重发，09-11 欠款发两遍的根因）==")
+    import types, json as _json
+    win2 = dt.datetime(2026, 9, 11, 8, 20, tzinfo=S.BJ)      # 窗口内
+    calls = []
+    def fake_dws(args, timeout=120):
+        calls.append(list(args))
+        if args[:3] == ["chat", "message", "send"]:
+            return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+        if args[:3] == ["chat", "message", "list"]:
+            body = _json.dumps({"items": [
+                {"content": {"text": "**付款异常 9月11日** 正文"}, "openMessageId": "m1"}]})
+            return types.SimpleNamespace(returncode=0, stdout=body, stderr="")
+        return types.SimpleNamespace(returncode=1, stdout="", stderr="unexpected")
+    real_dws = S._dws
+    S._dws = fake_dws
+    try:
+        tok, detail = S.send("**付款异常 9月11日**\n\n**1. x** 1 笔", now=win2)
+    finally:
+        S._dws = real_dws
+    check("回读读到就 SENT（不再误报 SEND_FAILED）", tok == "SENT", f"{tok} {detail}")
+    listc = next((a for a in calls if a[:3] == ["chat", "message", "list"]), None)
+    check("确实回读了一次", listc is not None)
+    if listc:
+        want = (win2 - dt.timedelta(minutes=2)).strftime("%Y-%m-%d %H:%M:%S")
+        got = listc[listc.index("--time") + 1]
+        check("回读 --time = 北京(now-2min)，不是本机悉尼时间", got == want, f"got={got} want={want}")
 
     print("\n== 九、事件闸门（没有付款就不说话）==")
     import payment_event as EV

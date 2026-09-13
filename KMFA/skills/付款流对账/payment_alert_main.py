@@ -133,30 +133,9 @@ def main():
             S.alert_owner("付款异常哨兵：审批入库崩了，付款核对可能在拿旧快照。\n"
                           f"{type(exc).__name__}: {exc}")
 
-        # ---- 周一欠款通知：独立于付款事件，每周一单发一次（老板 2026-09-11）----
-        # 欠款=应收账款，跟付款异常不是一回事，绝不进事件日报文；只有周一提醒一次。
-        # 自带 .recv-<日期> 幂等，走 render_receivables + 各自的合法前缀。
-        if now_bj.weekday() == 0:
-            recv_stamp = os.path.join(STATE, f".recv-{today_cn}")
-            if dry or not os.path.exists(recv_stamp):
-                try:
-                    from payment_checks import receivable_major
-                    rst, ritems, rnote = receivable_major()
-                    if rst == "hit" and ritems:
-                        rtok, rdetail = S.send(
-                            S.render_receivables(ritems, rnote, now_bj.date()),
-                            dry_run=dry, now=now_bj)
-                        print(f"RECEIVABLE_WEEKLY {rtok} n={len(ritems)}")
-                        if rtok in ("SENT", "DRY_RUN"):
-                            if not dry:
-                                open(recv_stamp, "w").close()
-                        elif rtok not in ("OUT_OF_WINDOW", "HELD"):
-                            S.alert_owner(f"周一欠款通知没发出去：{rtok} {rdetail[:200]}")
-                    else:
-                        print(f"RECEIVABLE_WEEKLY skip status={rst} n={len(ritems)}")
-                except Exception as exc:
-                    print(f"RECEIVABLE_WEEKLY_CRASH {type(exc).__name__}: {exc}")
-                    S.alert_owner(f"周一欠款通知崩了：{type(exc).__name__}: {exc}")
+        # 欠款（应收账款）不由付款哨兵发送——不再有「周一欠款通知」这条路径
+        # （老板 2026-09-14：「你依旧在不断发欠款」）。付款异常≠应收账款，
+        # 欠款不是这条哨兵的活；连计算带发送整条移除，见 payment_send.ORDER 说明。
 
         # ---- 事件闸门：没有付款事件，一个字都不发 ----
         #
