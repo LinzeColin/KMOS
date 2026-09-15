@@ -56,6 +56,15 @@ def fetch(dws: str, cache: Path) -> dict[str, str]:
     for i in range(0, len(depts), 20):
         harvest(run(["contact", "dept", "list-members",
                      "--depts", ",".join(str(x) for x in depts[i:i + 20])]) or {})
+    # 部门树是一层层爬下来的，中途任何一次请求够不着，收上来的就是半份花名册。
+    # 半份的后果不是「少几个人」——是这几个人被判「不在钉钉花名册」，
+    # 名字印进简报的「名单待核」里去问综合部。而且它会把缓存里好的那份盖掉，
+    # 之后每天都错。所以缩水超过两成一律不落盘，宁可继续用旧的。
+    prev = load(cache)
+    if people and prev and len(people) < len(prev) * 0.8:
+        raise RuntimeError(
+            f"花名册只取到 {len(people)} 人，缓存里有 {len(prev)} 人 —— "
+            f"多半是部门树爬到一半够不着钉钉，不覆盖缓存")
     if people:
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_text(json.dumps(people, ensure_ascii=False, indent=1), encoding="utf-8")
