@@ -70,6 +70,7 @@ chk_auto() {   # $1=toml $2=名字关键词 $3=该调的脚本 $4=说明
 }
 chk_auto "$AUTO1" '考勤异常简报 每工作日发送' 'kmfa_brief_cron.sh'     "出报"
 chk_auto "$AUTO2" '看门狗'                     'kmfa_brief_watchdog.sh' "看门狗"
+chk_auto "$AUTO2" '累计'                       'kmfa_monthly_cron.sh'   "出勤累计"
 
 # 考勤线只许有这两条。多出来的（改名遗留、手滑建的、DB 里的僵尸）会重复跑、
 # 重复发、互相盖运行记录，而且让人看不清到底哪条在管事。
@@ -192,6 +193,50 @@ NOWH=$(date +%H); NOWM=$(date +%M)
 probe_branch "排程触发" "" "KMFA_BRIEF_SLOT_HOURS=$NOWH" "KMFA_BRIEF_SLOT_MIN=$NOWM"
 probe_branch "手动 Run" "--force" "KMFA_BRIEF_SLOT_HOURS=00" "KMFA_BRIEF_SLOT_MIN=00"
 rm -rf "$STUB"
+
+# 干跑绝不能走到投递。2026-09-15 栽过一次：考勤累计脚本里 --dry-run 只被拿去跳过台账，
+# 投递那段照跑，一次「干跑验证」把八月的两条报文真发进了生产管理群（已撤回）。
+# 守卫查的是**调用图**，不是有没有写 if：干跑那条落点函数里不许能走到 dws send。
+case "$(/usr/bin/python3 - "$(cd "$(dirname "$0")" && pwd)/run_attendance_monthly.py" <<'PYGUARD2'
+import ast, sys
+src = open(sys.argv[1], encoding="utf-8").read()
+fns = {n.name: n for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef)}
+def r(name, seen=()):
+    if name in seen or name not in fns: return False
+    for n in ast.walk(fns[name]):
+        if isinstance(n, ast.Call):
+            t = ast.unparse(n)
+            if "chat" in t and "message" in t and "send" in t: return True
+            f = n.func
+            nm = f.id if isinstance(f, ast.Name) else (f.attr if isinstance(f, ast.Attribute) else None)
+            if nm and r(nm, seen + (name,)): return True
+    return False
+print("PASS" if (not r("_print_only") and r("_deliver")
+                 and src.count('"chat", "message", "send"') == 1) else "FAIL")
+PYGUARD2
+)" in
+  PASS) ok "考勤累计：干跑落点在调用图上就够不着投递" ;;
+  *)    no "考勤累计：干跑能走到投递 —— 这是会把报文误发进群的那个缺陷" ;;
+esac
+
+# 报文里不许出现这三个词，闸必须在投递之前。
+if grep -q 'BANNED = ("加班", "工时", "小时")' "$(cd "$(dirname "$0")/.." && pwd)/attendance_brief/runtime.py" \
+   && grep -q 'banned_words' "$(cd "$(dirname "$0")" && pwd)/run_attendance_brief.py" \
+   && grep -q 'banned_words' "$(cd "$(dirname "$0")" && pwd)/run_attendance_monthly.py"; then
+  ok "禁用词闸在位（加班 / 工时 / 小时，两条线都挂了）"
+else
+  no "禁用词闸缺失或没挂到两条线上"
+fi
+
+# 段落分隔不能用真空行 —— 钉钉会把空行整条吃掉，整篇挤成一片。
+if /usr/bin/python3 -c "
+import sys; sys.path.insert(0, '$(cd "$(dirname "$0")/.." && pwd)')
+from attendance_brief.report import dingtalk
+sys.exit(0 if '\n\n' not in dingtalk('a\n\nb') else 1)" 2>/dev/null; then
+  ok "报文段落分隔用全角空格行，不会被钉钉吃掉"
+else
+  no "报文里还有真空行，发到钉钉会被吃掉，段落挤成一片"
+fi
 
 echo "----------------------------------------"
 if [ "$fail" -eq 0 ]; then

@@ -7,6 +7,7 @@ attendance_brief/collect.py
 attendance_brief/config.py
 attendance_brief/extract.py
 attendance_brief/grid.py
+attendance_brief/monthly.py
 attendance_brief/punctuality.py
 attendance_brief/report.py
 attendance_brief/roster.py
@@ -56,6 +57,7 @@ scripts/kmfa_brief_check.sh
 scripts/kmfa_brief_cron.sh
 scripts/kmfa_brief_watchdog.py
 scripts/kmfa_brief_watchdog.sh
+scripts/kmfa_monthly_cron.sh
 scripts/month_gate.py
 scripts/preflight.sh
 scripts/prepare_database_landing_bundle.py
@@ -66,6 +68,7 @@ scripts/prepare_stage2_source_from_raw_replay.py
 scripts/render_stage2_certificate.py
 scripts/resolve_stage2_source.py
 scripts/run_attendance_brief.py
+scripts/run_attendance_monthly.py
 scripts/run_stage2_accepted_rehearsal.py
 scripts/run_stage2_evening.sh
 scripts/setup_attendance_brief.sh

@@ -122,6 +122,15 @@ def smb_ready(*roots) -> str:
             return f"{r} 不可用: {type(e).__name__} {e}"
     return ""
 
+# 老板 2026-09-15 定的：报文里不许出现这三个词。
+# 说时长就是在书面记录公司自己的用工强度，压力给到公司而不是员工 ——
+# 考勤简报要的是「谁该补卡、谁该调休」，不是「谁干了多久」。
+# 闸放在**投递之前**，不是放在写文案的人的自觉上：以后谁改文案都漏不掉。
+BANNED = ("加班", "工时", "小时")
+
+def banned_words(text: str) -> list:
+    return [w for w in BANNED if w in text]
+
 def alarm(dws: str, user_id: str, token: str, body: str) -> bool:
     """出事私聊张霖泽。ACTION: ESCALATE 只写在 Codex 桌面 app 的任务消息里，
     手机上看不见 —— 挂三天也没人知道。所以告警必须自己走钉钉私聊。"""
@@ -142,13 +151,35 @@ def alarm(dws: str, user_id: str, token: str, body: str) -> bool:
 def _marker(root, day: str):
     return root / "已发送" / f"{day}.txt"
 
-def already_sent(root, day: str) -> bool:
-    """今天已经发过就不再发。
+# 已发送标记分两档，不是一个布尔。
+#   完整 —— 拿到人员表、判完了考勤。这是终局，当天不会再发第二条。
+#   降级 —— 17:15 时人员表还没到，只能发一条催办。这是临时的。
+# 为什么要分：实测 44 个工作日里有 12 天人员表晚于 17:15 才发出来（最晚 17:52）。
+# 旧写法把降级那条也当终局锁死，于是四天里有一天群里只有催办、永远等不到考勤结果。
+# 现在降级之后，同一工作日后面的触发点（本机 20:15 / 21:15）会再看一眼，
+# 人员表到了就补一条完整版并把标记升级成完整。一天最多两条。
+FINAL, DEGRADED = "完整", "降级"
 
-    Codex 界面上有个手动 Run 按钮，点两下就会把同一份简报往群里发两遍 ——
-    靠这个标记堵死。标记跟其余运行态一样放 SMB，不占本机。
+def _marker(root, day: str):
+    return root / "已发送" / f"{day}.txt"
+
+def sent_kind(root, day: str):
+    """返回 None / "降级" / "完整"。
+
+    老标记（2026-09-15 之前写的）里没有这个字段，一律当「完整」——
+    那些天本来就都发出去了，把它们当成降级会在升级上线当天重发一轮历史。
     """
-    return _marker(root, day).exists()
+    m = _marker(root, day)
+    try:
+        if not m.exists():
+            return None
+        return DEGRADED if DEGRADED in m.read_text(encoding="utf-8", errors="replace") else FINAL
+    except OSError:
+        # 读不出来就当已发过。宁可漏发一天，也不能因为共享盘抖一下就重发进群。
+        return FINAL
 
-def mark_sent(root, day: str, note: str) -> None:
-    smb_write(note, _marker(root, day))
+def already_sent(root, day: str) -> bool:
+    return sent_kind(root, day) is not None
+
+def mark_sent(root, day: str, note: str, kind: str = FINAL) -> None:
+    smb_write(f"{note.rstrip()} · {kind}\n", _marker(root, day))

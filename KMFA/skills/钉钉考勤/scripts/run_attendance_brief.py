@@ -244,9 +244,11 @@ def _run(a) -> int:
     runtime.emit("RUN_START", f"业务日={day} 北京={now_bj:%Y-%m-%d %H:%M} "
                               f"force={int(a.force)} scheduled={int(cfg.scheduled)}")
 
-    # 幂等无条件：一个业务日只发一份，谁触发的都一样。--force 也不放行。
-    if not a.dry_run and runtime.already_sent(cfg.runtime_root, day):
-        runtime.emit("SKIP_ALREADY_SENT", f"{day} 今天这份已经发过了")
+    # 幂等：一个业务日最多一条完整版，谁触发的都一样，--force 也不放行。
+    # 只有「已经发过的是降级版」这一种情况放行 —— 那条是临时的，等的就是完整版。
+    kind = None if a.dry_run else runtime.sent_kind(cfg.runtime_root, day)
+    if kind == runtime.FINAL:
+        runtime.emit("SKIP_ALREADY_SENT", f"{day} 完整版已经发过了")
         return 0
     # 周末 / 非工作日只拦排程；人按 Run 是他自己要，放行。
     auto = not a.date and not a.dry_run and not a.force
@@ -298,6 +300,12 @@ def _run(a) -> int:
                 runtime.emit("SKIP_NON_WORKDAY", f"{day} {data.get('理由','非工作日')}")
                 return 0
             title, body = report.render(data)
+            # 本轮出的是完整版还是降级版。降级 = 没拿到人员表 / 读不准，判不了考勤。
+            this_kind = runtime.FINAL if data["状态"] == "正常" else runtime.DEGRADED
+            if kind == runtime.DEGRADED and this_kind == runtime.DEGRADED:
+                # 催办已经发过一条了，同一天不再催第二遍。
+                runtime.emit("SKIP_ALREADY_SENT", f"{day} 降级版已发过，人员表还是没到，本轮不重复催")
+                return 0
             stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
             base = cfg.month_dir(day) / f"brief_{day.replace('-','')}_{stamp}"
             runtime.smb_write(body, base.with_suffix(".md"))
@@ -313,6 +321,15 @@ def _run(a) -> int:
             if not cfg.notify_group:
                 runtime.emit("NO_TARGET", "没配 KMFA_BRIEF_NOTIFY_GROUP")
                 return 1
+            bad = runtime.banned_words(f"{title}\n{body}")
+            if bad:
+                # 禁用词闸在投递之前。宁可今天不发，也不能把这些字眼发进工作群。
+                runtime.emit("BANNED_WORD", f"报文里出现禁用词 {bad}，拒发")
+                runtime.alarm(cfg.dws, cfg.notify_user, "BANNED_WORD",
+                              f"考勤简报里出现了禁用词 {bad}，已拒发，今天这份没发出去。\n"
+                              f"报文已存 {base.with_suffix('.md')}")
+                return 1
+
             import subprocess
             # 只发群。张霖泽人在群里，再单发一份个人消息是重复打扰。
             # 私聊只留给故障告警，不用来发简报。
@@ -329,8 +346,11 @@ def _run(a) -> int:
                 return 1
             runtime.mark_sent(cfg.runtime_root, day,
                               f"{day} 已发送 {datetime.now(BEIJING):%Y-%m-%d %H:%M:%S}"
-                              f" 北京时间 · 目标：生产管理群\n")
-            runtime.emit("SEND_COMPLETED", f"生产管理群 · {title}")
+                              f" 北京时间 · 目标：生产管理群",
+                              this_kind)
+            runtime.emit("SEND_COMPLETED",
+                         f"生产管理群 · {title}"
+                         + (f" · 顶替了本日的降级版" if kind == runtime.DEGRADED else ""))
             return 0
     except runtime.AlreadyRunning as e:
         runtime.emit("LOCK_HELD", str(e)); return 75
