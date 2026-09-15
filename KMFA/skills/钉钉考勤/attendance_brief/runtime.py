@@ -83,8 +83,11 @@ def log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
 
 # 过程标记：只说明跑到哪一步了，不参与判读。其余一律算结论性标记。
-PROGRESS_PREFIX = ("RUN_START", "WEEKLY_START", "LOCK_", "ALARM_",
-                   "KMFILE_", "KMMEDIA_", "ARCHIVE_")
+# 前缀要写窄。第一版写了 "LOCK_"，把结论性的 LOCK_HELD（上一轮还在跑，本轮
+# 什么都不做，属正常）也当成了过程标记 —— 于是 _LAST 一直是 None，收尾判成
+# ESCALATE，调度侧每次撞锁都会误报故障。故障演练抓到的。
+PROGRESS_PREFIX = ("RUN_START", "WEEKLY_START", "LOCK_ACQUIRED", "LOCK_STALE_RECLAIMED",
+                   "ALARM_", "KMFILE_", "KMMEDIA_", "ARCHIVE_")
 # 真的把东西发进群了才算 ACT。
 ACT_TOKENS = ("SEND_COMPLETED", "WEEKLY_SENT")
 _LAST = None                       # 最后一个结论性标记
@@ -211,6 +214,43 @@ def alarm(dws: str, user_id: str, token: str, body: str) -> bool:
 # 现在降级之后，同一工作日后面的触发点（本机 20:15 / 21:15）会再看一眼，
 # 人员表到了就补一条完整版并把标记升级成完整。一天最多两条。
 FINAL, DEGRADED = "完整", "降级"
+
+def peer_check(aid: str) -> str:
+    """互查另一条 automation 还活着没有。返回空串表示正常，否则返回原因。
+
+    **自己这条停了，自己报不了。** 看门狗跑在 automation-2 上，它守的是 automation；
+    可 automation-2 整个停掉的时候，看门狗和周报是一起停的 —— 那一侧没有任何人会说话。
+    所以反过来也要有一只眼睛：日报（automation）成功出报之后顺手看一眼 automation-2。
+    两条互为看门狗，任何一条停了，另一条都会私聊报出来。
+
+    只读 Codex 的应用库，查不了就返回空串 —— 看不到不等于出事，不制造噪音。
+    """
+    import sqlite3, datetime as _dt
+    db = Path.home() / ".codex" / "sqlite" / "codex-dev.db"
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=5)
+        row = con.execute("select status, last_run_at from automations where id = ?",
+                          (aid,)).fetchone()
+        con.close()
+    except Exception:
+        return ""
+    if row is None:
+        return f"定时任务 {aid} 在 Codex 里找不到了 —— 周报和看门狗都不会再跑"
+    status, last = row
+    if status != "ACTIVE":
+        return f"定时任务 {aid} 现在是 {status}，不会自己跑 —— 周报和看门狗都停了"
+    if last:
+        # 判据是「上一个工作日之前」，不是「多少小时」。这条线每工作日跑一次，
+        # 周五跑完到周一隔着 72 小时 —— 按小时判每个周一都会误报，
+        # 误报几次之后这条告警就没人看了，等于没有。
+        last_d = _dt.datetime.fromtimestamp(last / 1000).date()
+        d = _dt.date.today() - _dt.timedelta(days=1)
+        while d.weekday() >= 5:                  # 往回跳过周末
+            d -= _dt.timedelta(days=1)
+        if last_d < d:
+            return (f"定时任务 {aid} 上次触发还是 {last_d}，上一个工作日（{d}）"
+                    f"整天都没跑 —— 周报和看门狗多半停了")
+    return ""
 
 def _marker(root, day: str):
     return root / "已发送" / f"{day}.txt"

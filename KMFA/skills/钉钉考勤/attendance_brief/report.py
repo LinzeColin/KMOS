@@ -16,6 +16,13 @@ def _plist(pairs, sep=" · "):
 # 「需要稳定换行时用空行分隔段落。若以转义形式组织文本，写 \n\n，不要只写 \n。」
 SEP = "\n\n"
 
+# 分隔线不能用 markdown 的 `---`。
+# 钉钉把发出去的 `\n\n` 规范化成 `  \n`（行尾两空格 + 换行），于是 `---` 总是
+# **紧跟**在上一行后面 —— 而 markdown 里 `文字\n---` 是 setext 二级标题的写法，
+# 上一行会被整行渲染成大标题。实测：最后一个项目行「XX项目 某某」被吃成了 H2。
+# U+2500 制表符不参与任何 markdown 语法，画出来就是一条线。
+RULE = "──────────"
+
 def dingtalk(text: str) -> str:
     """把逐行写的报文转成钉钉 markdown：**行与行之间一律用空行**。
 
@@ -42,7 +49,7 @@ def render(d: dict) -> tuple[str, str]:
         cut = d.get("截止", "17:15")
         return (f"⚠ 考勤 {day} · 人员表未按时发布",
                 dingtalk(
-                f"**⚠ 考勤 {day} ｜ 人员表未按时发布**\n---\n"
+                f"**⚠ 考勤 {day} ｜ 人员表未按时发布**\n" + RULE + "\n"
                 f"{cut} 截止，生产管理群里还没有今天的人员表。\n"
                 f"→ 请在 {cut} 前发出 · 今日补发\n\n"
                 f"没有应到名单就判不了考勤 —— 这不等于今天没异常。\n"
@@ -52,14 +59,14 @@ def render(d: dict) -> tuple[str, str]:
         # 只有人手动点 Run 才会渲染到这里 —— 自动那条排程压根不在周末触发。
         # 他按了就得给他一个说得清的答复，而不是一句「本轮不出报」。
         return (f"考勤 {day} · 非工作日",
-                dingtalk(f"**考勤 {day} ｜ 非工作日**\n---\n"
+                dingtalk(f"**考勤 {day} ｜ 非工作日**\n" + RULE + "\n"
                 f"{d.get('理由','非工作日')}，生产管理群也没有这天的人员表。\n"
                 f"不点发布人的名，也不判任何人的考勤。\n\n"
                 f"下一个工作日照常出报。"))
     if d["状态"] == "读不准":
         bad = d.get("不可信", [])
         return (f"⚠ 考勤 {day} · {len(bad)} 处读不准",
-                dingtalk(f"**⚠ 考勤 {day} ｜ 本轮不出结论**\n---\n"
+                dingtalk(f"**⚠ 考勤 {day} ｜ 本轮不出结论**\n" + RULE + "\n"
                 f"人员表有 {len(bad)} 处识别不可信，已核对钉钉花名册仍无法确定：\n"
                 + "\n".join(f"  第 {r} 行 · {t}" for r, t in bad[:6]) +
                 f"\n\n宁可不报也不猜。下一轮重跑；若连续两轮读不准会单独告警。"))
@@ -73,11 +80,11 @@ def render(d: dict) -> tuple[str, str]:
         items = d.get(key) or []
         if not items:
             continue
-        lines.append("---")
+        lines.append(RULE)
         lines.append(f"**{label} {len(items)} 条**" if label != "考勤异常"
                      else f"**考勤异常 {len(items)} 人**")
         lines += [f"· {t}" for t in items]
-    lines.append("---")
+    lines.append(RULE)
     lines.append("**在场**")
     lines += [
         f"开明自有员工 {d['自有员工']} 人"
@@ -88,7 +95,7 @@ def render(d: dict) -> tuple[str, str]:
     for i in range(0, len(dist), 4):
         lines.append(" · ".join(dist[i:i + 4]))
     lines.append(f"外协在场 {d['外协']} 人（流动用工）")
-    lines.append("---")
+    lines.append(RULE)
     lines += [
         (f"人员表 {d['人员表时间']} 发布"
          + ("（按时）" if d.get("按时") else f"（迟于 {d.get('截止','17:15')}）"))

@@ -110,6 +110,24 @@ case "${SLOT_N:-x}" in
      fi ;;
 esac
 
+# 周报那条也要双槽位。它原来只有一个钟点 —— 2026-09-15 实测真漏过一整天：
+# last_run_at 停在 09-14 晚上，09-15 早上那趟根本没触发，而看门狗自己就跑在
+# 这条上，跟着一起没跑，没有任何人说话。单点 + 自己守自己 = 静默失效。
+WK_FROM="${KMFA_BRIEF_WEEKLY_FROM:-480}"; WK_TO="${KMFA_BRIEF_WEEKLY_TO:-720}"
+SLOT2=$(/usr/bin/python3 "$(cd "$(dirname "$0")" && pwd)/slot_window.py" \
+        "$AUTO2" "$((WK_FROM/60))" "$((WK_FROM%60))" "$(((WK_TO-WK_FROM)/60))" 2>/dev/null)
+N2="${SLOT2%%|*}"; R2="${SLOT2#*|}"; ALL2="${R2%%|*}"; VALID2="${R2#*|}"
+case "${N2:-x}" in
+  ''|*[!0-9]*) no "周报触发钟点算不出来" ;;
+  *) if [ "$N2" -ge 2 ]; then
+       ok "周报触发钟点 $ALL2 —— 窗口内有 $N2 趟（北京 $VALID2），双趟成立"
+     elif [ "$N2" -eq 1 ]; then
+       no "周报只剩北京 $VALID2 一趟 —— 漏一次就整周没有，而看门狗跟它同生共死"
+     else
+       no "周报触发钟点 $ALL2 —— 没有一趟落在北京 08:00–12:00，周报永远发不出去"
+     fi ;;
+esac
+
 # 线上 automation 的 prompt / 模型必须跟仓库里这份 mirror 一致。
 # 改仓库里的 automation/kmfa_attendance_brief.prompt.md **不会**更新线上那两条 ——
 # 它只是可移植镜像。2026-09-09 实测：改了标记名之后线上还是旧版，
@@ -277,6 +295,52 @@ PYDUP
 )
 [ -z "$DUPS" ] && ok "没有同名的模块级函数（后定义会静默覆盖前一个）" \
                 || no "模块级函数重复定义：$DUPS —— 后一个会静默覆盖前一个"
+
+# 每个固定标记折成的 ACTION 必须对。调度侧只抄 ACTION 那一行，判错就等于
+# 「正常当故障报」或者更糟「故障当正常放过」。
+# 实测栽过：PROGRESS_PREFIX 里写了 "LOCK_"，把结论性的 LOCK_HELD（上一轮还在跑，
+# 属正常）也当成过程标记，于是每次撞锁都误报 ESCALATE。
+BADTOK=$(/usr/bin/python3 - "$(cd "$(dirname "$0")/.." && pwd)" <<'PYTOK'
+import sys, importlib.util, pathlib
+root = pathlib.Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("rt", root / "attendance_brief" / "runtime.py")
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+NONE = {"SKIP_ALREADY_SENT","SKIP_WEEKEND","SKIP_NON_WORKDAY","SKIP_BEFORE_PUBLISH",
+        "SKIP_AFTER_WINDOW","SKIP_OUT_OF_WINDOW","SKIP_WEEKLY_DONE","NOT_SENT_DRY_RUN",
+        "NOT_SENT_MANUAL","LOCK_HELD","WATCHDOG_OK","WATCHDOG_KNOWN"}
+ACT = {"SEND_COMPLETED","WEEKLY_SENT"}
+bad = []
+for t in sorted(NONE | ACT | {"SMB_UNAVAILABLE","RUN_FAILED","SEND_FAILED","BANNED_WORD",
+                              "CONFIG_MISSING","NO_TARGET","ABORTED_TIMEOUT"}):
+    R._LAST = None if t.startswith(R.PROGRESS_PREFIX) else t
+    got = R.action()
+    want = "ACT" if t in ACT else ("NONE" if t in NONE else "ESCALATE")
+    if got != want:
+        bad.append(f"{t}={got}(应{want})")
+print(" ".join(bad))
+PYTOK
+)
+[ -z "$BADTOK" ] && ok "每个固定标记折成的 ACTION 都对（调度侧只抄这一行）" \
+                  || no "标记折 ACTION 判错：$BADTOK"
+
+# 分隔线不许用 markdown 的 `---`：钉钉把 \n\n 规范化成 `  \n`，于是 `---` 总是
+# 紧跟上一行，而 markdown 里那正是 setext 二级标题的写法 —— 上一行被吃成大标题。
+# 查的是**字符串字面量**，不做文本匹配：第一版用 grep 找 \n--- ，结果被自己这段
+# 注释里的举例命中，还原之后照样 FAIL。守卫不能被自己的文档触发。
+BADHR=$(/usr/bin/python3 - "$(cd "$(dirname "$0")/.." && pwd)" <<'PYHR'
+import ast, pathlib, sys
+bad = []
+for f in sorted((pathlib.Path(sys.argv[1]) / "attendance_brief").glob("*.py")):
+    for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+        if isinstance(n, ast.Constant) and isinstance(n.value, str):
+            for ln in n.value.split("\n"):
+                if ln.strip() in ("---", "***", "___"):
+                    bad.append(f"{f.name}:{n.lineno}")
+print(" ".join(sorted(set(bad))))
+PYHR
+)
+[ -z "$BADHR" ] && ok "分隔线不用 markdown ---（避免上一行被吃成大标题）" \
+                 || no "报文里有 markdown 分隔线字面量：$BADHR —— 会把上一行吃成二级标题"
 
 # 钉钉 markdown 里换行**只认空行**：单个 \n 不换行，行尾两个空格也不认。
 # 所以 dingtalk() 必须把每一行之间都变成 \n\n，且不能留下任何单个 \n。

@@ -30,6 +30,13 @@ COLS = {
 
 ONSITE = "厂内"           # 人员表上项目名为空 = 人在厂里
 
+# 分隔线不能用 markdown 的 `---`。
+# 钉钉把发出去的 `\n\n` 规范化成 `  \n`（行尾两空格 + 换行），于是 `---` 总是
+# **紧跟**在上一行后面 —— 而 markdown 里 `文字\n---` 是 setext 二级标题的写法，
+# 上一行会被整行渲染成大标题。实测：最后一个项目行「XX项目 某某」被吃成了 H2。
+# U+2500 制表符不参与任何 markdown 语法，画出来就是一条线。
+RULE = "──────────"
+
 def dept_members(dws, root_name: str) -> dict:
     """部门全口径（含所有下级）→ {姓名: (uid, 所在组)}。
 
@@ -201,7 +208,7 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
     """
     md = datetime.date.fromisoformat(monday)
     bd = datetime.date.fromisoformat(bizday)
-    L = [f"**生产部 · 本周轮休安排　{md.month} 月 {md.day} 日**", "---"]
+    L = [f"**生产部 · 本周轮休安排　{md.month} 月 {md.day} 日**", RULE]
     if not roll:
         L.append(f"本周没有人连续到岗满 {threshold} 天，无需安排轮休。")
     else:
@@ -227,11 +234,11 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
             for p, v in sorted(g.items(), key=lambda z: _order(z[0], len(z[1]))):
                 L.append(f"**{p}**　{'、'.join(v)}")
     if pending:
-        L += ["---", "**在岗待核实**"]
+        L += [RULE, "**在岗待核实**"]
         L += [f"{n}（{p}）近期没有打卡记录" for n, p in pending]
         L.append("请核实在岗情况后在群里回复。")
     if discipline:
-        L += ["---", f"**打卡规范　{bd.month} 月 1 日 – {bd.day} 日**"]
+        L += [RULE, f"**打卡规范　{bd.month} 月 1 日 – {bd.day} 日**"]
         L += [f"{lab} 3 次以上　" + "、".join(f"{n} {v} 次" for n, v in arr)
               for lab, arr in discipline]
     return f"生产部 · 本周轮休安排 {md.month}/{md.day}", "\n".join(L)
