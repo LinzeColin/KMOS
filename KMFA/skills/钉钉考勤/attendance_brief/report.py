@@ -11,11 +11,21 @@ from __future__ import annotations
 def _plist(pairs, sep=" · "):
     return sep.join(f"{k} {v}" for k, v in pairs)
 
+# 段落分隔用的空行必须是「看起来空、实际有字」的一行。
+# U+3000 全角空格：渲染出来是一行空白，但它不是空行。
+BLANK = "\u3000"
+
 def dingtalk(text: str) -> str:
-    """钉钉按 Markdown 渲染消息，单个换行会被折叠成空格 —— 整篇会糊成一段。
-    实测过一次：发出去的 16 行在手机上连成了一大坨。
-    所以每个换行都补成 Markdown 硬换行（行尾两个空格），空行原样保留作段落分隔。"""
-    return "\n".join(ln if not ln.strip() else ln.rstrip() + "  "
+    """钉钉那边对换行有两处会吃掉排版，两处都要绕：
+
+    1. 单个换行会被折叠成空格，整篇糊成一段 —— 每行末尾补两个空格做硬换行。
+    2. **真正的空行会被整条吃掉。** 2026-09-15 把群里 09-14 那条日报的原文拉回来看，
+       源文件里 4 处空行一处都没剩：
+           "…要处理 3 条  \\n考勤异常 3 人  \\n · 林维…"
+       段与段之间没有任何间隔，十几行连成一片。所以空行一律换成全角空格那一行 ——
+       它渲染出来是空白，但不是空行，不会被吃掉。
+    """
+    return "\n".join(BLANK if not ln.strip() else ln.rstrip() + "  "
                       for ln in text.split("\n"))
 
 def render(d: dict) -> tuple[str, str]:

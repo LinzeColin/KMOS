@@ -59,6 +59,18 @@ class Config:
         # 老板 2026-09-10 定过这条：在非指定时间冒出消息，等于自动化失控。
         # 今天没发是可修的（看门狗第二天早上会说），半夜发出去是不可修的。
         self.window_hours = int(os.environ.get("KMFA_BRIEF_WINDOW_HOURS", "4"))
+        # ——— 考勤累计（越线通知 + 月报）———
+        # 只看生产部全口径（含车工/焊工/钳工/调度/车间/司机/各项目组等下级）。
+        # 老板 2026-09-15 定的：出勤超 24 天这条规则只对生产部的人。
+        self.dept_root = os.environ.get("KMFA_BRIEF_DEPT_ROOT", "生产部").strip()
+        # 门槛。判定写的是「昨天累计 <= 它、今天累计 > 它」，不写死任何数字，
+        # 所以改成别的数、或者按当月天数浮动（比如当月天数 - 6），改这一个值就行。
+        self.attend_threshold = float(os.environ.get("KMFA_BRIEF_ATTEND_THRESHOLD", "24"))
+        # 发送窗口（北京，分钟）。这条线排在上午，窗口给到 08:00–12:00。
+        # 跟日报一样上下沿都有：Codex 会补跑错过的计划，没有上沿就会在半夜冒出来。
+        self.monthly_window = (
+            int(os.environ.get("KMFA_BRIEF_MONTHLY_FROM", "480")),      # 08:00
+            int(os.environ.get("KMFA_BRIEF_MONTHLY_TO", "720")))        # 12:00
         self.dws = os.path.expanduser(os.environ.get("KMFA_BRIEF_DWS", "~/.local/bin/dws"))
 
     def month_dir(self, day: str) -> Path:
