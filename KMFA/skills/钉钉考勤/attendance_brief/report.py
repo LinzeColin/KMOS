@@ -11,22 +11,28 @@ from __future__ import annotations
 def _plist(pairs, sep=" · "):
     return sep.join(f"{k} {v}" for k, v in pairs)
 
-# 段落分隔用的空行必须是「看起来空、实际有字」的一行。
-# U+3000 全角空格：渲染出来是一行空白，但它不是空行。
-BLANK = "\u3000"
+# 钉钉 markdown 里，换行只认空行。
+# 带 --title 的消息就是 markdown 类型，官方约定（dingtalk-chat skill）原话：
+# 「需要稳定换行时用空行分隔段落。若以转义形式组织文本，写 \n\n，不要只写 \n。」
+SEP = "\n\n"
 
 def dingtalk(text: str) -> str:
-    """钉钉那边对换行有两处会吃掉排版，两处都要绕：
+    """把逐行写的报文转成钉钉 markdown：**行与行之间一律用空行**。
 
-    1. 单个换行会被折叠成空格，整篇糊成一段 —— 每行末尾补两个空格做硬换行。
-    2. **真正的空行会被整条吃掉。** 2026-09-15 把群里 09-14 那条日报的原文拉回来看，
-       源文件里 4 处空行一处都没剩：
-           "…要处理 3 条  \\n考勤异常 3 人  \\n · 某员工…"
-       段与段之间没有任何间隔，十几行连成一片。所以空行一律换成全角空格那一行 ——
-       它渲染出来是空白，但不是空行，不会被吃掉。
+    2026-09-15 在这上面栽了两次，两次都是诊断反了：
+
+    1. 先是按普通 markdown 的规矩写 —— 单个 `\n` 加行尾两个空格做硬换行。
+       钉钉不认行尾空格，单个 `\n` 在 markdown 里本来就不换行，于是整篇糊成一段。
+    2. 然后看到「空行没了」，就把空行换成全角空格（U+3000）那一行。
+       结果更糟：把消息从钉钉拉回来看，`3 条␣␣\n　\n考勤异常` 被存成
+       `3 条␣␣\n␣　␣考勤异常` —— 那一行空白连同它后面的换行一起被折叠成了空格，
+       段落标题直接粘到正文上。**唯一有效的换行机制被亲手删掉了。**
+
+    所以：丢掉所有空白行，剩下的每一行之间都用 `\n\n` 连接。
+    视觉层次靠 markdown 自己的东西（`**粗体**` 小标题、`---` 分割线），不靠空白。
     """
-    return "\n".join(BLANK if not ln.strip() else ln.rstrip() + "  "
-                      for ln in text.split("\n"))
+    lines = [ln.rstrip() for ln in text.split("\n")]
+    return SEP.join(ln for ln in lines if ln.strip())
 
 def render(d: dict) -> tuple[str, str]:
     """返回 (会话列表标题, 正文)。"""
@@ -36,7 +42,7 @@ def render(d: dict) -> tuple[str, str]:
         cut = d.get("截止", "17:15")
         return (f"⚠ 考勤 {day} · 人员表未按时发布",
                 dingtalk(
-                f"⚠ 考勤 {day} ｜ 人员表未按时发布\n\n"
+                f"**⚠ 考勤 {day} ｜ 人员表未按时发布**\n---\n"
                 f"{cut} 截止，生产管理群里还没有今天的人员表。\n"
                 f"→ 请在 {cut} 前发出 · 今日补发\n\n"
                 f"没有应到名单就判不了考勤 —— 这不等于今天没异常。\n"
@@ -46,29 +52,33 @@ def render(d: dict) -> tuple[str, str]:
         # 只有人手动点 Run 才会渲染到这里 —— 自动那条排程压根不在周末触发。
         # 他按了就得给他一个说得清的答复，而不是一句「本轮不出报」。
         return (f"考勤 {day} · 非工作日",
-                dingtalk(f"考勤 {day} ｜ 非工作日\n\n"
+                dingtalk(f"**考勤 {day} ｜ 非工作日**\n---\n"
                 f"{d.get('理由','非工作日')}，生产管理群也没有这天的人员表。\n"
                 f"不点发布人的名，也不判任何人的考勤。\n\n"
                 f"下一个工作日照常出报。"))
     if d["状态"] == "读不准":
         bad = d.get("不可信", [])
         return (f"⚠ 考勤 {day} · {len(bad)} 处读不准",
-                dingtalk(f"⚠ 考勤 {day} ｜ 本轮不出结论\n\n"
+                dingtalk(f"**⚠ 考勤 {day} ｜ 本轮不出结论**\n---\n"
                 f"人员表有 {len(bad)} 处识别不可信，已核对钉钉花名册仍无法确定：\n"
                 + "\n".join(f"  第 {r} 行 · {t}" for r, t in bad[:6]) +
                 f"\n\n宁可不报也不猜。下一轮重跑；若连续两轮读不准会单独告警。"))
 
     n = d["待办数"]
     abn = d["异常人数"]
-    lines = [f"考勤 {day} ｜ " + (f"要处理 {n} 条" if n else "无待办"), ""]
+    # 层次全部用 markdown 自己的东西：`**粗体**` 小标题、`---` 分割线。
+    # 空白行在钉钉 markdown 里表达不了间隔（它就是换行本身），靠它排版必然糊。
+    lines = [f"**考勤 {day} ｜ " + (f"要处理 {n} 条**" if n else "无待办**")]
     for label, key in (("发布纪律", "纪律"), ("考勤异常", "考勤"), ("名单待核", "名单")):
         items = d.get(key) or []
         if not items:
             continue
-        lines.append(f"{label} {len(items)} 条" if label != "考勤异常"
-                     else f"考勤异常 {len(items)} 人")
+        lines.append("---")
+        lines.append(f"**{label} {len(items)} 条**" if label != "考勤异常"
+                     else f"**考勤异常 {len(items)} 人**")
         lines += [f"· {t}" for t in items]
-        lines.append("")
+    lines.append("---")
+    lines.append("**在场**")
     lines += [
         f"开明自有员工 {d['自有员工']} 人"
         + (f"，{abn} 人考勤异常" if abn else "，考勤全部正常"),
@@ -77,10 +87,9 @@ def render(d: dict) -> tuple[str, str]:
     dist = [f"{k} {v}" for k, v in d["应打卡分布"]]
     for i in range(0, len(dist), 4):
         lines.append(" · ".join(dist[i:i + 4]))
+    lines.append(f"外协在场 {d['外协']} 人（流动用工）")
+    lines.append("---")
     lines += [
-        "",
-        f"外协在场 {d['外协']} 人（流动用工）",
-        "",
         (f"人员表 {d['人员表时间']} 发布"
          + ("（按时）" if d.get("按时") else f"（迟于 {d.get('截止','17:15')}）"))
         + (f" · 最近 {d['按时率'][1]} 个工作日按时 {d['按时率'][0]} 天"
