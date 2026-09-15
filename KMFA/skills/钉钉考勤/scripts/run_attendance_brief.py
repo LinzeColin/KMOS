@@ -313,6 +313,15 @@ def _run(a) -> int:
             return 0
     except runtime.AlreadyRunning as e:
         runtime.emit("LOCK_HELD", str(e)); return 75
+    except collect.DwsUnavailable as e:
+        # 「够不着钉钉」跟「查到的是空」必须分开。降级成空集会让简报去公开点
+        # 发布人的名（他其实发了），或者整片点名补卡（他们其实打了卡）。
+        # 给管理层看错名字，比今天不发严重得多 —— 一律拒发。
+        runtime.emit("DINGTALK_UNAVAILABLE", str(e))
+        runtime.alarm(cfg.dws, cfg.notify_user, "DINGTALK_UNAVAILABLE",
+                      f"考勤简报没跑成：连不上钉钉网关，今天这份没发出去。\n{e}\n"
+                      f"这是阵发性的，本工作日剩下的触发点还会再试。")
+        return 1
     except TimeoutError as e:
         runtime.emit("ABORTED_TIMEOUT", f"{e}，本轮不补发")
         runtime.alarm(cfg.dws, cfg.notify_user, "ABORTED_TIMEOUT",

@@ -46,8 +46,8 @@ CONCLUSIVE_OK = ("SEND_COMPLETED", "SKIP_ALREADY_SENT",
 # 这些也是结论性的，但是坏消息。主线自己会告警一次，看门狗再兜一次 ——
 # 主线告警走的也是 dws，dws 挂了的时候那条告警同样发不出去。
 CONCLUSIVE_BAD = ("SEND_FAILED", "RUN_FAILED", "ABORTED_TIMEOUT",
-                  "SMB_UNAVAILABLE", "CONFIG_MISSING", "VENV_MISSING",
-                  "NO_TARGET", "SKIP_AFTER_WINDOW")
+                  "SMB_UNAVAILABLE", "DINGTALK_UNAVAILABLE", "CONFIG_MISSING",
+                  "VENV_MISSING", "NO_TARGET", "SKIP_AFTER_WINDOW")
 
 
 def env() -> dict:

@@ -29,6 +29,7 @@
 | `LOCK_HELD` | 上一轮还在跑 | `ACTION: NONE` |
 | `NOT_SENT_DRY_RUN` / `NOT_SENT_MANUAL` | 刻意不发 | `ACTION: NONE` |
 | `SMB_UNAVAILABLE` | 共享盘掉了 | `ACTION: ESCALATE` |
+| `DINGTALK_UNAVAILABLE` | 连不上钉钉网关（阵发），本轮拒发 | `ACTION: ESCALATE` |
 | `SEND_FAILED` | 报出来了但发不进群 | `ACTION: ESCALATE` |
 | `ABORTED_TIMEOUT` | 超时中止 | `ACTION: ESCALATE` |
 | `RUN_FAILED` | 脚本异常 | `ACTION: ESCALATE` |
