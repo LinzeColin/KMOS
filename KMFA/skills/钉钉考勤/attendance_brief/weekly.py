@@ -1,4 +1,4 @@
-"""生产部周报：轮休安排 + 在岗待核实 + 打卡规范。每周一一条。
+"""生产部周报：连续在岗 + 在岗待核实 + 打卡规范。每周一一条。
 
 写作纪律，两条硬的：
 
@@ -208,20 +208,33 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
     """
     md = datetime.date.fromisoformat(monday)
     bd = datetime.date.fromisoformat(bizday)
-    L = [f"**生产部 · 本周轮休安排　{md.month} 月 {md.day} 日**", RULE]
+    L = [f"**生产部 · 连续在岗周报　{md.month} 月 {md.day} 日**", RULE]
     if not roll:
-        L.append(f"本周没有人连续到岗满 {threshold} 天，无需安排轮休。")
+        L.append(f"本周无人连续到岗满 {threshold} 天。")
     else:
         names = {n for n, _ in roll}
-        L.append(f"以下 **{len(roll)} 人**连续到岗已满 {threshold} 天，本周请安排轮休。"
+        # 动作写成「结合现场进度择机安排」，不写成「本周请安排」：
+        # 现场停不下来是常态，一条每周都下、每周都做不到的指令，累计出来的
+        # 是一份「自己提了、自己没做」的记录 —— 对公司只有坏处。
+        # 时机交给项目负责人，名单本身才是这条周报的产出。
+        L.append(f"以下 **{len(roll)} 人**连续到岗已满 {threshold} 天，"
+                 f"请项目负责人结合现场进度择机安排休息。"
                  f"休满 1 天即自动移出名单。")
         if prev is not None:
+            # 这句只描述名单怎么变的，不报执行率：
+            # 「已安排 N 人」是个考核计数器，做不到的那几周它就成了反面记录。
             done, add = len(prev - names), len(names - prev)
-            s2 = (f"上周 {len(prev)} 人，已安排 {done} 人，新增 {add} 人。" if done
-                  else f"上周 {len(prev)} 人，本周全部仍在名单内，尚无人安排。")
+            if done and add:
+                s2 = f"上周 {len(prev)} 人，其中 {done} 人本周已休息，新增 {add} 人。"
+            elif done:
+                s2 = f"上周 {len(prev)} 人，其中 {done} 人本周已休息。"
+            elif add:
+                s2 = f"上周 {len(prev)} 人全部仍在名单内，另新增 {add} 人。"
+            else:
+                s2 = f"名单与上周一致，仍是这 {len(prev)} 人。"
             stuck = [n for n in names if weeks.get(n, 1) >= 3]
             if stuck:
-                s2 += f"其中 {len(stuck)} 人已连续 {max(weeks[n] for n in stuck)} 周在列。"
+                s2 += f"名单中有 {len(stuck)} 人已连续 {max(weeks[n] for n in stuck)} 周在列。"
             L.append(s2)
         if degraded:
             L.append(degraded)
@@ -241,4 +254,4 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
         L += [RULE, f"**打卡规范　{bd.month} 月 1 日 – {bd.day} 日**"]
         L += [f"{lab} 3 次以上　" + "、".join(f"{n} {v} 次" for n, v in arr)
               for lab, arr in discipline]
-    return f"生产部 · 本周轮休安排 {md.month}/{md.day}", "\n".join(L)
+    return f"生产部 · 连续在岗周报 {md.month}/{md.day}", "\n".join(L)
