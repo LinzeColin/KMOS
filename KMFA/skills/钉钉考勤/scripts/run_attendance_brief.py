@@ -116,6 +116,16 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
     for r in punches:
         by_uid.setdefault(r["userId"], {})[r.get("checkType")] = r.get("timeResult")
 
+    def 没打 (r) -> bool:
+        """None = 钉钉这一趟压根没返回这个打卡点的记录。
+
+        以前把 None 当成「不是 NotSigned，所以正常」，于是只返回上班卡那一条的日子，
+        简报会写「缺上班卡，**下班正常**」—— 而那天他下班也没打。
+        2026-09-15 实测有人连着六周每天两条 NotSigned，最近一天只返回一条，
+        简报当天就说他下班正常。**没有记录不是正常，是不知道。**
+        """
+        return r is None or r in ("NotSigned", "Absenteeism")
+
     todo_考勤: list[str] = []
     todo = todo_考勤          # 下面的追加都进考勤类
     for p in need:
@@ -124,12 +134,12 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
         where = p["行"]["项目"] or p["行"]["类别"]
         if not v:
             todo.append(f"{p['姓名']}（{where}）应打卡，钉钉无任何记录 → 本人补卡 · 明日 18:00 前")
-        elif on in ("NotSigned", "Absenteeism") and off in ("NotSigned", "Absenteeism"):
+        elif 没打(on) and 没打(off):
             todo.append(f"{p['姓名']}（{where}）应打卡，全天未打卡 → 本人补卡 · 明日 18:00 前")
-        elif on in ("NotSigned", "Absenteeism"):
-            todo.append(f"{p['姓名']}（{where}）缺上班卡，下班正常 → 本人补卡 · 明日 18:00 前")
-        elif off in ("NotSigned", "Absenteeism"):
-            todo.append(f"{p['姓名']}（{where}）缺下班卡，上班正常 → 本人补卡 · 明日 18:00 前")
+        elif 没打(on):
+            todo.append(f"{p['姓名']}（{where}）缺上班卡 → 本人补卡 · 明日 18:00 前")
+        elif 没打(off):
+            todo.append(f"{p['姓名']}（{where}）缺下班卡 → 本人补卡 · 明日 18:00 前")
         elif on == "Late":
             todo.append(f"{p['姓名']}（{where}）上班迟到 → 知悉即可，无需动作")
 
