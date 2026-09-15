@@ -262,6 +262,22 @@ else
   no "有脚本没打 ACTION 收尾行 —— 小模型会被迫自己查表判读"
 fi
 
+# 同一个模块里不许有两个同名的模块级函数 —— 后一个静默覆盖前一个。
+# 内容一样时只是噪音，一旦有人只改了其中一个就是「改了没生效」，
+# 而且本机没有 linter，谁都不会发现。实测 runtime.py 里 _marker 就重复过一次。
+DUPS=$(/usr/bin/python3 - "$(cd "$(dirname "$0")/.." && pwd)" <<'PYDUP'
+import ast, pathlib, sys
+bad = []
+for f in sorted((pathlib.Path(sys.argv[1]) / "attendance_brief").glob("*.py")):
+    names = [n.name for n in ast.parse(f.read_text(encoding="utf-8")).body
+             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    bad += [f"{f.name}:{n}" for n in sorted({n for n in names if names.count(n) > 1})]
+print(" ".join(bad))
+PYDUP
+)
+[ -z "$DUPS" ] && ok "没有同名的模块级函数（后定义会静默覆盖前一个）" \
+                || no "模块级函数重复定义：$DUPS —— 后一个会静默覆盖前一个"
+
 # 段落分隔不能用真空行 —— 钉钉会把空行整条吃掉，整篇挤成一片。
 if /usr/bin/python3 -c "
 import sys; sys.path.insert(0, '$(cd "$(dirname "$0")/.." && pwd)')

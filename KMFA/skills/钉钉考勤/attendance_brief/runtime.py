@@ -203,9 +203,6 @@ def alarm(dws: str, user_id: str, token: str, body: str) -> bool:
         runlog(f"ALARM_FAILED | {token} | {type(e).__name__}")
         return False
 
-def _marker(root, day: str):
-    return root / "已发送" / f"{day}.txt"
-
 # 已发送标记分两档，不是一个布尔。
 #   完整 —— 拿到人员表、判完了考勤。这是终局，当天不会再发第二条。
 #   降级 —— 17:15 时人员表还没到，只能发一条催办。这是临时的。
