@@ -25,6 +25,7 @@
 | `SKIP_WEEKEND` | 周末，不发 | `ACTION: NONE` |
 | `SKIP_NON_WORKDAY` | 节假日/调休，不发 | `ACTION: NONE` |
 | `SKIP_BEFORE_PUBLISH` | 还没到出报时刻北京 17:15，等本日下一个触发点 | `ACTION: NONE` |
+| `SKIP_AFTER_WINDOW` | 已过发送窗口（北京 17:15 起 4 小时），今天不补发 | `ACTION: NONE` |
 | `LOCK_HELD` | 上一轮还在跑 | `ACTION: NONE` |
 | `NOT_SENT_DRY_RUN` / `NOT_SENT_MANUAL` | 刻意不发 | `ACTION: NONE` |
 | `SMB_UNAVAILABLE` | 共享盘掉了 | `ACTION: ESCALATE` |

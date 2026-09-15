@@ -52,6 +52,13 @@ class Config:
         self.deadline = os.environ.get(
             "KMFA_BRIEF_DEADLINE",
             f"{self.publish_hour:02d}:{self.publish_minute:02d}").strip()
+        # 发送窗口的**上沿**：出报时刻往后几小时之内还算数，过了就今天不发了。
+        # 下沿一直有（SKIP_BEFORE_PUBLISH），上沿以前没有 —— 只要有任何一条路
+        # 能在深夜把脚本拉起来（机器睡着错过了钟点、launchd 醒来补跑、
+        # 有人半夜点了 Run），简报就会在北京 23 点冒进生产管理群。
+        # 老板 2026-09-10 定过这条：在非指定时间冒出消息，等于自动化失控。
+        # 今天没发是可修的（看门狗第二天早上会说），半夜发出去是不可修的。
+        self.window_hours = int(os.environ.get("KMFA_BRIEF_WINDOW_HOURS", "4"))
         self.dws = os.path.expanduser(os.environ.get("KMFA_BRIEF_DWS", "~/.local/bin/dws"))
 
     def month_dir(self, day: str) -> Path:

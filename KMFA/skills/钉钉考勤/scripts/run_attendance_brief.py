@@ -245,10 +245,21 @@ def _run(a) -> int:
         return 0
     # 容 5 分钟：调度器落地有抖动，19:15 那一枪可能在 19:13 到。
     want = cfg.publish_hour * 60 + cfg.publish_minute
-    if auto and (now_bj.hour * 60 + now_bj.minute) < want - 5:
+    nowm = now_bj.hour * 60 + now_bj.minute
+    if auto and nowm < want - 5:
         runtime.emit("SKIP_BEFORE_PUBLISH",
                      f"北京 {now_bj:%H:%M} 还没到出报时刻 "
                      f"{cfg.publish_hour:02d}:{cfg.publish_minute:02d}，等本工作日的下一个触发点")
+        return 0
+    # 上沿。触发点不止 Codex 一家了 —— launchd 那条在机器睡过钟点之后醒来会补跑，
+    # 补到北京 23 点也照样是「排程触发」。没有上沿的话，简报就在深夜进了生产管理群。
+    # 过了窗口宁可今天不发：看门狗第二天早上会点出来，而半夜发出去撤不回来。
+    stop = want + cfg.window_hours * 60
+    if auto and nowm > stop:
+        runtime.emit("SKIP_AFTER_WINDOW",
+                     f"北京 {now_bj:%H:%M} 已过发送窗口 "
+                     f"{want // 60:02d}:{want % 60:02d}–{stop // 60:02d}:{stop % 60:02d}，"
+                     f"今天不补发，等下一个工作日")
         return 0
 
     # 闸全过了，今天确实要出报 —— 先把自己这个群的 KMFile / KMMedia 增量跑一遍，

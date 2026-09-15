@@ -51,9 +51,12 @@ scripts/canonicalize_attendance_snapshot.py
 scripts/execute_postgres_load_plan.py
 scripts/inspect_raw_archive_month.py
 scripts/inspect_runtime.sh
+scripts/install_launchd_trigger.sh
 scripts/integrity_leak_guard.py
 scripts/kmfa_brief_check.sh
 scripts/kmfa_brief_cron.sh
+scripts/kmfa_brief_watchdog.py
+scripts/kmfa_brief_watchdog.sh
 scripts/month_gate.py
 scripts/preflight.sh
 scripts/prepare_database_landing_bundle.py
@@ -67,6 +70,7 @@ scripts/run_attendance_brief.py
 scripts/run_stage2_accepted_rehearsal.py
 scripts/run_stage2_evening.sh
 scripts/setup_attendance_brief.sh
+scripts/slot_window.py
 scripts/stage2_consensus_gate.py
 scripts/validate_database_contract.py
 scripts/validate_offline.sh

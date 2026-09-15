@@ -28,16 +28,22 @@ fi
 set -a; . "$ENVF"; set +a
 
 # 计划钟点（本机墙钟），跟 Codex automation 的 rrule 保持一致。
-# 配了两条 automation（19:15 与 20:15）来免疫悉尼夏令时：
-# 一年里只有一条落在北京 17:15，另一条会被已发标记挡掉。
-SLOT1_H="${KMFA_BRIEF_SLOT_HOUR:-19}"; SLOT2_H="${KMFA_BRIEF_SLOT_HOUR2:-20}"
+# 主 19:15,20:15 / 备位 20:15,21:15 —— 悉尼一年有夏令时而北京没有，
+# 换算过去总有至少两个钟点落在北京 17:15 之后，剩下的会被已发标记挡掉。
+SLOT_H="${KMFA_BRIEF_SLOT_HOURS:-19 20 21}"
 SLOT_M="${KMFA_BRIEF_SLOT_MIN:-15}"
 NOW=$(( 10#$(date +%H) * 60 + 10#$(date +%M) ))
 near_slot=0
-for h in "$SLOT1_H" "$SLOT2_H"; do
+for h in $SLOT_H; do
   d=$(( NOW - (10#$h * 60 + 10#$SLOT_M) )); [ "$d" -lt 0 ] && d=$(( -d ))
   [ "$d" -le 15 ] && near_slot=1
 done
+# launchd 那条兜底触发器要自报家门。
+# 「离钟点远 ⇒ 一定是人按的 Run ⇒ 给 --force」这个推断，只在「Codex 是唯一触发者」
+# 时成立。机器睡过了钟点，launchd 醒来会把错过的那一枪补上，补到北京 23 点也照样
+# 离钟点很远 —— 按旧推断它会拿到 --force，绕开周末闸和出报时刻闸，把简报发进群。
+# 所以触发者显式声明自己是谁，不再靠时钟去猜。
+[ "${KMFA_BRIEF_TRIGGER:-}" = "launchd" ] && near_slot=1
 # 不要用数组。macOS 自带 bash 3.2，在 set -u 下展开空数组 "${ARGS[@]}" 会被判成
 # 未绑定变量直接退出（bash 4.4+ 才修）。而空数组恰恰是排程触发那条路径 ——
 # 2026-09-07 18:07 第一次真实触发就栽在这里：脚本第 42 行崩掉，
@@ -50,4 +56,36 @@ export KMFA_RUN_SLOT=evening
 # 这一位是「本轮由调度器触发」的凭据，只有本文件会置。
 # 手工在终端直接跑 run_attendance_brief.py 时它是空的，于是只出报不发送。
 export KMFA_BRIEF_SCHEDULED=1
-exec "$VENV/bin/python" "$SKILL/scripts/run_attendance_brief.py" $FORCE
+
+# 硬墙钟，由本进程执行，不由被监控的那个进程自己执行。
+#
+# python 里那个 Deadline 是「两个阶段之间检查一下还剩多少秒」——它要求进程还在跑。
+# 共享盘挂起时进程卡在 open() 里进 U 态（不可中断），Deadline 一次都轮不到，
+# 信号也送不进去。2026-09-15 实测：一次正常的 SKIP_BEFORE_PUBLISH 在 smb_ready
+# 里卡了 3 分 44 秒才出来 —— 盘是活的，只是慢。真挂起时就是无限期，
+# 而且卡在第一个标记之前：群里没简报，日志里没有一行，手机上没有告警。
+#
+# 所以超时判定必须在进程外面。900 秒远高于正常全程（实测约 90 秒），
+# 也高于内部预算之和，正常情况永远轮不到它；轮到了就是真出事了。
+HARD="${KMFA_BRIEF_HARD_TIMEOUT:-900}"
+"$VENV/bin/python" "$SKILL/scripts/run_attendance_brief.py" $FORCE &
+child=$!
+waited=0
+while kill -0 "$child" 2>/dev/null && [ "$waited" -lt "$HARD" ]; do
+  sleep 5; waited=$(( waited + 5 ))
+done
+if kill -0 "$child" 2>/dev/null; then
+  kill -9 "$child" 2>/dev/null
+  echo "ABORTED_TIMEOUT | 硬墙钟 ${HARD} 秒到了，进程还卡着（多半是共享盘挂起），今天这份没发出去" >&2
+  # 告警得由本脚本发：那个 python 已经卡死，它自己的告警代码执行不到。
+  DWSBIN="${KMFA_BRIEF_DWS:-$HOME/.local/bin/dws}"
+  if [ -x "$DWSBIN" ] && [ -n "${KMFA_BRIEF_NOTIFY_USER:-}" ]; then
+    "$DWSBIN" chat message send --user "$KMFA_BRIEF_NOTIFY_USER" \
+      --title "⚠ 考勤简报故障 · ABORTED_TIMEOUT" \
+      --text "考勤简报卡死了 ${HARD} 秒，已强制中止，今天这份没发出去。常见原因是共享盘挂起（进程进不可中断 IO）。下一个触发点会再试一次。" \
+      >/dev/null 2>&1 || true
+  fi
+  exit 1
+fi
+wait "$child"
+exit $?

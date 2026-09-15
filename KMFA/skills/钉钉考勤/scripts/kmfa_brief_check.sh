@@ -68,26 +68,32 @@ for A in "$AUTO1" "$AUTO2"; do
   grep -q 'BYDAY=MO,TU,WE,TH,FR' "$A" || { no "$(basename $(dirname $A)) 缺工作日限制，周末会误点名"; continue; }
   n=$((n+1))
 done
-[ "$n" -eq 2 ] && ok "两条 Codex automation 都在且启用（主 19:15 + 备位 20:15）" \
+[ "$n" -eq 2 ] && ok "两条 Codex automation 都在且启用（主 + 备位）" \
                || no "考勤 automation 只找到 $n 条，应为 2 条 —— 少一条，换季那天会静默失效"
 
-# 两个钟点里必须恰好有一个等于当前的北京出报时刻，**小时和分钟都要对**。
-# 只比小时会假绿：本机 19:05 也等于北京 17 点，但它早于出报时刻 17:15，
-# 会被「未到出报时刻」闸挡掉 —— 那天一条都发不出去，而自检还是绿的。
-# 2026-09-09 起出报时刻和截止线是同一个时刻（北京 17:15）：
-# 简报什么时候发，人员表就得在那之前到。
+# 断言的是**不变式**，不是某个具体钟点：把两条 rrule 的全部 BYHOUR 换算成北京时间，
+# 落在发送窗口 [17:15, 17:15+4h] 里的必须 >= 2 个。
+#
+# 为什么不比「有没有一个恰好等于 19:15」：那是把当前这一季的答案写死当规矩。
+# 2026-10-04 悉尼一转夏令时，本机 19:15 就从北京 17:15 变成 16:15，
+# 被「未到出报时刻」闸挡掉，主槽从此天天空跑，只剩备位一趟。
+# 那时候旧写法照样绿 —— 它只要求「有一个等于」，而那一个换成了备位。
+# >= 2 才是「第一趟出岔子还有第二趟」这句话本身。
 PUBLISH_H=17; PUBLISH_M=15        # 出报时刻（北京），同时也是人员表截止线
-LOCALH=$(date +%H); BJH=$(TZ=Asia/Shanghai date +%H)
-OFF=$(( (10#$LOCALH - 10#$BJH + 24) % 24 ))
-WANT="$(printf '%02d:%02d' $(( (PUBLISH_H + OFF) % 24 )) $PUBLISH_M)"
-SLOTS=$(for A in "$AUTO1" "$AUTO2"; do
-          h=$(sed -n 's/.*BYHOUR=\([0-9]*\).*/\1/p' "$A" 2>/dev/null)
-          m=$(sed -n 's/.*BYMINUTE=\([0-9]*\).*/\1/p' "$A" 2>/dev/null)
-          [ -n "$h" ] && printf '%02d:%02d,' "$h" "$m"
-        done)
-case ",$SLOTS" in
-  *",$WANT,"*) ok "触发钟点 ${SLOTS%,} 里有 $WANT = 当前北京 $(printf '%02d:%02d' $PUBLISH_H $PUBLISH_M)（本机快 ${OFF} 小时）" ;;
-  *) no "触发钟点是 ${SLOTS%,}，没有一个等于北京 $(printf '%02d:%02d' $PUBLISH_H $PUBLISH_M)（现在要本机 $WANT）" ;;
+WINDOW_H="${KMFA_BRIEF_WINDOW_HOURS:-4}"
+SLOT_REPORT=$(/usr/bin/python3 "$(cd "$(dirname "$0")" && pwd)/slot_window.py" \
+              "$AUTO1" "$AUTO2" "$PUBLISH_H" "$PUBLISH_M" "$WINDOW_H" 2>/dev/null)
+SLOT_N="${SLOT_REPORT%%|*}"; SLOT_REST="${SLOT_REPORT#*|}"
+SLOT_ALL="${SLOT_REST%%|*}"; SLOT_VALID="${SLOT_REST#*|}"
+case "${SLOT_N:-x}" in
+  ''|*[!0-9]*) no "触发钟点算不出来（slot_window.py 没有输出）" ;;
+  *) if [ "$SLOT_N" -ge 2 ]; then
+       ok "触发钟点 $SLOT_ALL —— 窗口内有 $SLOT_N 趟（北京 $SLOT_VALID），双趟成立"
+     elif [ "$SLOT_N" -eq 1 ]; then
+       no "触发钟点 $SLOT_ALL —— 只剩北京 $SLOT_VALID 一趟，第一趟出岔子就没有兜底"
+     else
+       no "触发钟点 $SLOT_ALL —— 没有一趟落在发送窗口内，简报永远发不出去"
+     fi ;;
 esac
 
 # 线上 automation 的 prompt / 模型必须跟仓库里这份 mirror 一致。
@@ -176,8 +182,12 @@ probe_branch() {   # $1=说明 $2=期望参数 其余=环境覆盖
   fi
 }
 NOWH=$(date +%H); NOWM=$(date +%M)
-probe_branch "排程触发" "" "KMFA_BRIEF_SLOT_HOUR=$NOWH" "KMFA_BRIEF_SLOT_HOUR2=$NOWH" "KMFA_BRIEF_SLOT_MIN=$NOWM"
-probe_branch "手动 Run" "--force" "KMFA_BRIEF_SLOT_HOUR=00" "KMFA_BRIEF_SLOT_HOUR2=00" "KMFA_BRIEF_SLOT_MIN=00"
+probe_branch "排程触发" "" "KMFA_BRIEF_SLOT_HOURS=$NOWH" "KMFA_BRIEF_SLOT_MIN=$NOWM"
+probe_branch "手动 Run" "--force" "KMFA_BRIEF_SLOT_HOURS=00" "KMFA_BRIEF_SLOT_MIN=00"
+# launchd 那条兜底触发器：离任何钟点都很远（机器睡过了钟点，醒来才补跑），
+# 但它**必须**走排程分支。拿到 --force 就会绕开周末闸和出报时刻闸，
+# 半夜把简报发进生产管理群 —— 这一条守的就是那个。
+probe_branch "launchd 兜底" "" "KMFA_BRIEF_SLOT_HOURS=00" "KMFA_BRIEF_SLOT_MIN=00" "KMFA_BRIEF_TRIGGER=launchd"
 rm -rf "$STUB"
 
 echo "----------------------------------------"
