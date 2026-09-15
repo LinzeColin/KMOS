@@ -9,7 +9,7 @@ Codex automation / 人手动执行，结果完全一致（幂等）：一天只�
 失败自己写日志、自己在下一轮重跑，调度方不需要看懂任何东西。
 """
 from __future__ import annotations
-import json, os, sys, argparse
+import json, os, re, sys, argparse
 from collections import Counter
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -37,6 +37,47 @@ def business_day(explicit: str | None) -> str:
     now = datetime.now(BEIJING)
     # 下午跑取当天；凌晨补跑算前一天
     return (now if now.hour >= 12 else now - timedelta(days=1)).strftime("%Y-%m-%d")
+
+def _title_date(title: str) -> str | None:
+    """从「2026.09.16人员表」这类标题里抠出日期。抠不出返回 None。"""
+    m = re.search(r"(20\d{2})[.\-/年](\d{1,2})[.\-/月](\d{1,2})", title or "")
+    return f"{m[1]}-{int(m[2]):02d}-{int(m[3]):02d}" if m else None
+
+def _wide(p: Path) -> bool:
+    """便宜的预筛：人员表是 23 列的宽表，聊天截图和现场照片基本都是竖的。
+    只用来省掉无谓的 OCR（一张 18 秒），**不当判据** —— 真判据是能不能解出表格结构。
+    看不出来就别拦，交给 extract 去判。"""
+    try:
+        from PIL import Image
+        w, h = Image.open(p).size
+        return w >= h
+    except Exception:
+        return True
+
+def pick_table(imgs: list, dl, day: str) -> tuple:
+    """从当天所有图里挑出人员表那一张。返回 (图, 解析结果, 标题日期) 或 (None, None, None)。
+
+    不能按「最新那张就是人员表」办 —— 当天群里还会有聊天截图、现场照片，
+    也可能一天发两版表、或者提前发次日的表。
+    2026-09-15 实测：16:29 发人员表、16:56 发了一张聊天截图，
+    而调用方只取 imgs[0]，于是整份报告降级成「读不准」，
+    而 find_table_images 的注释里本来就写着「最新的先试」—— 只是从来没试过第二张。
+
+    挑法：能解出表格结构的才算候选；多个候选里优先标题日期正好是业务日的那张，
+    没有就用最新的那张（并把实际用的是哪天的表往上报，不闷着）。
+    """
+    cands = []
+    for cand in imgs:
+        if not _wide(cand):
+            continue
+        dl.check("识别人员表")
+        t = extract.extract(str(cand))
+        if t["类别可信"]:
+            cands.append((cand, t, _title_date(t["标题"])))
+    if not cands:
+        return None, None, None
+    return next((c for c in cands if c[2] == day), cands[0])
+
 
 def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
     dws = collect.Dws(cfg.dws)
@@ -69,7 +110,13 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
         out.update({"状态": "无人员表", "截止": cfg.deadline,
                     "按时率": (ok, tot), "发布人": "、".join(cfg.publishers)})
         return out
-    img = imgs[0]
+    img, tab, tdate = pick_table(imgs, dl, day)
+    if tab is None:
+        out["状态"] = "读不准"
+        out["不可信"] = [(0, f"当天 {len(imgs)} 张图里没有一张能解出人员表结构")]
+        return out
+    # 按时率按**人员表那张**的时间算，不按当天最后一张图的时间 ——
+    # 今天 16:29 就发了表、16:56 发的是别的东西，按 16:56 算等于冤枉发布人。
     hhmm = img.stem.split("_")[1][:2] + ":" + img.stem.split("_")[1][2:]
     punctuality.record(ledger, day, hhmm)
     ok, tot = punctuality.recent(ledger, day, cfg.deadline)
@@ -78,12 +125,10 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
     out["截止"] = cfg.deadline
     out["按时率"] = (ok, tot)
     out["发布人"] = "、".join(cfg.publishers)
-
-    dl.check("识别人员表")
-    tab = extract.extract(str(img))
-    if not tab["类别可信"]:
-        out["状态"] = "读不准"; out["不可信"] = [(0, "类别列块序与锚点冲突")]
-        return out
+    if tdate and tdate != day:
+        # 用的不是业务日那天的表（常见于提前发次日计划）。照常出报，但要说清楚，
+        # 不能让人以为这份考勤是照着今天的在场表判的。
+        out["表日期"] = tdate
 
     dl.check("花名册仲裁")
     cache = cfg.runtime_root / "roster.json"
@@ -126,19 +171,29 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
         """
         return r is None or r in ("NotSigned", "Absenteeism")
 
+    # 「缺下班卡」只在这个打卡点**已经到点**之后才算数。
+    #
+    # 出报时刻是北京 17:15，而班次下班是 17:30 —— 当天出报时下班卡本来就还没到时间。
+    # #417 修掉了「钉钉没返回这个打卡点就当他正常」，但没带上「到点了没有」这一半，
+    # 于是同一批人在当天出报时会被整片判成缺下班卡。
+    # 2026-09-15 实测：同一天同一批人，北京 17:17 跑报 3 条、17:35 跑报 28 条，
+    # 差的 25 条全是「缺下班卡」—— 那 25 条一条都不成立，他们只是还没到下班时间。
+    # 报的是过去某一天（补跑 / --date 指定）时数据已经收全，照常判。
+    # 当天的下班卡不是不管：周报的「打卡规范」按月累计缺卡次数，出口在那里。
+    判下班 = day < datetime.now(BEIJING).strftime("%Y-%m-%d")
     todo_考勤: list[str] = []
     todo = todo_考勤          # 下面的追加都进考勤类
     for p in need:
         v = by_uid.get(p["uid"], {})
         on, off = v.get("OnDuty"), v.get("OffDuty")
         where = p["行"]["项目"] or p["行"]["类别"]
-        if not v:
+        if not v and 判下班:
             todo.append(f"{p['姓名']}（{where}）应打卡，钉钉无任何记录 → 本人补卡 · 明日 18:00 前")
-        elif 没打(on) and 没打(off):
+        elif 没打(on) and 没打(off) and 判下班:
             todo.append(f"{p['姓名']}（{where}）应打卡，全天未打卡 → 本人补卡 · 明日 18:00 前")
         elif 没打(on):
             todo.append(f"{p['姓名']}（{where}）缺上班卡 → 本人补卡 · 明日 18:00 前")
-        elif 没打(off):
+        elif 判下班 and 没打(off):
             todo.append(f"{p['姓名']}（{where}）缺下班卡 → 本人补卡 · 明日 18:00 前")
         elif on == "Late":
             todo.append(f"{p['姓名']}（{where}）上班迟到 → 知悉即可，无需动作")
@@ -174,7 +229,7 @@ def build(cfg: Config, day: str, wd: Path, dl: runtime.Deadline) -> dict:
         "自有员工": len(own), "应打卡": len(need),
         "异常人数": len(todo_考勤),
         "应打卡分布": Counter((p["行"]["项目"] or p["行"]["类别"]) for p in need).most_common(),
-        "休息": rest, "回程": back, "外协": outs,
+        "休息": rest, "回程": back, "外协": outs, "判下班": 判下班,
     })
     return out
 
@@ -194,6 +249,8 @@ def main() -> int:
     而手机上什么都收不到。那正是「没发简报，也没人知道没发」。
     """
     a = _parse_args()
+    if a.dry_run:
+        runtime.quiet_alarms()
     try:
         return _run(a)
     except SystemExit:
@@ -207,6 +264,8 @@ def main() -> int:
                       f"考勤简报跑挂了，今天这份没发出去。\n{type(e).__name__}: {e}\n"
                       f"堆栈在运行日志里；下一个工作日 17:15 会自己重跑。")
         return 1
+    finally:
+        runtime.emit_action()
 
 def _parse_args():
     ap = argparse.ArgumentParser()
@@ -312,6 +371,16 @@ def _run(a) -> int:
             runtime.smb_write(json.dumps(data, ensure_ascii=False, indent=1),
                               base.with_suffix(".json"))
             print(f"# {title}\n\n{body}")
+            # 禁用词闸对干跑和真发一视同仁。以前它写在下面那三个 return 之后 ——
+            # 于是干跑永远看不出这份报文会被拒，等排程那一轮才炸，而那时已经来不及。
+            # 验证路径必须和生产路径判一样的闸，否则验证不出问题。
+            bad = runtime.banned_words(f"{title}\n{body}")
+            if bad:
+                runtime.emit("BANNED_WORD", f"报文里出现禁用词 {bad}，拒发")
+                runtime.alarm(cfg.dws, cfg.notify_user, "BANNED_WORD",
+                              f"考勤简报里出现了禁用词 {bad}，已拒发，今天这份没发出去。\n"
+                              f"报文已存 {base.with_suffix('.md')}")
+                return 1
             if a.dry_run or not cfg.send_enabled:
                 runtime.emit("NOT_SENT_DRY_RUN", "dry-run 或 KMFA_BRIEF_SEND != 1")
                 return 0
@@ -320,14 +389,6 @@ def _run(a) -> int:
                 return 0
             if not cfg.notify_group:
                 runtime.emit("NO_TARGET", "没配 KMFA_BRIEF_NOTIFY_GROUP")
-                return 1
-            bad = runtime.banned_words(f"{title}\n{body}")
-            if bad:
-                # 禁用词闸在投递之前。宁可今天不发，也不能把这些字眼发进工作群。
-                runtime.emit("BANNED_WORD", f"报文里出现禁用词 {bad}，拒发")
-                runtime.alarm(cfg.dws, cfg.notify_user, "BANNED_WORD",
-                              f"考勤简报里出现了禁用词 {bad}，已拒发，今天这份没发出去。\n"
-                              f"报文已存 {base.with_suffix('.md')}")
                 return 1
 
             import subprocess

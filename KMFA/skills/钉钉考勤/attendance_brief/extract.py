@@ -17,6 +17,10 @@ NOT_A_NAME = {"焊工", "车工", "管理", "内部", "外协", "司机", "业�
               "工程师", "后勤", "工程师/后勤", "后勤司机", "休息", "途中", "人数",
               "类别", "工种", "项目名称", "作业人员", "施工总人数", "车辆类型", "车牌号"}
 PUNCT = "、，,。.·:：;；|/\\ 　()（）"
+# 表头词。NOT_A_NAME 是给**人名**候选用的，里面混着工种值（内部 / 外协 / 焊工…），
+# 拿它去过滤工种列会把正确答案一起滤掉 —— 这里只滤真正的表头。
+HEADER = {"类别", "工种", "项目名称", "作业人员", "施工总人数", "人数",
+          "车辆类型", "车牌号", "序号"}
 
 def clean(tok: str) -> str:
     return tok.strip(PUNCT).strip()
@@ -64,7 +68,7 @@ def extract(path: str) -> dict:
         """该格的全部 OCR 候选：逐格 2 路 + 整图多路投票落在该格的文本。"""
         out = list(cellmap.get((r, c), ("", "")))
         # 整图路按「行」纳入候选：同一行里 OCR 常把整排姓名并成一个文本块，
-        # 按格取会漏掉正确候选（实测 徐赛尔 就是这样漏掉的）。
+        # 按格取会漏掉正确候选（实测有姓名就是这样漏掉的）。
         gy0 = ys[r] / H / 0.012
         gy1 = ys[r + 1] / H / 0.012
         for (_gx, gy), texts in fullmap.items():
@@ -76,10 +80,36 @@ def extract(path: str) -> dict:
         return [t for t in dict.fromkeys(toks) if t and t not in NOT_A_NAME]
 
     cats = _categories(gray, xs, ys, cell_text)
+    def block_text(col: int, a: int, b: int) -> str:
+        """一个合并块的文字。先走逐格路，整块读空就退到整图路按几何范围取。
+
+        逐格那一路对**跨多行的合并单元格**会整块读空：它按单行裁剪，而合并块里的字
+        是垂直居中的 —— 大部分单行格子是纯空白（被 `std < 12` 判成空格子直接跳过），
+        中间那一行又把字裁成上下半截，OCR 读不出完整的字。
+        2026-09-15 实测：同一张表里跨 1–3 行的项目名全读到了，唯独跨 6 行的那个
+        项目名整块全空，连带那一块的工种（内部 / 外协）也一起丢 ——
+        后果是 23 个外协被当成自有员工去查考勤，整份报告被防呆闸判成「名单待核」。
+        退到整图那一路后，同一个块拿到 8 票正确读法对 2 票误识，投票就纠回来了。
+        """
+        v = next((cell_text(x, col) for x in range(a, b + 1) if cell_text(x, col)), "")
+        if v:
+            return v
+        gx0, gx1 = xs[col] / W / 0.015, xs[col + 1] / W / 0.015
+        gy0, gy1 = ys[a] / H / 0.012, ys[b + 1] / H / 0.012
+        toks: list[str] = []
+        for (gx, gy), texts in fullmap.items():
+            if gx0 <= gx <= gx1 and gy0 <= gy <= gy1:
+                toks += [clean(x) for t in texts for x in t.split()]
+        toks = [t for t in toks if t and t not in HEADER]
+        if not toks:
+            return ""
+        # 多路投票：同一个块被十几路 OCR 读过，票数最高的那个才采信。
+        return max(set(toks), key=toks.count)
+
     def inherit(col: int) -> dict[int, str]:
         out: dict[int, str] = {}
         for a, b in _spans(gray, xs, ys, col):
-            v = next((cell_text(x, col) for x in range(a, b + 1) if cell_text(x, col)), "")
+            v = block_text(col, a, b)
             for r in range(a, b + 1):
                 out[r] = v
         return out
@@ -103,7 +133,7 @@ def extract(path: str) -> dict:
                 if not (2 <= len(n) <= 4) or n.isdigit() or n in NOT_A_NAME:
                     continue
                 # 候选池按「像不像」过滤。整图路是按整行取的，同一行别人的名字也在池里，
-                # 若放得太宽就会把邻座当成本格候选 —— 实测 张鑫 这一格曾混进 胡磊/周稳，
+                # 若放得太宽就会把邻座当成本格候选 —— 实测某一格曾混进邻座的两个名字，
                 # 两个都在花名册，直接把整份报告拖成「读不准」。
                 # 2 字姓名差 2 字就是另一个人，只许差 1 字；3 字及以上才放到差 2 字。
                 lim = 1 if len(n) <= 2 else 2

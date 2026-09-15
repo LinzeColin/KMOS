@@ -59,18 +59,35 @@ class Config:
         # 老板 2026-09-10 定过这条：在非指定时间冒出消息，等于自动化失控。
         # 今天没发是可修的（看门狗第二天早上会说），半夜发出去是不可修的。
         self.window_hours = int(os.environ.get("KMFA_BRIEF_WINDOW_HOURS", "4"))
-        # ——— 考勤累计（越线通知 + 月报）———
+        # ——— 生产部周报（轮休安排 / 在岗待核实 / 打卡规范）———
         # 只看生产部全口径（含车工/焊工/钳工/调度/车间/司机/各项目组等下级）。
-        # 老板 2026-09-15 定的：出勤超 24 天这条规则只对生产部的人。
+        # 老板 2026-09-15 定的：这条规则只对生产部的人。
         self.dept_root = os.environ.get("KMFA_BRIEF_DEPT_ROOT", "生产部").strip()
-        # 门槛。判定写的是「昨天累计 <= 它、今天累计 > 它」，不写死任何数字，
-        # 所以改成别的数、或者按当月天数浮动（比如当月天数 - 6），改这一个值就行。
-        self.attend_threshold = float(os.environ.get("KMFA_BRIEF_ATTEND_THRESHOLD", "24"))
+        # 轮休门槛：连续到岗满这么多天就进本周的轮休名单，休一天即归零。
+        #
+        # 为什么 24 天不会误伤办公室 / 行政 / 管理这些双休岗 —— 是算术，不是名单：
+        # 每周只要休 1 天，连续到岗最长就是 12 天（上周休周一、这周休周日）。
+        # 要满 24 天，必须连着三周一天没休。所以这条线天然筛掉所有正常轮休的人，
+        # 不需要维护任何岗位白名单 —— 入职、离职、调岗、转外派全都不用管。
+        # 180 天全量实测佐证：双休岗最大连续 7–19 天，一线 24–87 天，交集 0 人。
+        self.rest_threshold = int(os.environ.get("KMFA_BRIEF_REST_THRESHOLD", "24"))
+        # 取数窗口。只判「够不够门槛」、不对外报天数，所以窗口比门槛长就够；
+        # 32 天正好是 query-data 的单次跨度上限，于是永远只有一个分片、2 次调用。
+        # 实测：32 天窗口与 180 天窗口算出的名单完全一致，而调用次数是 2 对 12 ——
+        # 钉钉网关是阵发性失败，少一次调用就少一次暴露。
+        self.weekly_window_days = int(os.environ.get("KMFA_BRIEF_WEEKLY_DAYS", "32"))
+        # 在册却一次卡都没打，连续这么多天就点出来核实（走了请假流程的除外）。
+        self.zero_punch_days = int(os.environ.get("KMFA_BRIEF_ZERO_PUNCH_DAYS", "10"))
+        # 迟到 / 缺卡 / 补卡本月累计到这个次数才进打卡规范那一块。
+        self.discipline_threshold = int(os.environ.get("KMFA_BRIEF_DISCIPLINE", "3"))
+        # 人员表往回找几天。周报跑在周一，业务日是周日，那天没有人员表，
+        # 必须能回溯到周五 —— 至少要 3，给 5 是留节假日的余量。
+        self.roster_lookback = int(os.environ.get("KMFA_BRIEF_ROSTER_LOOKBACK", "5"))
         # 发送窗口（北京，分钟）。这条线排在上午，窗口给到 08:00–12:00。
         # 跟日报一样上下沿都有：Codex 会补跑错过的计划，没有上沿就会在半夜冒出来。
-        self.monthly_window = (
-            int(os.environ.get("KMFA_BRIEF_MONTHLY_FROM", "480")),      # 08:00
-            int(os.environ.get("KMFA_BRIEF_MONTHLY_TO", "720")))        # 12:00
+        self.weekly_window = (
+            int(os.environ.get("KMFA_BRIEF_WEEKLY_FROM", "480")),      # 08:00
+            int(os.environ.get("KMFA_BRIEF_WEEKLY_TO", "720")))        # 12:00
         self.dws = os.path.expanduser(os.environ.get("KMFA_BRIEF_DWS", "~/.local/bin/dws"))
 
     def month_dir(self, day: str) -> Path:
