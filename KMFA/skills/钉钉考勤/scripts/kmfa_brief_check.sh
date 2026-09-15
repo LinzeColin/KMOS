@@ -278,14 +278,19 @@ PYDUP
 [ -z "$DUPS" ] && ok "没有同名的模块级函数（后定义会静默覆盖前一个）" \
                 || no "模块级函数重复定义：$DUPS —— 后一个会静默覆盖前一个"
 
-# 段落分隔不能用真空行 —— 钉钉会把空行整条吃掉，整篇挤成一片。
+# 钉钉 markdown 里换行**只认空行**：单个 \n 不换行，行尾两个空格也不认。
+# 所以 dingtalk() 必须把每一行之间都变成 \n\n，且不能留下任何单个 \n。
+# 2026-09-15 反过来栽过两次：先用单 \n + 行尾空格（整篇糊成一段），
+# 又把空行换成全角空格行（那一行连同它后面的换行一起被折叠，比之前更糟）。
 if /usr/bin/python3 -c "
 import sys; sys.path.insert(0, '$(cd "$(dirname "$0")/.." && pwd)')
 from attendance_brief.report import dingtalk
-sys.exit(0 if '\n\n' not in dingtalk('a\n\nb') else 1)" 2>/dev/null; then
-  ok "报文段落分隔用全角空格行，不会被钉钉吃掉"
+out = dingtalk('A\nB\n\nC')
+lone = out.count(chr(10)) - out.count(chr(10)*2) * 2
+sys.exit(0 if (lone == 0 and out == 'A\n\nB\n\nC') else 1)" 2>/dev/null; then
+  ok "报文每行之间都是空行（钉钉 markdown 只认这个换行）"
 else
-  no "报文里还有真空行，发到钉钉会被吃掉，段落挤成一片"
+  no "报文里还有单个换行 —— 钉钉 markdown 下不换行，整篇会糊成一段"
 fi
 
 echo "----------------------------------------"

@@ -28,7 +28,6 @@ COLS = {
     "6593411": "审批单",
 }
 
-BLANK = "　"          # 钉钉会把真空行整条吃掉，段落间隔只能用全角空格那一行
 ONSITE = "厂内"           # 人员表上项目名为空 = 人在厂里
 
 def dept_members(dws, root_name: str) -> dict:
@@ -196,28 +195,29 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
            threshold: int, prev: set | None, weeks: dict, degraded: str = "") -> tuple:
     """roll / pending = [(姓名, 项目)]；discipline = [(标签, [(姓名, 次数)])]。
 
-    一人一行、按项目归堆。上一版把二十个人挤成三行长句，手机上就是一堵墙。
+    层次全部用 markdown 自己的东西：`**粗体**` 小标题、`---` 分割线。
+    钉钉 markdown 里换行只认空行，空白行表达不了「间隔」—— 它就是换行本身，
+    靠它排版必然糊（2026-09-15 栽过两次，见 report.dingtalk 的注释）。
     """
     md = datetime.date.fromisoformat(monday)
     bd = datetime.date.fromisoformat(bizday)
-    L = [f"【生产部 · 本周轮休安排】{md.month} 月 {md.day} 日", BLANK]
+    L = [f"**生产部 · 本周轮休安排　{md.month} 月 {md.day} 日**", "---"]
     if not roll:
-        L += [f"本周没有人连续到岗满 {threshold} 天，无需安排轮休。", BLANK]
+        L.append(f"本周没有人连续到岗满 {threshold} 天，无需安排轮休。")
     else:
         names = {n for n, _ in roll}
-        L += [f"以下 {len(roll)} 人连续到岗已满 {threshold} 天，本周请安排轮休。",
-              "休满 1 天即自动移出名单。"]
+        L.append(f"以下 **{len(roll)} 人**连续到岗已满 {threshold} 天，本周请安排轮休。"
+                 f"休满 1 天即自动移出名单。")
         if prev is not None:
             done, add = len(prev - names), len(names - prev)
-            s = (f"上周 {len(prev)} 人，已安排 {done} 人，新增 {add} 人。" if done
-                 else f"上周 {len(prev)} 人，本周全部仍在名单内，尚无人安排。")
+            s2 = (f"上周 {len(prev)} 人，已安排 {done} 人，新增 {add} 人。" if done
+                  else f"上周 {len(prev)} 人，本周全部仍在名单内，尚无人安排。")
             stuck = [n for n in names if weeks.get(n, 1) >= 3]
             if stuck:
-                s += f"其中 {len(stuck)} 人已连续 {max(weeks[n] for n in stuck)} 周在列。"
-            L.append(s)
+                s2 += f"其中 {len(stuck)} 人已连续 {max(weeks[n] for n in stuck)} 周在列。"
+            L.append(s2)
         if degraded:
             L.append(degraded)
-        L.append(BLANK)
         if degraded:
             L += [n for n, _ in roll]      # 归不了类就一人一行，不拿钉钉班组凑第二个口径
         else:
@@ -225,14 +225,13 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
             for n, p in roll:
                 g[p].append(n)
             for p, v in sorted(g.items(), key=lambda z: _order(z[0], len(z[1]))):
-                L.append(f"{p}{BLANK}{'、'.join(v)}")
-        L.append(BLANK)
+                L.append(f"**{p}**　{'、'.join(v)}")
     if pending:
-        L += ["【在岗待核实】", BLANK]
+        L += ["---", "**在岗待核实**"]
         L += [f"{n}（{p}）近期没有打卡记录" for n, p in pending]
-        L += ["请核实在岗情况后在群里回复。", BLANK]
+        L.append("请核实在岗情况后在群里回复。")
     if discipline:
-        L += [f"【打卡规范】{bd.month} 月 1 日 – {bd.day} 日", BLANK]
-        L += [f"{lab} 3 次以上{BLANK}" + "、".join(f"{n} {v} 次" for n, v in arr)
+        L += ["---", f"**打卡规范　{bd.month} 月 1 日 – {bd.day} 日**"]
+        L += [f"{lab} 3 次以上　" + "、".join(f"{n} {v} 次" for n, v in arr)
               for lab, arr in discipline]
     return f"生产部 · 本周轮休安排 {md.month}/{md.day}", "\n".join(L)
