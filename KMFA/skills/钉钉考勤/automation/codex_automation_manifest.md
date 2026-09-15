@@ -12,120 +12,42 @@
 认名字，别认 id —— 名字是对的，而且跟 `每日资金卡片（付款请示群）`、
 `商务投标简报 每日发送（商务部报价群）` 同一个风格。
 
-## 两条，缺一不可
+## 两条，不多不少
 
-| 项 | 主 | 备位 |
+| 项 | 出报 | 看门狗 |
 | --- | --- | --- |
 | id | `automation` | `automation-2` |
-| 名称 | 考勤异常简报 每工作日发送（生产管理群） | 考勤异常简报 每工作日发送 备位（生产管理群） |
-| rrule | `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=19,20;BYMINUTE=15` | 同左，`BYHOUR=20,21` |
-| 本机时间 | 每工作日 19:15、20:15 | 每工作日 20:15、21:15 |
+| 名称 | 考勤异常简报 每工作日发送（生产管理群） | 考勤异常简报看门狗（停摆检测） |
+| rrule | `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=19,20,21;BYMINUTE=15` | 同前缀，`BYHOUR=10;BYMINUTE=50` |
+| 本机时间 | 每工作日 19:15 / 20:15 / 21:15 | 每工作日 10:50 |
+| 调的命令 | `scripts/kmfa_brief_cron.sh` | `scripts/kmfa_brief_watchdog.sh` |
 
-**为什么每条两个钟点（2026-09-15 起）。** 本机是 Australia/Sydney 有夏令时，北京没有。
+其余字段两条相同：`status=ACTIVE`、`model=scnet-deepseek-v4-flash-0731`（张霖泽指定，别改）、
+`reasoning_effort=max`、`execution_environment=local`、
+`cwds=["/Users/linzezhang/Documents/Codex"]`、
+`project_id=b4e5abb7-70bb-463b-a484-d4ef000d8601`（与 kmfa-daily-funds、kmbid-daily 同一个）。
+出报那条的 `prompt` = 本目录 `kmfa_attendance_brief.prompt.md` 逐字原文。
+
+**这条线永远只有两条 automation。** 2026-09-15 之前是「主 19:15 + 备位 20:15」两条都出报、
+没有看门狗；现在三个钟点收进同一条 rrule（跟 `kmfa-daily-funds` 的 `BYHOUR=14,15` 一个写法），
+腾出来的那条改成看门狗 —— **automation 总数没变，槽位从 2 个变 3 个，还多了停摆检测。**
+每加一条 automation 都要多一份治理成本，能靠 rrule 多写一个钟点解决的，就不要新建。
+
+**为什么每条不止一个钟点。** 本机是 Australia/Sydney 有夏令时，北京没有。
 `2026-10-04` 悉尼转夏令时那天，本机 19:15 从北京 17:15 变成 16:15 —— 早于出报时刻，
-会被「未到出报时刻」闸挡掉，主槽从此**天天空跑**，实际只剩备位一趟。
-四个钟点铺开之后，换季前后都至少有两趟落在北京 17:15–21:15：
+会被「未到出报时刻」闸挡掉：
 
-| | 本机 19:15 | 20:15 | 20:15 | 21:15 | 窗口内趟数 |
-| --- | --- | --- | --- | --- | --- |
-| AEST（现在） | 北京 17:15 | 18:15 | 18:15 | 19:15 | 4 |
-| AEDT（10-04 起） | 16:15 ✗ | 17:15 | 17:15 | 18:15 | 3 |
+| | 本机 19:15 | 20:15 | 21:15 | 窗口内趟数 |
+| --- | --- | --- | --- | --- |
+| AEST（现在） | 北京 17:15 | 18:15 | 19:15 | 3 |
+| AEDT（10-04 起） | 16:15 ✗ | 17:15 | 18:15 | 2 |
 
 判据写成不变式「窗口内 ≥ 2 趟」，不是「有一个等于 19:15」——
 后者在换季当天照样绿，而那时已经退回单趟了。自检和看门狗都按这个不变式判。
 
-其余字段两条完全相同：`status=ACTIVE`、`model=scnet-deepseek-v4-flash-0731`、`reasoning_effort=max`、
-`execution_environment=local`、`cwds=["/Users/linzezhang/Documents/Codex"]`、
-`project_id=b4e5abb7-70bb-463b-a484-d4ef000d8601`（与 kmfa-daily-funds、kmbid-daily 同一个）、
-`prompt` = 本目录的 `kmfa_attendance_brief.prompt.md` 逐字原文。
-两条都只执行 `scripts/kmfa_brief_cron.sh` 一条命令。
-
-## 第三条腿：launchd 兜底触发器（不依赖 Codex，也不依赖任何 GUI 应用）
-
-    ~/Library/LaunchAgents/com.kmfa.attendance-brief.plist   本机 19:20 / 20:20 / 21:20
-    ~/Library/LaunchAgents/com.kmfa.keep-awake.plist         caffeinate -s，插电不休眠
-
-装/卸：`scripts/install_launchd_trigger.sh` / `--uninstall`。
-
-为什么要有它：Codex automation 只有在 **Codex 桌面端开着**的时候才会触发
-（实测缺失全部集中在下午与夜里，与休眠无关，是宿主 app 不在）。而本机
-`pmset -c sleep` 是 **1 分钟** —— 一直靠 Claude.app / ChatGPT.app 的 Electron
-`NoIdleSleepAssertion` 顶着，那两个应用一关，一分钟后机器就睡，所有定时任务一起停。
-「无人值守」到这里隐含了一个没人保证的前提：某个 GUI 应用一直开着。
-
-launchd 是 macOS 自己的调度器：开机自启、不依赖任何应用、机器睡过了钟点会在唤醒后
-补跑一次。它比 Codex 那一枪晚 5 分钟，所以正常日子只会拿到 `SKIP_ALREADY_SENT`；
-Codex 没触发的那天，它就是唯一发得出简报的那个。
-`caffeinate -s` 只在插电时生效，电池上照常省电。
-
-**它必须走排程分支。** 包装脚本原来靠「离计划钟点多远」猜是不是人点的 Run，
-远就给 `--force`。机器睡过钟点、launchd 醒来补跑时离钟点同样很远 ——
-按旧推断会拿到 `--force`，绕开周末闸和出报时刻闸，把简报发进北京时间的深夜。
-所以改成触发者显式声明：`KMFA_BRIEF_TRIGGER=launchd`。自检里有一条专门守这个分支。
-
-## 发送窗口有上沿了（2026-09-15 起）
-
-下沿一直有（`SKIP_BEFORE_PUBLISH`），上沿以前没有。多了 launchd 这条补跑路径之后，
-「今天没发」和「半夜发出去」就成了两种完全不同的错误：前者第二天早上看门狗会说，
-后者撤不回来。窗口 = 北京 17:15 起 `KMFA_BRIEF_WINDOW_HOURS`（默认 4）小时，
-过了打 `SKIP_AFTER_WINDOW` 退 0 不发。人手动 `--force` 不受这条限制。
-
-## 硬墙钟在进程外（2026-09-15 起）
-
-python 里那个 `Deadline` 是阶段之间的协作式检查，要求进程还在跑。共享盘挂起时
-进程卡在 `open()` 里进 U 态（不可中断），`Deadline` 一次都轮不到，信号也送不进去。
-2026-09-15 实测：一次正常的 `SKIP_BEFORE_PUBLISH` 在 `smb_ready` 里卡了 **3 分 44 秒**
-才出来——盘是活的，只是慢；真挂起就是无限期，而且卡在第一个标记之前。
-所以包装脚本改成后台跑 + 自己数秒，`KMFA_BRIEF_HARD_TIMEOUT`（默认 900 秒）到了就
-`kill -9`、打 `ABORTED_TIMEOUT`、**由包装脚本自己**发钉钉私聊告警
-（那个 python 已经卡死，它自己的告警代码执行不到）。
-
-## 钉钉网关是阵发性不可用的，必须当异常不能当空集（2026-09-15 起）
-
-`dws` 走 `mcp-gw.dingtalk.com`，会**成串**地失败：实测一个 20 次的窗口里 11 次
-stdout 全空、退出码 1，而 JSON 里 `errorCode` / `errorMsg` 都是 `null`；
-换个时间点又连着 24 次全成。跟人数、天数、`--timeout` 都无关，是网关抖动。
-
-旧的 `Dws.json()` 只看 stdout 解不解得出 JSON，解不出就 `return None`，于是一次抖动会变成：
-
-| 抖在哪 | 调用方看到 | 实际发出去的 |
-| --- | --- | --- |
-| `chat message list` | 群里今天没有人员表 | 公开点发布人的名，而他发了 |
-| `attendance check result` | 所有人都没打卡 | 整片点名补卡，而他们打了卡 |
-| 两个都抖 | 全公司无人打卡 = 非工作日 | 什么都不发，也不告警 |
-
-三种都没有告警。现在 `Dws.json()` 只信**退出码**（失败时那两个 JSON 字段也是 null），
-非 0 就退避重试 3 次（2s、4s），仍失败抛 `DwsUnavailable` →
-标记 `DINGTALK_UNAVAILABLE` + 私聊告警 + **拒发**，不写已发送标记，
-本工作日剩下的触发点会再试。
-
-花名册同理：部门树爬到一半够不着，收上来就是半份，而半份的后果不是「少几个人」，
-是这几个人被判「不在钉钉花名册」、名字印进简报去问综合部，并且**把缓存里好的那份盖掉**，
-之后每天都错。现在缩水超过两成一律不落盘，宁可继续用旧的。
-
-## 看门狗：kmfa-attendance-watchdog
-
-| 项 | 值 |
-| --- | --- |
-| id | `kmfa-attendance-watchdog` |
-| 名称 | 考勤异常简报看门狗（停摆检测） |
-| rrule | `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=10;BYMINUTE=50` |
-| 命令 | `~/.codex/skills/KMFA-Attendance-Brief/scripts/kmfa_brief_watchdog.sh` |
-
-排在上午（实测上午槽位四天零缺失，缺的全在下午与夜里），看的是**上一个工作日**，
-所以它跑的时候「该发而没发」已经是定论。用系统 `python3`（3.9）不用主线那个 venv ——
-venv 烂掉恰恰是要被报出来的故障之一，看门狗不能跟它同生共死。只用标准库。
-
-查九件事，任一命中就私聊张霖泽，**同一件事只报一次**（状态落共享盘
-`.考勤看门狗状态.json`）：部署位脚本在不在 → env 读不读得到 → 共享盘在不在 →
-钉钉登录过没过期 → 两条 automation 在不在且 ACTIVE → prompt 还指不指向部署位脚本 →
-换算成北京时间的有效槽位数（0 = 永远发不出去，1 = 退回单趟）→ launchd 兜底装没装 →
-插电会不会一分钟就睡且没有 caffeinate 顶着 → 26 小时没被触发 →
-上一个工作日的运行日志里有没有留下结论性标记。
-
-**判的是「有没有留下结论」，不是「有没有发」。** 法定节假日会正常留下
-`SKIP_NON_WORKDAY`，那是结论不是故障；真正要抓的是那一天整片空白 ——
-群里没简报、日志里没有一行、手机上没有告警。
+**DB 里还有一条 `kmfa-attendance-brief`（旧名「工作日北京 16:05」）没有目录、从没跑过，
+2026-09-15 已置 PAUSED。** 它不是这条线在用的。自检里有一条守卫：
+DB 里除了 `automation` / `automation-2`，不许再有 ACTIVE 的考勤 automation。
 
 ## 跑的是机外部署位，不是仓库工作树
 

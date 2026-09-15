@@ -238,28 +238,39 @@ def _run(a) -> int:
     if not a.dry_run and runtime.already_sent(cfg.runtime_root, day):
         runtime.emit("SKIP_ALREADY_SENT", f"{day} 今天这份已经发过了")
         return 0
-    # 周末和截止线只拦排程；人按 Run 是他自己要，放行。
+    # 周末 / 非工作日只拦排程；人按 Run 是他自己要，放行。
     auto = not a.date and not a.dry_run and not a.force
     if auto and datetime.strptime(day, "%Y-%m-%d").weekday() >= 5:
         runtime.emit("SKIP_WEEKEND", f"{day} 是周末，人员表本来就不在周末发")
         return 0
-    # 容 5 分钟：调度器落地有抖动，19:15 那一枪可能在 19:13 到。
+
+    # 发送窗口（北京 17:15 起 window_hours 小时）**对所有触发一视同仁，--force 也不放行**。
+    #
+    # 老板 2026-09-10 定的规矩原话：闸门要上下沿都有，落在真正投递的那一层，
+    # 不留任何口子能绕过它 —— 在非指定时间冒出消息，等于自动化失控。
+    #
+    # 为什么 --force 也必须挡：包装脚本靠「离计划钟点多远」区分「排程」和「人点的 Run」，
+    # 远就给 --force。而 Codex 的 automation-run-mode 明写「不得因错过计划而拒绝执行」，
+    # 也就是说**桌面端重新打开时会把错过的那一枪补上**，补跑离钟点同样很远，
+    # 按那个推断会拿到 --force。运行日志里就有实例：
+    #   2026-09-10 11:20 RUN_START 北京 09:20 force=1 scheduled=1
+    # 那次只是恰好撞上「今天已发过」才没有在北京早上九点把简报发进生产管理群。
+    #
+    # 窗口外没有补发路径，这是有意的：--force / --date / --send 一个都不放行，
+    # 只有 --dry-run 能跑（它在代码层面就调不到投递函数，只把报文打到屏幕上）。
+    # 昨天的考勤在今晚十点补进生产管理群，对谁都没有用；想看内容就干跑。
     want = cfg.publish_hour * 60 + cfg.publish_minute
+    stop = want + cfg.window_hours * 60
     nowm = now_bj.hour * 60 + now_bj.minute
-    if auto and nowm < want - 5:
+    win = f"{want // 60:02d}:{want % 60:02d}–{stop // 60:02d}:{stop % 60:02d}"
+    if not a.dry_run and nowm < want - 5:      # 容 5 分钟：调度器落地有抖动
         runtime.emit("SKIP_BEFORE_PUBLISH",
                      f"北京 {now_bj:%H:%M} 还没到出报时刻 "
                      f"{cfg.publish_hour:02d}:{cfg.publish_minute:02d}，等本工作日的下一个触发点")
         return 0
-    # 上沿。触发点不止 Codex 一家了 —— launchd 那条在机器睡过钟点之后醒来会补跑，
-    # 补到北京 23 点也照样是「排程触发」。没有上沿的话，简报就在深夜进了生产管理群。
-    # 过了窗口宁可今天不发：看门狗第二天早上会点出来，而半夜发出去撤不回来。
-    stop = want + cfg.window_hours * 60
-    if auto and nowm > stop:
+    if not a.dry_run and nowm > stop:
         runtime.emit("SKIP_AFTER_WINDOW",
-                     f"北京 {now_bj:%H:%M} 已过发送窗口 "
-                     f"{want // 60:02d}:{want % 60:02d}–{stop // 60:02d}:{stop % 60:02d}，"
-                     f"今天不补发，等下一个工作日")
+                     f"北京 {now_bj:%H:%M} 已过发送窗口 {win}，今天不补发，等下一个工作日")
         return 0
 
     # 闸全过了，今天确实要出报 —— 先把自己这个群的 KMFile / KMMedia 增量跑一遍，

@@ -56,22 +56,29 @@ fi
 # 调度核对：调度器按本机墙钟触发，截止线是北京时间，本机（悉尼）有夏令时而北京没有，
 # 所以一年里两地差 2 或 3 小时。做法是每天触发两个钟点，让脚本自己挑等于北京 17:15 的那次。
 # 这里不告诉人该填几点，直接核对装上去的那份配置对不对。
-AUTO1="$HOME/.codex/automations/automation/automation.toml"
-AUTO2="$HOME/.codex/automations/automation-2/automation.toml"
-# 认名字不认 id —— create_automation 不接受自定义 id，中文名生成不出 slug，
-# 所以 id 只能是 automation / automation-2。名字才是对的那一份。
-n=0
-for A in "$AUTO1" "$AUTO2"; do
-  [ -f "$A" ] || continue
-  grep -q '考勤异常简报' "$A" || continue
-  grep -q 'status = "ACTIVE"' "$A" || { no "$(basename $(dirname $A)) 不是 ACTIVE"; continue; }
-  grep -q 'BYDAY=MO,TU,WE,TH,FR' "$A" || { no "$(basename $(dirname $A)) 缺工作日限制，周末会误点名"; continue; }
-  n=$((n+1))
-done
-[ "$n" -eq 2 ] && ok "两条 Codex automation 都在且启用（主 + 备位）" \
-               || no "考勤 automation 只找到 $n 条，应为 2 条 —— 少一条，换季那天会静默失效"
+# 考勤线固定两条，不多不少：一条出报（三个钟点写在同一条 rrule 里），一条看门狗。
+# 认名字不认 id —— create_automation 不接受自定义 id，中文名生成不出 slug。
+AUTO1="$HOME/.codex/automations/automation/automation.toml"        # 出报
+AUTO2="$HOME/.codex/automations/automation-2/automation.toml"      # 看门狗
+chk_auto() {   # $1=toml $2=名字关键词 $3=该调的脚本 $4=说明
+  [ -f "$1" ] || { no "$4 的 automation 不见了：$1"; return; }
+  grep -q "$2" "$1" || { no "$4 的 automation 名字对不上（应含「$2」）"; return; }
+  grep -q 'status = "ACTIVE"' "$1" || { no "$4 的 automation 不是 ACTIVE"; return; }
+  grep -q 'BYDAY=MO,TU,WE,TH,FR' "$1" || { no "$4 的 automation 缺工作日限制"; return; }
+  grep -q "$3" "$1" || { no "$4 的 automation 调的不是 $3"; return; }
+  ok "$4 的 automation 在且启用，调 $3"
+}
+chk_auto "$AUTO1" '考勤异常简报 每工作日发送' 'kmfa_brief_cron.sh'     "出报"
+chk_auto "$AUTO2" '看门狗'                     'kmfa_brief_watchdog.sh' "看门狗"
 
-# 断言的是**不变式**，不是某个具体钟点：把两条 rrule 的全部 BYHOUR 换算成北京时间，
+# 考勤线只许有这两条。多出来的（改名遗留、手滑建的、DB 里的僵尸）会重复跑、
+# 重复发、互相盖运行记录，而且让人看不清到底哪条在管事。
+ZOMB=$(sqlite3 "$HOME/.codex/sqlite/codex-dev.db" \
+       "select id from automations where status='ACTIVE' and (name like '%考勤%' or id like '%attendance%') and id not in ('automation','automation-2');" 2>/dev/null)
+[ -z "$ZOMB" ] && ok "没有多余的考勤 automation（DB 里只有这两条是 ACTIVE）" \
+                || no "DB 里还有多余且 ACTIVE 的考勤 automation：$(echo $ZOMB) —— 会重复跑"
+
+# 断言的是**不变式**，不是某个具体钟点：把出报那条 rrule 的全部 BYHOUR 换算成北京时间，
 # 落在发送窗口 [17:15, 17:15+4h] 里的必须 >= 2 个。
 #
 # 为什么不比「有没有一个恰好等于 19:15」：那是把当前这一季的答案写死当规矩。
@@ -82,7 +89,7 @@ done
 PUBLISH_H=17; PUBLISH_M=15        # 出报时刻（北京），同时也是人员表截止线
 WINDOW_H="${KMFA_BRIEF_WINDOW_HOURS:-4}"
 SLOT_REPORT=$(/usr/bin/python3 "$(cd "$(dirname "$0")" && pwd)/slot_window.py" \
-              "$AUTO1" "$AUTO2" "$PUBLISH_H" "$PUBLISH_M" "$WINDOW_H" 2>/dev/null)
+              "$AUTO1" "$PUBLISH_H" "$PUBLISH_M" "$WINDOW_H" 2>/dev/null)
 SLOT_N="${SLOT_REPORT%%|*}"; SLOT_REST="${SLOT_REPORT#*|}"
 SLOT_ALL="${SLOT_REST%%|*}"; SLOT_VALID="${SLOT_REST#*|}"
 case "${SLOT_N:-x}" in
@@ -106,7 +113,7 @@ esac
 PROMPT_SRC="$(cd "$(dirname "$0")/.." && pwd)/automation/kmfa_attendance_brief.prompt.md"
 WANT_MODEL="${KMFA_BRIEF_MODEL:-scnet-deepseek-v4-flash-0731}"   # 张霖泽 2026-09-09 指定
 WANT_EFFORT="${KMFA_BRIEF_EFFORT:-max}"
-for A in "$AUTO1" "$AUTO2"; do
+for A in "$AUTO1"; do
   [ -f "$A" ] || continue
   id=$(basename "$(dirname "$A")")
   # 必须用带 tomllib 的解释器（3.11+）。第一版写成「没有就 sys.exit(0) 跳过」，
@@ -184,10 +191,6 @@ probe_branch() {   # $1=说明 $2=期望参数 其余=环境覆盖
 NOWH=$(date +%H); NOWM=$(date +%M)
 probe_branch "排程触发" "" "KMFA_BRIEF_SLOT_HOURS=$NOWH" "KMFA_BRIEF_SLOT_MIN=$NOWM"
 probe_branch "手动 Run" "--force" "KMFA_BRIEF_SLOT_HOURS=00" "KMFA_BRIEF_SLOT_MIN=00"
-# launchd 那条兜底触发器：离任何钟点都很远（机器睡过了钟点，醒来才补跑），
-# 但它**必须**走排程分支。拿到 --force 就会绕开周末闸和出报时刻闸，
-# 半夜把简报发进生产管理群 —— 这一条守的就是那个。
-probe_branch "launchd 兜底" "" "KMFA_BRIEF_SLOT_HOURS=00" "KMFA_BRIEF_SLOT_MIN=00" "KMFA_BRIEF_TRIGGER=launchd"
 rm -rf "$STUB"
 
 echo "----------------------------------------"
