@@ -145,7 +145,7 @@ def _run(a) -> int:
              - timedelta(days=cfg.weekly_window_days - 1)).strftime("%Y-%m-%d")
     rec = weekly.fetch(dws, list(uid2), start, bizday)
 
-    # ① 轮休名单：连续到岗够门槛的人。休一天即归零，自己就会从名单上消失。
+    # ① 连续在岗名单：连续到岗够门槛的人。休一天即归零，自己就会从名单上消失。
     roll_uid = [u for u in rec if weekly.streak(rec[u], bizday) >= cfg.rest_threshold]
     roll_uid.sort(key=lambda u: -weekly.streak(rec[u], bizday))
     # ② 在岗待核实：在册却一次卡没打，且没走过请假流程的。
