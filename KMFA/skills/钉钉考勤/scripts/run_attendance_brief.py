@@ -409,6 +409,15 @@ def _run(a) -> int:
                               f"{day} 已发送 {datetime.now(BEIJING):%Y-%m-%d %H:%M:%S}"
                               f" 北京时间 · 目标：生产管理群",
                               this_kind)
+            # 互查：看门狗和周报都挂在 automation-2 上，那一条整个停了的话，
+            # 它们是一起停的 —— 没有任何人会说话。日报这一条替它看一眼。
+            # 放在发送成功之后：出报是交付物，互查是附带的，绝不让它挡住简报。
+            why = runtime.peer_check("automation-2")
+            if why:
+                runtime.emit("PEER_DOWN", why)
+                runtime.alarm(cfg.dws, cfg.notify_user, "PEER_DOWN",
+                              f"{why}\n\n日报这条还在跑（今天已发）。"
+                              f"周报和看门狗要人去 Codex 里看一眼。")
             runtime.emit("SEND_COMPLETED",
                          f"生产管理群 · {title}"
                          + (f" · 顶替了本日的降级版" if kind == runtime.DEGRADED else ""))
