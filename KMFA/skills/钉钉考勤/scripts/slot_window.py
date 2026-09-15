@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """把两条 automation 的 rrule 钟点换算成北京时间，数一数有几个落在发送窗口里。
 
-用法: slot_window.py <toml> <toml> <出报时> <出报分> <窗口小时数>
+用法: slot_window.py <toml...> <出报时> <出报分> <窗口小时数>
 输出: "<有效个数>|<全部槽位>|<有效槽位>"
 
 本机是 Australia/Sydney 有夏令时，北京没有 —— 所以「19:15 就是北京 17:15」
@@ -12,7 +12,8 @@
 import datetime, pathlib, re, sys
 from zoneinfo import ZoneInfo
 BJ = ZoneInfo("Asia/Shanghai")
-files, ph, pm, wh = sys.argv[1:3], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+files = sys.argv[1:-3]
+ph, pm, wh = int(sys.argv[-3]), int(sys.argv[-2]), int(sys.argv[-1])
 lo, hi = ph * 60 + pm, ph * 60 + pm + wh * 60
 today, all_slots, valid = datetime.date.today(), [], []
 for f in files:

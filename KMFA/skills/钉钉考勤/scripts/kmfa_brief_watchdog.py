@@ -32,12 +32,12 @@ SKILL = Path(__file__).resolve().parents[1]
 ENVF = SKILL / "private_runtime" / "kmfa_brief.env"
 CRON = SKILL / "scripts" / "kmfa_brief_cron.sh"
 APP_DB = Path.home() / ".codex" / "sqlite" / "codex-dev.db"
-LAUNCHD_LABEL = "com.kmfa.attendance-brief"
 BEIJING = ZoneInfo("Asia/Shanghai")
 
-# 主 + 备位。两条都要在、都要 ACTIVE，缺一条就是从双趟退回单趟。
-AUTOMATIONS = ("automation", "automation-2")
-# 两条 automation 最晚的触发点是本机 21:15，看门狗排在第二天上午 ——
+# 简报只有这一条 automation（三个触发钟点都写在它的 rrule 里）。
+# 本文件自己跑在 automation-2 上 —— 看门狗不看自己，只看它要守的那条。
+AUTOMATIONS = ("automation",)
+# 简报最晚的触发点是本机 21:15，看门狗排在第二天上午 ——
 # 所以它跑的时候，「上一个工作日该发而没发」已经是定论，不是还没轮到。
 MAX_SILENT_HOURS = 26
 # 结论性标记：出现任何一个，就说明那一天脚本真的跑到底了、并且给出了判断。
@@ -180,38 +180,6 @@ def dingtalk_broken(cfg: dict) -> str | None:
     return None
 
 
-def machine_sleeps() -> str | None:
-    """AC 上 sleep 不是 0，就意味着机器空闲一会儿就睡，睡着了谁都跑不了。
-    只有 caffeinate 那条 LaunchAgent 在跑的时候才顶得住 —— 它不在就该报。"""
-    try:
-        out = subprocess.run(["pmset", "-g", "custom"], capture_output=True,
-                             text=True, timeout=30).stdout
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    ac = out.split("AC Power:", 1)[-1]
-    m = re.search(r"^\s*sleep\s+(\d+)", ac, re.M)
-    if not m or m.group(1) == "0":
-        return None
-    try:
-        held = subprocess.run(["pgrep", "-x", "caffeinate"],
-                              capture_output=True, text=True, timeout=30).returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if held:
-        return None
-    return (f"插电时 {m.group(1)} 分钟不动就休眠，而且现在没有任何 caffeinate 顶着 ——"
-            f"机器一睡，所有定时任务一起停")
-
-
-def launchd_loaded() -> bool:
-    try:
-        r = subprocess.run(["launchctl", "list", LAUNCHD_LABEL],
-                           capture_output=True, text=True, timeout=30)
-        return r.returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-
-
 def find_problem(cfg: dict) -> tuple[str, str] | None:
     """返回 (问题标识, 给人看的一句话)；一切正常返回 None。
     顺序是有意的：越是「连告警都发不出去」的，越要先查。"""
@@ -255,15 +223,6 @@ def find_problem(cfg: dict) -> tuple[str, str] | None:
                 f"北京时间只剩 {valid_slots[0]} 这一个有效触发点了，"
                 f"第一趟出岔子就没有第二趟兜底")
 
-    if not launchd_loaded():
-        return ("launchd_missing",
-                f"不依赖 Codex 的那条兜底触发器（{LAUNCHD_LABEL}）没装或没加载，"
-                f"Codex 桌面端一关就没人发简报了")
-
-    sleeps = machine_sleeps()
-    if sleeps:
-        return "sleeps_on_ac", sleeps
-
     if newest_run:
         silent = (datetime.datetime.now().timestamp() - newest_run / 1000) / 3600
         if silent > MAX_SILENT_HOURS:
@@ -272,9 +231,12 @@ def find_problem(cfg: dict) -> tuple[str, str] | None:
     prev = previous_workday(datetime.datetime.now(BEIJING).date()).isoformat()
     marks = day_markers(runtime_root / "logs" / "kmfa_brief_run.log", prev)
     if not marks:
+        # 不去查 pmset 的睡醒记录来分辨「机器睡了」还是「Codex 没开」：
+        # `pmset -g log` 实测 81 秒、80MB，而这两种情况对老板来说动作是同一个。
         return (f"no_conclusion_{prev}",
-                f"上一个工作日（{prev}）的运行日志里一条结论都没有 —— "
-                f"那天简报既没发出去，也没有任何东西报警")
+                f"上一个工作日（{prev}）的运行日志里一条结论都没有 —— 那天简报没发出去，"
+                f"也没有任何东西报警。这条线只能靠 Codex 触发：机器睡着、"
+                f"或者 Codex 桌面端没开，它就不会跑")
     bad = [m for m in marks if m in CONCLUSIVE_BAD]
     if bad and not any(m == "SEND_COMPLETED" for m in marks):
         return (f"last_run_failed_{prev}",
