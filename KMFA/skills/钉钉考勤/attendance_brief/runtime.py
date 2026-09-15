@@ -8,31 +8,37 @@ from __future__ import annotations
 import os, sys, time, tempfile, shutil, contextlib
 from pathlib import Path
 
-LOCK = Path(tempfile.gettempdir()) / "kmfa_attendance_brief.pid"
+_LOCKDIR = Path(tempfile.gettempdir())
+LOCK = _LOCKDIR / "kmfa_attendance_brief.pid"   # 日报的锁，名字保持不变
 
 class AlreadyRunning(RuntimeError):
     pass
 
 @contextlib.contextmanager
-def single_instance():
+def single_instance(name: str = ""):
     """三态：没锁 / 锁着且进程还活着 / 陈旧锁（进程已死，回收）。
-    三种都发固定标记，调度侧不用猜。"""
-    if LOCK.exists():
+    三种都发固定标记，调度侧不用猜。
+
+    日报和周报各拿各的锁 —— 共用一把的话，周报卡住会把当天的日报一起挡掉，
+    而这两件事之间没有任何依赖。
+    """
+    lock = _LOCKDIR / (f"kmfa_attendance_{name}.pid" if name else LOCK.name)
+    if lock.exists():
         try:
-            pid = int(LOCK.read_text().strip())
+            pid = int(lock.read_text().strip())
             os.kill(pid, 0)
             raise AlreadyRunning(f"另一个实例正在运行 (pid={pid})")
         except (ValueError, ProcessLookupError):
             emit("LOCK_STALE_RECLAIMED", "上一轮没清干净的锁，已回收")
-            LOCK.unlink(missing_ok=True)
+            lock.unlink(missing_ok=True)
         except PermissionError:
             raise AlreadyRunning("另一个实例正在运行（锁属于别的用户）")
-    LOCK.write_text(str(os.getpid()))
-    emit("LOCK_ACQUIRED", f"pid={os.getpid()}")
+    lock.write_text(str(os.getpid()))
+    emit("LOCK_ACQUIRED", f"pid={os.getpid()} lock={lock.name}")
     try:
         yield
     finally:
-        LOCK.unlink(missing_ok=True)
+        lock.unlink(missing_ok=True)
 
 @contextlib.contextmanager
 def workdir():
@@ -76,14 +82,49 @@ MAXLOG = 2_000_000          # 超过就砍掉前半，SMB 上不能无限长
 def log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
 
+# 过程标记：只说明跑到哪一步了，不参与判读。其余一律算结论性标记。
+PROGRESS_PREFIX = ("RUN_START", "WEEKLY_START", "LOCK_", "ALARM_",
+                   "KMFILE_", "KMMEDIA_", "ARCHIVE_")
+# 真的把东西发进群了才算 ACT。
+ACT_TOKENS = ("SEND_COMPLETED", "WEEKLY_SENT")
+_LAST = None                       # 最后一个结论性标记
+
 def emit(token: str, msg: str = "") -> None:
     """机器读的固定标记 + 人读的中文，一行里都有。
 
     判读一律认 token。中文只给人看 —— 文案随时会改，改了不该影响调度侧的判读。
+    顺手记住最后一个结论性标记，收尾时由 emit_action() 折成一行 ACTION。
     """
+    global _LAST
+    if not token.startswith(PROGRESS_PREFIX):
+        _LAST = token
     line = f"{token}" + (f" | {msg}" if msg else "")
     print(f"[{time.strftime('%H:%M:%S')}] {line}", file=sys.stderr, flush=True)
     runlog(line)
+
+def action() -> str:
+    """把这一轮折成三个词之一。
+
+    调度侧跑的是 SCNet 那个小模型，让它对着一张十几行的标记表做判读，
+    等于把业务判断交给一个判不了的东西。所以判读在这里做完，
+    automation 的 prompt 只剩一句「把最后那行 ACTION 抄到第一行」。
+    """
+    if _LAST is None:
+        return "ESCALATE"                     # 一个结论性标记都没有 = 不知道发生了什么
+    if _LAST in ACT_TOKENS:
+        return "ACT"
+    if _LAST.startswith(("SKIP_", "NOT_SENT_", "WATCHDOG_OK", "WATCHDOG_KNOWN")):
+        return "NONE"
+    if _LAST == "LOCK_HELD":                  # 上一轮还在跑，不是故障
+        return "NONE"
+    return "ESCALATE"
+
+def emit_action() -> str:
+    """整轮最后一行，固定形状 `ACTION: X`。包装脚本和调度侧都只认这一行。"""
+    a = action()
+    print(f"ACTION: {a}", file=sys.stderr, flush=True)
+    runlog(f"ACTION: {a}")
+    return a
 
 def runlog_init(root) -> None:
     """运行日志落 SMB，跟其余产出同一个盘。出事能直接贴最后 30 行。"""
@@ -122,18 +163,32 @@ def smb_ready(*roots) -> str:
             return f"{r} 不可用: {type(e).__name__} {e}"
     return ""
 
-# 老板 2026-09-15 定的：报文里不许出现这三个词。
-# 说时长就是在书面记录公司自己的用工强度，压力给到公司而不是员工 ——
-# 考勤简报要的是「谁该补卡、谁该调休」，不是「谁干了多久」。
+# 老板定的：报文里不许出现这些词。2026-09-15 先定了前三个（说时长等于书面记录
+# 公司自己的用工强度，压力给到公司而不是员工），2026-09-16 扩到全表 ——
+# 要求是「哪怕员工拿着这些记录去举报，也是对公司有利的」。
+# 所以报文只下排班指令，不做任何事实认定、不碰任何法律词。
 # 闸放在**投递之前**，不是放在写文案的人的自觉上：以后谁改文案都漏不掉。
-BANNED = ("加班", "工时", "小时")
+BANNED = ("加班", "工时", "小时", "劳动法", "仲裁", "违法", "超时", "疲劳",
+          "连续工作", "未休", "旷工", "加班费", "法定", "赔偿", "举报")
 
 def banned_words(text: str) -> list:
     return [w for w in BANNED if w in text]
 
+# 干跑期间不发告警。干跑是人坐在终端前主动跑的验证，故障就在屏幕上，
+# 再私聊一条只是打扰 —— 2026-09-16 共享盘掉线时，一次干跑就这么发出去一条。
+# 排程跑失败才需要私聊，因为那时候没有人在看。
+_QUIET = False
+
+def quiet_alarms(on: bool = True) -> None:
+    global _QUIET
+    _QUIET = on
+
 def alarm(dws: str, user_id: str, token: str, body: str) -> bool:
     """出事私聊张霖泽。ACTION: ESCALATE 只写在 Codex 桌面 app 的任务消息里，
     手机上看不见 —— 挂三天也没人知道。所以告警必须自己走钉钉私聊。"""
+    if _QUIET:
+        runlog(f"ALARM_SUPPRESSED | {token}（干跑，不打扰）")
+        return False
     if not (dws and user_id):
         return False
     import subprocess

@@ -69,8 +69,14 @@ chk_auto() {   # $1=toml $2=名字关键词 $3=该调的脚本 $4=说明
   ok "$4 的 automation 在且启用，调 $3"
 }
 chk_auto "$AUTO1" '考勤异常简报 每工作日发送' 'kmfa_brief_cron.sh'     "出报"
-chk_auto "$AUTO2" '看门狗'                     'kmfa_brief_watchdog.sh' "看门狗"
-chk_auto "$AUTO2" '累计'                       'kmfa_monthly_cron.sh'   "出勤累计"
+chk_auto "$AUTO2" '周报'                       'kmfa_weekly_cron.sh'    "看门狗+周报"
+# automation-2 只许调一条命令。两条的时候调度侧要自己合并两份判读结果，
+# 而那一侧跑的是 SCNet 那个小模型 —— 判读全部下沉到脚本里，它只抄最后一行。
+if [ "$(grep -c 'scripts/kmfa_' "$AUTO2" 2>/dev/null)" = "1" ]; then
+  ok "automation-2 只调一条命令（判读已下沉到脚本）"
+else
+  no "automation-2 调了不止一条命令 —— 小模型要自己合并判读，会判错"
+fi
 
 # 考勤线只许有这两条。多出来的（改名遗留、手滑建的、DB 里的僵尸）会重复跑、
 # 重复发、互相盖运行记录，而且让人看不清到底哪条在管事。
@@ -111,12 +117,22 @@ esac
 # 模型也一起核：Codex 每次改 automation 都会把当前会话的模型盖上去，
 # 所以这里断言的是**张霖泽指定的那个模型**，不是我猜的。改模型请改下面两个变量，
 # 别改代码里的默认值 —— 让守卫跟着人的决定走，而不是反过来。
-PROMPT_SRC="$(cd "$(dirname "$0")/.." && pwd)/automation/kmfa_attendance_brief.prompt.md"
+SKILLROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WANT_MODEL="${KMFA_BRIEF_MODEL:-scnet-deepseek-v4-flash-0731}"   # 张霖泽 2026-09-09 指定
 WANT_EFFORT="${KMFA_BRIEF_EFFORT:-max}"
-for A in "$AUTO1"; do
+# 两条都核。以前只核 AUTO1 —— 于是 automation-2 的 prompt 线上改了、仓库不知道，
+# 下次换机或回滚就把旧版刷回去，而那正是调度侧唯一的判读依据。
+for A in "$AUTO1" "$AUTO2"; do
   [ -f "$A" ] || continue
   id=$(basename "$(dirname "$A")")
+  case "$id" in
+    automation)   PROMPT_SRC="$SKILLROOT/automation/kmfa_attendance_brief.prompt.md" ;;
+    automation-2) PROMPT_SRC="$SKILLROOT/automation/kmfa_attendance_weekly.prompt.md" ;;
+  esac
+  # 用局部变量记这一条的结果。这里以前直接读全局的 fail，于是前面任何一条
+  # FAIL 都会让这一条不打 PASS；而把全局 fail 清成空串更糟 —— 收尾的
+  # `[ "$fail" -eq 0 ]` 和 `exit "$fail"` 会直接报语法错，自检自己先挂了。
+  pfail=0
   # 必须用带 tomllib 的解释器（3.11+）。第一版写成「没有就 sys.exit(0) 跳过」，
   # 而系统 python 正好是 3.9 —— 整条检查静默失效、照样报 PASS。假绿。
   # 现在找不到合适的解释器就直接 FAIL，不许悄悄跳过。
@@ -128,7 +144,7 @@ for A in "$AUTO1"; do
     no "找不到带 tomllib 的 python（3.11+），无法核对线上 automation 与仓库是否一致"
     continue
   fi
-  "$PY311" - "$A" "$PROMPT_SRC" "$id" "$WANT_MODEL" "$WANT_EFFORT" <<'PY' || fail=1
+  "$PY311" - "$A" "$PROMPT_SRC" "$id" "$WANT_MODEL" "$WANT_EFFORT" <<'PY' || { pfail=1; fail=1; }
 import sys, pathlib, tomllib
 a, src, i, want_model, want_effort = sys.argv[1:6]
 d = tomllib.loads(pathlib.Path(a).read_text())
@@ -144,7 +160,7 @@ for b in bad:
     print(f"  FAIL  {i}: {b}")
 sys.exit(1 if bad else 0)
 PY
-  [ "$fail" = "1" ] || ok "$id 的 prompt 与仓库一致，模型是 $WANT_MODEL / $WANT_EFFORT"
+  [ "$pfail" = "1" ] || ok "$id 的 prompt 与仓库一致，模型是 $WANT_MODEL / $WANT_EFFORT"
 done
 
 # 出事能不能通知到人
@@ -197,7 +213,7 @@ rm -rf "$STUB"
 # 干跑绝不能走到投递。2026-09-15 栽过一次：考勤累计脚本里 --dry-run 只被拿去跳过台账，
 # 投递那段照跑，一次「干跑验证」把八月的两条报文真发进了生产管理群（已撤回）。
 # 守卫查的是**调用图**，不是有没有写 if：干跑那条落点函数里不许能走到 dws send。
-case "$(/usr/bin/python3 - "$(cd "$(dirname "$0")" && pwd)/run_attendance_monthly.py" <<'PYGUARD2'
+case "$(/usr/bin/python3 - "$(cd "$(dirname "$0")" && pwd)/run_attendance_weekly.py" <<'PYGUARD2'
 import ast, sys
 src = open(sys.argv[1], encoding="utf-8").read()
 fns = {n.name: n for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef)}
@@ -215,17 +231,35 @@ print("PASS" if (not r("_print_only") and r("_deliver")
                  and src.count('"chat", "message", "send"') == 1) else "FAIL")
 PYGUARD2
 )" in
-  PASS) ok "考勤累计：干跑落点在调用图上就够不着投递" ;;
-  *)    no "考勤累计：干跑能走到投递 —— 这是会把报文误发进群的那个缺陷" ;;
+  PASS) ok "生产部周报：干跑落点在调用图上就够不着投递" ;;
+  *)    no "生产部周报：干跑能走到投递 —— 这是会把报文误发进群的那个缺陷" ;;
 esac
 
-# 报文里不许出现这三个词，闸必须在投递之前。
-if grep -q 'BANNED = ("加班", "工时", "小时")' "$(cd "$(dirname "$0")/.." && pwd)/attendance_brief/runtime.py" \
-   && grep -q 'banned_words' "$(cd "$(dirname "$0")" && pwd)/run_attendance_brief.py" \
-   && grep -q 'banned_words' "$(cd "$(dirname "$0")" && pwd)/run_attendance_monthly.py"; then
-  ok "禁用词闸在位（加班 / 工时 / 小时，两条线都挂了）"
+# 报文里不许出现这些词，闸必须在投递之前，而且**干跑也要判**。
+# 日报以前把这道闸写在「干跑就 return」的后面 —— 干跑永远看不出报文会被拒。
+SKILLD="$(cd "$(dirname "$0")/.." && pwd)"; SCR="$(cd "$(dirname "$0")" && pwd)"
+NBAN=$(/usr/bin/python3 -c "
+import sys; sys.path.insert(0,'$SKILLD')
+from attendance_brief.runtime import BANNED; print(len(BANNED))" 2>/dev/null || echo 0)
+if [ "$NBAN" -ge 15 ] \
+   && grep -q 'banned_words' "$SCR/run_attendance_brief.py" \
+   && grep -q 'banned_words' "$SCR/run_attendance_weekly.py" \
+   && /usr/bin/python3 -c "
+src = open('$SCR/run_attendance_brief.py', encoding='utf-8').read()
+import sys; sys.exit(0 if src.index('banned_words') < src.index('if a.dry_run or not cfg.send_enabled') else 1)"; then
+  ok "禁用词闸在位（$NBAN 个词，两条线都挂了，且干跑也过闸）"
 else
-  no "禁用词闸缺失或没挂到两条线上"
+  no "禁用词闸缺失、词数不足 15、没挂全，或日报的闸排在干跑分支后面"
+fi
+
+# 两条线都要在收尾打一行 ACTION —— 调度侧那个小模型只抄这一行，不查表。
+if grep -q 'emit_action' "$SCR/run_attendance_brief.py" \
+   && grep -q 'emit_action' "$SCR/run_attendance_weekly.py" \
+   && grep -q "ACTION: \$A" "$SCR/kmfa_brief_cron.sh" \
+   && grep -q "ACTION: \$FINAL" "$SCR/kmfa_weekly_cron.sh"; then
+  ok "两条线都在收尾打 ACTION（调度侧不需要判读）"
+else
+  no "有脚本没打 ACTION 收尾行 —— 小模型会被迫自己查表判读"
 fi
 
 # 段落分隔不能用真空行 —— 钉钉会把空行整条吃掉，整篇挤成一片。

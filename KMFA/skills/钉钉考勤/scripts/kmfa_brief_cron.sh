@@ -62,7 +62,9 @@ export KMFA_BRIEF_SCHEDULED=1
 # 所以超时判定必须在进程外面。900 秒远高于正常全程（实测约 90 秒），
 # 也高于内部预算之和，正常情况永远轮不到它；轮到了就是真出事了。
 HARD="${KMFA_BRIEF_HARD_TIMEOUT:-900}"
-"$VENV/bin/python" "$SKILL/scripts/run_attendance_brief.py" $FORCE &
+ERRF="$(mktemp -t kmfa_brief_err)"
+trap 'rm -f "$ERRF"' EXIT
+"$VENV/bin/python" "$SKILL/scripts/run_attendance_brief.py" $FORCE 2>"$ERRF" &
 child=$!
 waited=0
 while kill -0 "$child" 2>/dev/null && [ "$waited" -lt "$HARD" ]; do
@@ -70,6 +72,7 @@ while kill -0 "$child" 2>/dev/null && [ "$waited" -lt "$HARD" ]; do
 done
 if kill -0 "$child" 2>/dev/null; then
   kill -9 "$child" 2>/dev/null
+  cat "$ERRF" >&2
   echo "ABORTED_TIMEOUT | 硬墙钟 ${HARD} 秒到了，进程还卡着（多半是共享盘挂起），今天这份没发出去" >&2
   # 告警得由本脚本发：那个 python 已经卡死，它自己的告警代码执行不到。
   DWSBIN="${KMFA_BRIEF_DWS:-$HOME/.local/bin/dws}"
@@ -79,7 +82,16 @@ if kill -0 "$child" 2>/dev/null; then
       --text "考勤简报卡死了 ${HARD} 秒，已强制中止，今天这份没发出去。常见原因是共享盘挂起（进程进不可中断 IO）。下一个触发点会再试一次。" \
       >/dev/null 2>&1 || true
   fi
+  echo "ACTION: ESCALATE" >&2
   exit 1
 fi
-wait "$child"
-exit $?
+wait "$child"; rc=$?
+cat "$ERRF" >&2
+# run_attendance_brief.py 在 finally 里把 `ACTION: X` 打进自己的 stderr。
+# 判读在脚本里做完，automation 的 prompt 只剩「把最后那行 ACTION 抄到第一行」——
+# 调度侧跑的是 SCNet 那个小模型，让它对着十几行标记表做判读它判不了。
+A="$(grep -o 'ACTION: [A-Z]*' "$ERRF" | tail -1 | sed 's/ACTION: //')"
+[ -z "$A" ] && A=ESCALATE        # 没打 ACTION = 没跑到收尾
+echo "ACTION: $A" >&2
+[ "$A" = "ESCALATE" ] && exit 1
+exit $rc
