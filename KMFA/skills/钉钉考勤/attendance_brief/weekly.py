@@ -249,7 +249,6 @@ def render(monday: str, bizday: str, roll: list, pending: list, discipline: list
     if pending:
         L += [RULE, "**在岗待核实**"]
         L += [f"{n}（{p}）近期没有打卡记录" for n, p in pending]
-        L.append("请核实在岗情况后在群里回复。")
     if discipline:
         L += [RULE, f"**打卡规范　{bd.month} 月 1 日 – {bd.day} 日**"]
         L += [f"{lab} 3 次以上　" + "、".join(f"{n} {v} 次" for n, v in arr)
