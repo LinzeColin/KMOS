@@ -182,5 +182,26 @@ class 端到端(unittest.TestCase):
         self.assertTrue(r["乙"]["估计方法"].startswith("数不出来"))
 
 
+class 复审回归(unittest.TestCase):
+    """复审发现的"静默出错"场景：被挡的页不许当 ok；日均估计不许被零星旧日期拉低。"""
+
+    def test_障碍识别(self):
+        from 抓取 import 识别障碍 as f
+        self.assertEqual(f(200, "<div id=app></div><script src=a.js></script>", "", "u"), "JS渲染(静态无正文)")
+        self.assertEqual(f(200, "<p>访问过于频繁，请稍后再试</p>", "访问过于频繁，请稍后再试", "u"), "限流")
+        self.assertEqual(f(202, "<script>$_ts=1</script>", "正文" * 300, "u"), "反爬-瑞数")
+        self.assertEqual(f(429, "", "", "u"), "限流(HTTP429)")
+        self.assertEqual(f(200, "<html></html>", "", "u"), "空页(静态无正文)")
+
+    def test_日均估计(self):
+        from 平台探测 import 估日量
+        T = dt.date(2026, 9, 23)
+        量, 法 = 估日量("\n".join([f"维修项目{i} 2026-09-2{i}" for i in range(1, 4)] + ["检修A 2026-09-21", "食堂 2026-09-22", "版权 2026-01-01"]), T)
+        self.assertEqual(量, 1.33)  # 3 天 4 条维修类，2026-01-01 被剔除
+        self.assertIn("剔除", 法)
+        量, 法 = 估日量("\n".join(f"检修项目{i} 2026-09-23" for i in range(20)), T)
+        self.assertIn("下限", 法)
+
+
 if __name__ == "__main__":
     unittest.main()

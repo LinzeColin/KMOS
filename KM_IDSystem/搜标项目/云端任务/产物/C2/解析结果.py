@@ -102,6 +102,14 @@ def 取中标价(t: str) -> list[dict]:
     return []
 
 
+def 选限价(候选: list[dict], 中: dict) -> dict:
+    """同一标段有多个限价时：①税口径与中标价一致者优先（任一方未说明视为一致）②无存疑者优先 ③金额大者优先（分项总小于总价）。"""
+    def 键(x):
+        税不符 = x["含税"] is not None and 中.get("含税") is not None and x["含税"] != 中["含税"]
+        return (税不符, bool(x["存疑"]), -x["限价元"])
+    return sorted(候选, key=键)[0]
+
+
 def 配对(限价: list[dict], 中标: list[dict]):
     """返回 [(限价项, 中标项)] 与跳过原因。"""
     总价 = [x for x in 限价 if x["限价元"] is not None and x["类型"] != "单价限价"]
@@ -121,12 +129,10 @@ def 配对(限价: list[dict], 中标: list[dict]):
         b = list(段中.values())[0]
         if len(b) != 1:
             return [], "单标段出现多个不同中标价，无法确定"
-        # 含税/不含税并列时，优先用与中标价同口径的，其次用含税/未说明
-        a = sorted(a, key=lambda x: (x["含税"] is False,))
-        return [(a[0], b[0])], ""
+        return [(选限价(a, b[0]), b[0])], ""
     for 段, b in 段中.items():
         if 段 in 段限 and len(b) == 1:
-            对.append((段限[段][0], b[0]))
+            对.append((选限价(段限[段], b[0]), b[0]))
     return 对, ("" if 对 else "多标段无法按标段配对")
 
 
@@ -155,10 +161,10 @@ def 解析一篇(url: str, t: str, 标题: str = "") -> tuple[list[dict], dict]:
         限, 中 = a["限价元"], b["限价元"]
         率 = 1 - 中 / 限
         质检 = "ok"
-        if 率 < 0 or 率 > 0.6:
-            质检 = "异常:下浮率超出[0,60%]，疑单位或口径错"
         if a["存疑"] or b.get("存疑"):
             质检 = "存疑:" + ";".join(a["存疑"] + b.get("存疑", []))
+        if 率 < 0 or 率 > 0.6 or 中 <= 0:  # 异常优先于存疑：统计永远排除
+            质检 = "异常:下浮率超出[0,60%]或中标价非正，疑单位或口径错"
         样本.append(dict(公共, **{
             "限价": round(限, 2), "中标价": round(中, 2), "下浮率": round(率, 4), "标段": a["标段"] or "",
             "限价口径": a["类型"], "中标价口径": b.get("口径", ""), "税口径": {True: "含税", False: "不含税", None: "未说明"}[a["含税"]],

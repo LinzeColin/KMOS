@@ -18,12 +18,12 @@ ROOT = Path(__file__).resolve().parent
 公共 = ["公共/抓取.py", "公共/网页文本.py", "公共/列表抽链接.py"]
 清单 = {
     # (回件里的文件名, 源路径)；本地产出同名文件优先
-    "C1": [("README.md", "C1/README.md"), ("平台普查.csv", "C1/平台普查.csv"), ("平台探测.py", "C1/平台探测.py"),
+    "C1": [("README.md", "C1/README.md"), ("平台普查.csv", "C1/平台普查.csv"), ("平台探测.py", "C1/平台探测.py"), ("生成普查初版.py", "C1/生成普查初版.py"),
            ("搜索记录/集团平台.jsonl", "C1/搜索记录/集团平台.jsonl"), ("搜索记录/省级与全国平台.jsonl", "C1/搜索记录/省级与全国平台.jsonl")] + [(p, p) for p in 公共],
     "C2": [("README.md", "C2/README.md"), ("下浮率样本.csv", None), ("下浮率分布.csv", None), ("候选链接.jsonl", "C2/候选链接.jsonl"),
            ("解析结果.py", "C2/解析结果.py"), ("统计分布.py", "C2/统计分布.py"), ("抽限价.py", "C3/抽限价.py")] + [(p, p) for p in 公共],
     "C3": [("README.md", "C3/README.md"), ("难例.jsonl", None), ("抽限价.py", "C3/抽限价.py"), ("评测.py", "C3/评测.py"),
-           ("test_抽限价.py", "C3/test_抽限价.py"), ("构造样例.jsonl", "C3/构造样例.jsonl"), ("盲测样例.jsonl", "C3/盲测样例.jsonl"),
+           ("test_抽限价.py", "C3/test_抽限价.py"), ("构造样例.jsonl", "C3/构造样例.jsonl"), ("盲测样例.jsonl", "C3/盲测样例.jsonl"), ("复审刁钻样例.jsonl", "C3/复审刁钻样例.jsonl"),
            ("候选链接.jsonl", "C3/候选链接.jsonl"), ("生成待标注.py", "C3/生成待标注.py"), ("标注校验.py", "C3/标注校验.py")] + [(p, p) for p in 公共],
 }
 语言 = {".py": "python", ".md": "markdown", ".csv": "csv", ".jsonl": "json"}

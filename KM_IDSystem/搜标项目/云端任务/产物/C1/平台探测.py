@@ -45,12 +45,23 @@ def 估日量(列表文本: str, 今天: dt.date | None = None) -> tuple[float |
         if 今天 and (d > 今天 or (今天 - d).days > 400):
             continue
         条目.append((d, bool(维修词.search(行))))
+    if 条目:
+        最新 = max(d for d, _ in 条目)
+        剔 = [x for x in 条目 if (最新 - x[0]).days > 60]  # 页脚/侧栏的零星旧日期不拉长跨度
+        条目 = [x for x in 条目 if (最新 - x[0]).days <= 60]
+    else:
+        剔 = []
     if len(条目) < 5:
         return None, f"列表页可识别的带日期条目仅 {len(条目)} 条，数不出来"
     最早, 最晚 = min(d for d, _ in 条目), max(d for d, _ in 条目)
     跨 = (最晚 - 最早).days + 1
     修 = sum(1 for _, x in 条目 if x)
-    return round(修 / 跨, 2), f"估：列表页 {len(条目)} 条、跨 {跨} 天({最早}~{最晚})、维修类 {修} 条"
+    法 = f"估：列表页 {len(条目)} 条、跨 {跨} 天({最早}~{最晚})、维修/检修/安装/改造/检测类 {修} 条"
+    if 剔:
+        法 += f"；剔除早于最新 60 天以上的 {len(剔)} 条"
+    if 跨 == 1:
+        法 += "；首屏全是同一天，只是下限（真实量更大，需翻页再估）"
+    return round(修 / 跨, 2), 法
 
 
 def 探一个(url: str) -> dict:

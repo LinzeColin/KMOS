@@ -36,6 +36,11 @@ class 不该抽(unittest.TestCase):
     def test_无限价无预算(self):
         self.assertEqual(抽限价("本项目为设备检修服务，工期60日历天，质保期12个月。"), [])
 
+    def test_分项日期标段号不当限价(self):
+        self.assertEqual(值集("最高限价（含暂列金10万元）为120万元"), [(None, 1200000.0, None)])
+        self.assertEqual(值集("最高限价85万元2025.10.08前递交"), [(None, 850000.0, None)])
+        self.assertEqual(值集("最高限价为RMB1,000,000.00"), [(None, 1000000.0, None)])
+
     def test_百分比不当金额(self):
         t = "最高限价：下浮率不低于5%。"
         self.assertEqual([x for x in 抽限价(t) if x["限价元"] is not None], [])
@@ -67,6 +72,17 @@ class 样例集(unittest.TestCase):
     def test_构造样例全对(self):
         结果 = 评测(读(HERE / "构造样例.jsonl"))
         self.assertEqual(结果["分组准确率"]["全部"]["准确率"], 1.0, 结果["错例"])
+
+    def test_复审刁钻样例(self):
+        """独立复审员写的 54 条刁钻输入（只比 标段+限价元）。"""
+        import json
+        错 = []
+        for 行 in (HERE / "复审刁钻样例.jsonl").read_text(encoding="utf-8").splitlines():
+            d = json.loads(行)
+            得 = sorted(((x["标段"], x["限价元"]) for x in 抽限价(d["原文"])), key=str)
+            if 得 != sorted((tuple(x) for x in d["期望"]), key=str):
+                错.append((d["原文"], 得))
+        self.assertEqual(错, [])
 
     def test_盲测样例全对(self):
         结果 = 评测(读(HERE / "盲测样例.jsonl"))

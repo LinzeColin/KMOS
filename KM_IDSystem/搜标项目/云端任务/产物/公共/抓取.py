@@ -28,6 +28,7 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
     "反爬-瑞数": r"\$_ts\s*=|FSSBBIl1UgzbN7N|_\$[a-z]{2}\(",
     "反爬-加速乐": r"__jsl_clearance|document\.cookie\s*=.*?__jsl",
     "反爬-阿里云WAF": r"acw_sc__v2|aliyun_waf|_waf_bd8ce2ce37",
+    "限流": r"访问过于频繁|请求过于频繁|访问频率过|操作过于频繁|稍后再试|too many requests|rate limit",
     "验证码": r"验证码|captcha|geetest|滑块|slider-?verify|nc_1_wrapper|安全验证|人机验证",
     "需登录": r"请先登录|用户登录|登录后查看|请登录|login\.html|/login\b|sso/login",
 }
@@ -38,24 +39,29 @@ def 键(url: str) -> str:
 
 
 def 识别障碍(http状态: int, 原始: str, 正文: str, 最终url: str) -> str:
+    """把"拿到了 HTTP 200 但其实没内容"的情况都识别出来——宁可报障碍，不可当 ok（ok 会被下游当成"没有公告/没有限价"）。"""
     if http状态 in (412, 521):
         return "反爬-JS挑战(HTTP%d)" % http状态
+    if http状态 == 429:
+        return "限流(HTTP429)"
     if http状态 == 403:
         return "拒绝访问(403,可能需国内IP)"
     if http状态 >= 400:
         return "HTTP%d" % http状态
     头 = 原始[:20000]
-    for 名, 式 in 障碍特征.items():
-        if 名 == "需登录":
-            continue
-        if re.search(式, 头, re.I):
-            # 页面只有很少正文 + 命中特征才判为被挡；正文丰富说明只是页面上有个"验证码"字样
-            if len(正文) < 400:
-                return 名
+    for 名 in ("反爬-瑞数", "反爬-加速乐", "反爬-阿里云WAF"):
+        # 非 200（如瑞数的 202）带特征即判挡；200 时需正文很少才判（正常页也可能嵌这些脚本）
+        if re.search(障碍特征[名], 头, re.I) and (http状态 != 200 or len(正文) < 400):
+            return 名
+    for 名 in ("限流", "验证码"):
+        if re.search(障碍特征[名], 头, re.I) and len(正文) < 400:
+            return 名
     if re.search(障碍特征["需登录"], 最终url, re.I) or (len(正文) < 400 and re.search(障碍特征["需登录"], 头, re.I)):
         return "需登录"
-    if len(正文) < 150 and 原始.count("<script") >= 3:
+    if len(正文) < 150 and "<script" in 原始.lower():
         return "JS渲染(静态无正文)"
+    if len(正文) < 30:
+        return "空页(静态无正文)"
     return "ok"
 
 
