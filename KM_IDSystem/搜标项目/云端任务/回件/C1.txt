@@ -1,0 +1,745 @@
+=== 文件: README.md ===
+```markdown
+# C1 集团电子采购平台普查（工具版，待本地探测）
+
+**做了什么**：云端出网被环境策略拦截（ggzy/ccgp/cebpubservice/各集团平台均 403），只能用搜索引擎拿平台名单与网址。整理出 `平台普查.csv` 初版，并写了在国内网络下回填其余列的 `平台探测.py`。
+
+**关键数字（2026-09-23 实数）**
+- 有网址的平台 **87 个**（按域名去重）：集团 SRM 43（电力 11／有色 9／化工 8／水泥 8／钢铁 7）、省 ggzy 32、省政府采购网 7、全国公开门户 5。
+- 证据级别：77 个网址就是平台官方域名（一手，但**只在搜索结果中出现，未打开**），10 个是二手页面。
+- 另有 11 行"查了没有"或"只有第三方镜像"：华新、山水、华菱、恒力、广东能源、申能、云南铜业、洛阳钼业没搜到自建平台；亚泰、华电只搜到镜像站；河北省政府采购网的官方入口没核实。
+- 免登录、需注册、反爬、日均维修类公告量这几列：**全部没查**，列里标的是"没查（云端出网被拦）"。要等本地探测后才能按日均量排序。
+
+**怎么用**：先给重点平台补"列表页URL"，再在本地运行 `python3 平台探测.py --普查 平台普查.csv --输出 ../../本地产出/C1/平台普查.csv`（依赖 `../公共/`）。探测失败的行一律写"数不出来＋原因"，不会写成 0。
+
+**局限**：日均量按列表页首屏里的日期跨度来估，只是量级参考；平台是 JS 渲染或需要登录时，就写"数不出来"。
+
+**复审**：见文末。
+```
+
+=== 文件: 平台普查.csv ===
+```csv
+排序,平台名称,所属,行业,类别,网址,列表页URL,免登录看列表,需注册供应商,反爬,每天维修类公告估计,估计方法,证据URL,证据级别,核查状态,备注
+1,中国招标投标公共服务平台,国家发改委,综合,公开招标门户,http://www.cebpubservice.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.cebpubservice.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+2,中国政府采购网,财政部,综合,公开招标门户,https://www.ccgp.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ccgp.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+3,中国采购与招标网,中国经济信息社/新华社系统,综合,公开招标门户,https://www.e-bidding.org/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.e-bidding.org/cms/china_bidding/search/otherList.html?dates=300&categoryId=107&page=1,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有相似名 chinabidding.com.cn，未打开核实是否为同一平台
+4,全国公共资源交易平台,国家发改委,综合,公开招标门户,https://www.ggzy.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ggzy.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+5,必联网,中国建设银行/必联电子商务,综合,公开招标门户,https://www.ebnew.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ebnew.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+6,上海市建设工程交易服务中心（上海公共资源交易相关）,上海市,综合,省ggzy,https://www.shcpe.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.shcpe.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,未搜到明确名为“上海市公共资源交易中心”的统一官方域名，此为搜索结果中最相关的政府侧公共资源交易服务网站；另有 zjw.sh.gov.cn/gcztb 工程招投标栏目
+7,云南省公共资源交易中心,云南省,综合,省ggzy,https://www.ynggzy.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ynggzy.com/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,域名非 gov.cn；另有政府域名 ggzy.yn.gov.cn 云南省公共资源交易信息网/平台，未打开核实两者关系
+8,兵团公共资源交易平台,新疆生产建设兵团,综合,省ggzy,http://ggzy.xjbt.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://ggzy.xjbt.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+9,内蒙古自治区公共资源交易网,内蒙古自治区,综合,省ggzy,https://ggzyjy.nmg.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyjy.nmg.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+10,北京市公共资源交易服务平台,北京市,综合,省ggzy,https://ggzyfw.beijing.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyfw.beijing.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+11,吉林省公共资源交易中心,吉林省,综合,省ggzy,http://www.ggzyzx.jl.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.ggzyzx.jl.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+12,四川省公共资源交易信息网,四川省,综合,省ggzy,https://ggzyjy.sc.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyjy.sc.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+13,天津市公共资源交易平台,天津市,综合,省ggzy,http://ggzy.zwfwb.tj.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://ggzy.zwfwb.tj.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+14,宁夏回族自治区公共资源交易网,宁夏回族自治区,综合,省ggzy,https://ggzyjy.fzggw.nx.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyjy.fzggw.nx.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+15,安徽省公共资源交易电子服务平台,安徽省,综合,省ggzy,https://ahggzy.dljczb.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ahggzy.dljczb.com/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,域名非 gov.cn，为第三方技术支持域名，未打开核实是否官方唯一入口
+16,山东省公共资源交易中心,山东省,综合,省ggzy,https://ggzyjyzx.shandong.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyjyzx.shandong.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有 http://ggzyjy.shandong.gov.cn/ 山东省公共资源交易网，未打开核实两者关系
+17,山西省公共资源交易平台,山西省,综合,省ggzy,https://prec.sxzwfw.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://prec.sxzwfw.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+18,广东省政府采购中心/公共资源交易平台,广东省,综合,省ggzy,http://gpcgd.gd.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://gpcgd.gd.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要称该网站由广东省公共资源交易中心运营，未搜到独立命名的“广东省公共资源交易中心”官方域名
+19,广西壮族自治区公共资源交易中心网站,广西壮族自治区,综合,省ggzy,http://gxggzy.gxzf.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://gxggzy.gxzf.gov.cn/fwdt/bszn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+20,新疆公共资源交易网,新疆维吾尔自治区,综合,省ggzy,https://ggzy.xinjiang.gov.cn/xinjiangggzy/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.xinjiang.gov.cn/xinjiangggzy/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+21,江苏省公共资源交易网,江苏省,综合,省ggzy,http://jsggzy.jszwfw.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://jsggzy.jszwfw.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+22,江西省公共资源交易平台,江西省,综合,省ggzy,https://www.jxsggzy.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.jxsggzy.cn/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有 ggzy.jiangxi.gov.cn 政府域名同名平台，未打开核实两者关系
+23,河北省全国公共资源交易平台,河北省,综合,省ggzy,https://szj.hebei.gov.cn/hbggfwpt/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://szj.hebei.gov.cn/hbggfwpt/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+24,河南省公共资源交易中心,河南省,综合,省ggzy,https://hnsggzyjy.henan.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://hnsggzyjy.henan.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+25,浙江省公共资源交易服务平台系统,浙江省,综合,省ggzy,https://ggzy.zj.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.zj.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+26,海南省公共资源交易服务中心,海南省,综合,省ggzy,https://ggzy.hainan.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.hainan.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+27,湖北省公共资源电子交易服务系统,湖北省,综合,省ggzy,https://www.hbggzyfwpt.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.hbggzyfwpt.cn/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,域名非 gov.cn，未打开核实
+28,湖南省公共资源交易中心,湖南省,综合,省ggzy,https://ggzy.hunan.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.hunan.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+29,甘肃省公共资源交易网,甘肃省,综合,省ggzy,https://ggzyjy.gansu.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyjy.gansu.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+30,福建省公共资源交易电子公共服务平台,福建省,综合,省ggzy,https://ggzyfw.fujian.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyfw.fujian.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+31,西藏自治区公共资源交易平台,西藏自治区,综合,省ggzy,https://ggzy.xizang.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.xizang.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+32,贵州省公共资源交易云,贵州省,综合,省ggzy,https://ggzy.guizhou.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.guizhou.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+33,辽宁省公共资源交易中心,辽宁省,综合,省ggzy,https://ggzy.ln.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzy.ln.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要还提及辽宁省公共资源交易一张网电子化平台 www.lnsggzy.com，未打开核实
+34,重庆市公共资源交易网,重庆市,综合,省ggzy,https://www.cqggzy.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.cqggzy.com/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,域名非 gov.cn；另有政府域名 重庆市公共资源交易监督网 ggzyjyjgj.cq.gov.cn，未打开核实两者关系
+35,陕西省公共资源交易中心,陕西省,综合,省ggzy,https://www.sxggzyjy.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.sxggzyjy.cn/index.html,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,域名非 gov.cn，未打开核实
+36,青海公共资源交易网,青海省,综合,省ggzy,https://www.qhggzyjy.gov.cn/ggzy/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.qhggzyjy.gov.cn/ggzy/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+37,黑龙江公共资源交易网,黑龙江省,综合,省ggzy,https://ggzyjyw.hlj.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ggzyjyw.hlj.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+38,云南省政府采购网,云南省,工业,省政府采购网,http://www.ccgp-yunnan.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.ccgp-yunnan.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+39,内蒙古自治区政府采购网,内蒙古自治区,工业,省政府采购网,https://www.ccgp-neimenggu.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ccgp-neimenggu.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+40,四川政府采购网,四川省,工业,省政府采购网,https://www.ccgp-sichuan.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ccgp-sichuan.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+41,山东省政府采购信息公开平台,山东省,工业,省政府采购网,http://www.ccgp-shandong.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.ccgp-shandong.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,该链接为此前搜索“山东省公共资源交易网 官网”结果中附带出现
+42,山西省政府采购网,山西省,工业,省政府采购网,http://www.ccgp-shanxi.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.ccgp-shanxi.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+43,河南省政府采购网,河南省,工业,省政府采购网,http://www.ccgp-henan.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.ccgp-henan.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+44,辽宁政府采购网,辽宁省,工业,省政府采购网,https://www.ccgp-liaoning.gov.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ccgp-liaoning.gov.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+45,万华电子招标投标交易网,万华化学,化工,集团SRM,https://ebidding.whchem.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebidding.whchem.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要提及招标文件仅在该网站在线发售，需注册审核后报名投标，未打开核实
+46,中国中化电子招投标平台,中国中化（中化商务）,化工,集团SRM,https://ebid.sinochemitc.com/web-portal/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebid.sinochemitc.com/web-portal/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+47,中国化学电子招标投标交易平台,中国化学工程集团,化工,集团SRM,https://bid.cncecyc.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://bid.cncecyc.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,覆盖石油化工、煤化工等化学工程招标，非中国化工集团(ChemChina)本身，注意区分
+48,中国化工集团电商平台,中国化工集团（ChemChina）,化工,集团SRM,https://e-chemchina.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://e-chemchina.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+49,中国海洋石油集团采办业务管理与交易系统,中海油,化工,集团SRM,https://buy.cnooc.com.cn/cbjyweb/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://buy.cnooc.com.cn/cbjyweb/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+50,中国石化电子招标投标交易网,中国石化,化工,集团SRM,https://ebidding.sinopec.com/TPWeb4AAA/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebidding.sinopec.com/TPWeb4AAA/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+51,中国石油招标投标网,中国石油,化工,集团SRM,https://www.cnpcbidding.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.cnpcbidding.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+52,荣盛石化电商平台,荣盛石化（含浙石化、中金石化）,化工,集团SRM,https://mall.rong-sheng.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://mall.rong-sheng.com/Home/Tendernotice,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+53,中国五矿集团供应链管理平台,中国五矿集团,有色,集团SRM,https://ec.minmetals.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ec.minmetals.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+54,中国有色集团采购招标电子商务平台,中国有色矿业集团,有色,集团SRM,http://ecp.cnmc.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://ecp.cnmc.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+55,中国黄金电子招标商务平台,中国黄金集团,有色,集团SRM,https://jzcg.chinagoldgroup.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://jzcg.chinagoldgroup.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+56,中铝集团绿星链通招标平台,中国铝业（中铝集团）,有色,集团SRM,https://zb.chinalco.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://zb.chinalco.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有中铝集团电子招投标平台eb.chinalco.com.cn及电子采购交易系统e-al.chinalco.com.cn，疑为同集团不同子系统，未逐一核实关系
+57,山东黄金供应链管理系统招标采购平台,山东黄金集团,有色,集团SRM,https://scm.sd-gold.com/ierp/login.html,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://scm.sd-gold.com/ierp/login.html,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,该域名由搜索摘要文字给出，未在链接列表原文中直接出现，未打开核实是否可访问
+58,江西铜业集团采购管理系统,江西铜业集团,有色,集团SRM,http://ec.jxcc.com/web/index,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://ec.jxcc.com/web/index,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+59,紫金矿业招投标平台,紫金矿业集团,有色,集团SRM,https://www.zjky.cn/site/Bidding.jsp,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.zjky.cn/site/Bidding.jsp,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+60,金川集团电子招标投标交易平台,金川集团,有色,集团SRM,http://ebidding.jnmc.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://ebidding.jnmc.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,该域名由搜索摘要文字给出，未在链接列表原文中直接出现，未打开核实是否可访问
+61,铜陵有色集团电子采购（招投标）系统,铜陵有色集团,有色,集团SRM,https://ec.tlys.cn:10000/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ec.tlys.cn:10000/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+62,中国建材集团招标采购管理平台,中国建材集团,水泥,集团SRM,https://tendering.cnbm.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://tendering.cnbm.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+63,中国建材集团采购平台,中国建材集团,水泥,集团SRM,https://c.cnbm.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://c.cnbm.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+64,华润守正电子招标平台,华润集团（含华润水泥）,水泥,集团SRM,http://www.crpsz.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.crpsz.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索结果显示华润守正另有www.szecp.com.cn域名，称将启用新网站，未逐一核实两域名关系
+65,台泥阳光采购平台,台泥集团（TCC）,水泥,集团SRM,https://ebidding.taiwancement.com/ebidding/?comArea=tcc,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebidding.taiwancement.com/ebidding/?comArea=tcc,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有台泥大陆专区 comArea=tcc_cn
+66,天山水泥招标采购平台,新疆天山水泥（中国建材/天山股份）,水泥,集团SRM,https://www.tscgw.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.tscgw.cn/Page/FrmTenderAnnouncementDetail.aspx?FAnnouncementID=1001961380&FProjectID=1036680880&FModelCategoryID=22,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+67,海螺阳光智慧采购平台,海螺集团,水泥,集团SRM,https://srm.chinaconch.com/oauth/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://srm.chinaconch.com/oauth/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索结果亦提及“海螺物资阳光采购平台”ygcg.conch.cn及“海螺集团招采平台”hlzc.chinaconch.com，疑为同集团多平台/曾用域名，未逐一打开核实
+68,红狮招投标平台,红狮控股集团,水泥,集团SRM,https://ztb.hongshijt.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ztb.hongshijt.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+69,金隅集团阳光招采平台,金隅集团/金隅冀东,水泥,集团SRM,https://www.bbmgzc.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.bbmgzc.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要称旧平台cg.jdsn.com.cn已于2023年5月31日将冀东水泥所属企业业务迁移至此新平台，未打开核实迁移细节
+70,中国三峡集团电子采购平台,三峡集团,电力,集团SRM,https://eps.ctg.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://eps.ctg.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+71,中国华能集团电子商务平台,华能集团,电力,集团SRM,http://ec.chng.com.cn/ecmall/more.do?type=103,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://ec.chng.com.cn/ecmall/more.do?type=103,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+72,中广核电子商务平台,中国广核集团,电力,集团SRM,https://ecp.cgnpc.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ecp.cgnpc.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+73,中核集团电子采购平台,中国核工业集团,电力,集团SRM,http://www.cnncecp.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://cnncecp.toobiao.com/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,官方域名www.cnncecp.com由搜索摘要文字给出，未在链接列表中直接出现，故evidence_url采用可见的镜像链接，未打开逐一核实
+74,北京京能电子商务平台（京能e购）,京能集团,电力,集团SRM,https://www.powerbeijing-eshop.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.powerbeijing-eshop.com/biddingBulletin/2026-03-17/314073.html,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+75,南方电网供应链统一服务平台,南方电网,电力,集团SRM,https://www.bidding.csg.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.bidding.csg.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有南方电网电子采购交易平台ecsg.com.cn，疑为集团另一采购系统，未逐一核实关系
+76,国家电投电子商务平台（电能e招采）,国家电投集团,电力,集团SRM,https://ebid.espic.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebid.espic.com.cn/sdny_bulletin/2022-05-08/31289.html,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,平台由国家电投全资子公司中国电能成套设备有限公司旗下电能易购建设运营
+77,国家电网新一代电子商务平台（ECP）,国家电网,电力,集团SRM,https://ecp.sgcc.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ecp.sgcc.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+78,国家能源集团电子商务平台,国家能源集团,电力,集团SRM,https://e-chnenergy.dlzbxx.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://e-chnenergy.dlzbxx.com/,二手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,该域名疑为电力招标信息网镜像站，未查到国家能源集团一级官方域名，未打开核实归属
+79,大唐电子商务平台,大唐集团,电力,集团SRM,https://www.cdt-ec.com/home/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.cdt-ec.com/home/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+80,浙江能源集团智慧供应链一体化平台,浙能集团,电力,集团SRM,https://zsrm.zjenergy.com.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://zsrm.zjenergy.com.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有浙能商务网zeec.cn/zeec.dlzbxx.com，疑为集团旧平台，未逐一核实
+81,包钢电子采购智慧平台,包钢集团,钢铁,集团SRM,https://bdep.btsteel.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://bdep.btsteel.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要提及投标前需办理CA数字证书、响应文件须加密上传，未打开核实
+82,建龙云采（龙翔云商）,建龙集团,钢铁,集团SRM,https://ebuy.longscs.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebuy.longscs.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索结果称其为“建龙集团唯一的采购平台”
+83,欧冶云商,中国宝武钢铁集团,钢铁,集团SRM,https://www.ouyeel.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://www.ouyeel.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+84,沙钢集团电子采购门户,沙钢集团,钢铁,集团SRM,https://ebs.shasteel.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://ebs.shasteel.cn/pur_portal/tel-us.html,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要提及供应商需登录平台完成注册、资质审核等，未打开核实
+85,河钢供应链管理平台,河钢集团,钢铁,集团SRM,http://www.hbisscm.com/index,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,http://www.hbisscm.com/index,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,
+86,鞍钢智慧招投标平台,鞍钢集团,钢铁,集团SRM,https://bid.ansteel.cn/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://bid.ansteel.cn/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,另有鞍钢集团电子招投标交易平台ansteelscm.com，疑为同集团另一系统，未逐一核实
+87,首钢招标采购平台,首钢集团,钢铁,集团SRM,https://zb.sggylpt.com/,,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,没查（云端出网被拦，待本地探测）,,数不出来：云端无法打开页面,https://zb.sggylpt.com/,一手（搜索结果中出现，未打开）,网址来自搜索结果；可访问性没查,搜索摘要提及投标需在线注册登录、下载文件前需付费800元(平台使用费)，未打开核实
+88,华新水泥集团自建采购平台,华新水泥,水泥,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,仅查到华新水泥各分公司在千里马招标网等第三方平台发布询比价公告，未发现华新自建的集团级电子采购平台
+89,亚泰电子招标采购平台,亚泰集团,水泥,集团SRM,,,,,,,,https://m.emailbak.com/zc/,二手（第三方镜像）,查了有平台，但只搜到第三方镜像、没搜到官方网址（见证据URL）,该链接为第三方镜像页面，未查到亚泰集团官方一级域名，故url留空
+90,山水水泥集团自建采购平台,山水水泥集团,水泥,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,仅查到山水集团官网基本信息，未发现其电子采购/招标平台
+91,华菱集团自建电子采购平台,华菱钢铁（Valin）,钢铁,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,仅查到华菱钢铁官网及下属涟源钢铁招标公告页面，未发现华菱集团级别的电子采购/招标平台
+92,恒力集团自建电子采购平台,恒力集团/恒力石化,化工,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,仅查到恒力相关项目分散刊登在中国石化、中国化学等第三方招标平台，未发现恒力集团自建的采购/招标平台
+93,中国华电集团电子商务平台,华电集团,电力,集团SRM,,,,,,,,https://hddz.ccpc360.com/,二手（第三方镜像）,查了有平台，但只搜到第三方镜像、没搜到官方网址（见证据URL）,搜索结果多为第三方镜像站(ccpc360.com等)，未找到华电集团一级官方域名，url留空
+94,广东能源集团自建采购平台,广东能源集团,电力,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,搜索结果中广东能源相关招标均刊登在广东省机电设备招标中心(gdebidding.com)等第三方平台，以及疑似第三方镜像“广东能源商务网”(gdydb2b.toobiao.com)，未发现广东能源集团自建的一级官方采购域名
+95,申能集团自建电子采购平台,申能集团,电力,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,搜索结果显示申能相关招标项目由上海机电设备招标有限公司(SMEETC，shbid.com)等第三方代理机构平台发布，未发现申能集团自建的电子采购平台
+96,云南铜业独立自建采购平台,云南铜业,有色,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,云南铜业为中铝集团下属企业，其采购主要通过中铝集团绿星链通招标平台及“中铜阳光采购平台”进行，未发现云南铜业自身独立的集团级采购平台
+97,洛阳钼业独立自建采购平台,洛阳钼业,有色,集团SRM,,,,,,,,,,查了没有（搜索未找到自建平台网址）,搜索结果未见洛阳钼业自建的集团级电子采购/招标平台，其相关矿业子公司招标多刊登在洛阳市公共资源交易中心等地方公共平台
+98,河北省政府采购网,河北省,工业,省政府采购网,,,,,,,,http://www.ccgp-hebei.gov.cn/hd/hd/,,查了没有（搜索未找到自建平台网址）,搜索结果给出的入口 hebeicg.ccpc360.com 非 gov.cn 官方域名，另一结果 www.ccgp-hebei.gov.cn/hd/hd/ 未见到直接的顶级官网首页确认，未核实到明确统一官网，故留空
+```
+
+=== 文件: 平台探测.py ===
+```python
+"""平台探测：在国内网络下逐个打开平台，回填 平台普查.csv 的可访问性与日均维修类公告估计（仅标准库）。
+
+    python3 平台探测.py --普查 平台普查.csv --输出 本地产出/C1/平台普查.csv [--间隔 3]
+读取每行的 网址（首页）和 列表页URL（公告列表页，可人工补；为空则只测首页）：
+    免登录看列表  是 / 否(需登录) / 打不开(原因)
+    反爬          无 / 验证码 / 反爬-瑞数 / 反爬-加速乐 / JS渲染(静态无正文) / 拒绝访问(403,可能需国内IP) …
+    每天维修类公告估计 = 列表页上维修类条目数 ÷ 列表页日期跨度(天)；标"估"。
+    估计方法      写明：列表页 N 条、跨 D 天、维修类 M 条
+需注册供应商：静态页面判断不了"投标要不要注册"，只在页面出现"供应商注册"入口时写"有注册入口"，其余保持原值。
+探测失败绝不写 0：写"数不出来"+原因（来源失败 ≠ 没有公告）。
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import datetime as dt
+import re
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+# 依赖既可与本目录平级（仓库布局 产物/公共、产物/C3），也可在本目录内（回件切件后 C2/公共、C2/抽限价.py）
+for _p in (HERE.parent / "C3", HERE.parent / "公共", HERE / "公共", HERE):
+    if _p.is_dir():
+        sys.path.insert(0, str(_p))
+from 抓取 import 抓一个, 识别障碍  # noqa: E402
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+维修词 = re.compile(r"检修|维修|大修|中修|维保|修复|抢修|修理|保运|维护|安装|改造|技改|探伤|检测|熔覆|堆焊")
+日期式 = re.compile(r"(20\d{2})[-/.年](\d{1,2})[-/.月](\d{1,2})")
+
+
+def 估日量(列表文本: str, 今天: dt.date | None = None) -> tuple[float | None, str]:
+    """按行找"标题…日期"条目，维修类条目数 ÷ 日期跨度。"""
+    条目 = []
+    for 行 in 列表文本.split("\n"):
+        m = 日期式.search(行)
+        if not m or len(行) < 8:
+            continue
+        try:
+            d = dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            continue
+        if 今天 and (d > 今天 or (今天 - d).days > 400):
+            continue
+        条目.append((d, bool(维修词.search(行))))
+    if len(条目) < 5:
+        return None, f"列表页可识别的带日期条目仅 {len(条目)} 条，数不出来"
+    最早, 最晚 = min(d for d, _ in 条目), max(d for d, _ in 条目)
+    跨 = (最晚 - 最早).days + 1
+    修 = sum(1 for _, x in 条目 if x)
+    return round(修 / 跨, 2), f"估：列表页 {len(条目)} 条、跨 {跨} 天({最早}~{最晚})、维修类 {修} 条"
+
+
+def 探一个(url: str) -> dict:
+    r = 抓一个(url)
+    if not r["http"]:
+        return {"状态": "打不开(" + r.get("错误", "连接失败")[:60] + ")", "文本": "", "原始": ""}
+    原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+    文本 = 转文本(原始) if 原始 else ""
+    return {"状态": 识别障碍(r["http"], 原始, 文本, r["最终url"]), "文本": 文本, "原始": 原始}
+
+
+def 回填(行: dict, 首页: dict, 列表: dict | None, 今天: dt.date) -> dict:
+    行 = dict(行)
+    主 = 列表 or 首页
+    s = 主["状态"]
+    if s == "ok":
+        行["免登录看列表"] = "是" if 列表 else "首页可开(列表页未测)"
+        行["反爬"] = "无(静态抓取未遇到)"
+    elif s == "需登录":
+        行["免登录看列表"] = "否(需登录)"
+        行["反爬"] = "—"
+    else:
+        行["免登录看列表"] = "打不开(" + s + ")" if s.startswith(("打不开", "连接失败", "HTTP", "拒绝")) else "未知(被反爬挡住)"
+        行["反爬"] = s
+    if re.search(r"供应商注册|供应商入驻|注册供应商|供应商登录", 首页.get("原始", "")[:200000]):
+        if 行.get("需注册供应商", "").startswith("没查"):
+            行["需注册供应商"] = "有注册入口(投标大概率需注册，未逐条核)"
+    if 列表 and 列表["状态"] == "ok":
+        量, 法 = 估日量(列表["文本"], 今天)
+        行["每天维修类公告估计"] = "" if 量 is None else str(量)
+        行["估计方法"] = 法
+    else:
+        行["每天维修类公告估计"] = ""
+        行["估计方法"] = "数不出来：" + ("未提供列表页URL" if not 列表 else "列表页" + 列表["状态"])
+    行["核查状态"] = "本地已探测 " + today_str(今天)
+    return 行
+
+
+def today_str(d: dt.date) -> str:
+    return d.isoformat()
+
+
+def 排序键(行: dict):
+    v = 行.get("每天维修类公告估计", "")
+    try:
+        return (0, -float(v))
+    except ValueError:
+        return (1, 行.get("类别", ""), 行.get("平台名称", ""))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--普查", required=True, type=Path)
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0)
+    ap.add_argument("--只测", default="", help="只测名称包含该字样的平台（调试用）")
+    a = ap.parse_args()
+    with open(a.普查, encoding="utf-8-sig") as f:
+        rd = csv.DictReader(f)
+        列 = rd.fieldnames
+        行们 = list(rd)
+    今天 = dt.date.today()
+    新 = []
+    for i, 行 in enumerate(行们, 1):
+        if not 行.get("网址") or (a.只测 and a.只测 not in 行["平台名称"]):
+            新.append(行)
+            continue
+        首页 = 探一个(行["网址"])
+        time.sleep(a.间隔)
+        列表 = None
+        if 行.get("列表页URL"):
+            列表 = 探一个(行["列表页URL"])
+            time.sleep(a.间隔)
+        新.append(回填(行, 首页, 列表, 今天))
+        print(f"[{i}/{len(行们)}] {行['平台名称']}: {新[-1]['免登录看列表']} | {新[-1]['反爬']} | {新[-1]['每天维修类公告估计'] or '-'}", flush=True)
+    新.sort(key=排序键)
+    for i, 行 in enumerate(新, 1):
+        行["排序"] = str(i)
+    a.输出.parent.mkdir(parents=True, exist_ok=True)
+    with open(a.输出, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=列)
+        w.writeheader()
+        w.writerows(新)
+    print("写出", a.输出)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 搜索记录/集团平台.jsonl ===
+```json
+{"name":"中国建材集团招标采购管理平台","owner":"中国建材集团","industry":"水泥","category":"集团SRM","url":"https://tendering.cnbm.com.cn/","evidence_url":"https://tendering.cnbm.com.cn/","source_level":"一手","query":"中国建材集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"中国建材集团采购平台","owner":"中国建材集团","industry":"水泥","category":"集团SRM","url":"https://c.cnbm.com.cn/","evidence_url":"https://c.cnbm.com.cn/","source_level":"一手","query":"中国建材集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"海螺阳光智慧采购平台","owner":"海螺集团","industry":"水泥","category":"集团SRM","url":"https://srm.chinaconch.com/oauth/","evidence_url":"https://srm.chinaconch.com/oauth/","source_level":"一手","query":"海螺集团 阳光采购 电子招标平台","status":"查了有","note":"搜索结果亦提及“海螺物资阳光采购平台”ygcg.conch.cn及“海螺集团招采平台”hlzc.chinaconch.com，疑为同集团多平台/曾用域名，未逐一打开核实"}
+{"name":"华润守正电子招标平台","owner":"华润集团（含华润水泥）","industry":"水泥","category":"集团SRM","url":"http://www.crpsz.com/","evidence_url":"http://www.crpsz.com/","source_level":"一手","query":"华润水泥 采购电子交易平台","status":"查了有","note":"搜索结果显示华润守正另有www.szecp.com.cn域名，称将启用新网站，未逐一核实两域名关系"}
+{"name":"金隅集团阳光招采平台","owner":"金隅集团/金隅冀东","industry":"水泥","category":"集团SRM","url":"https://www.bbmgzc.com/","evidence_url":"https://www.bbmgzc.com/","source_level":"一手","query":"金隅冀东阳光采购平台 官网 网址","status":"查了有","note":"搜索摘要称旧平台cg.jdsn.com.cn已于2023年5月31日将冀东水泥所属企业业务迁移至此新平台，未打开核实迁移细节"}
+{"name":"华新水泥集团自建采购平台","owner":"华新水泥","industry":"水泥","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"华新水泥 电子采购平台 招标","status":"查了没有","note":"仅查到华新水泥各分公司在千里马招标网等第三方平台发布询比价公告，未发现华新自建的集团级电子采购平台"}
+{"name":"红狮招投标平台","owner":"红狮控股集团","industry":"水泥","category":"集团SRM","url":"https://ztb.hongshijt.com/","evidence_url":"https://ztb.hongshijt.com/","source_level":"一手","query":"红狮控股集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"天山水泥招标采购平台","owner":"新疆天山水泥（中国建材/天山股份）","industry":"水泥","category":"集团SRM","url":"https://www.tscgw.cn/","evidence_url":"https://www.tscgw.cn/Page/FrmTenderAnnouncementDetail.aspx?FAnnouncementID=1001961380&FProjectID=1036680880&FModelCategoryID=22","source_level":"一手","query":"天山股份 中国建材 天山集团 电子招标采购平台","status":"查了有","note":""}
+{"name":"台泥阳光采购平台","owner":"台泥集团（TCC）","industry":"水泥","category":"集团SRM","url":"https://ebidding.taiwancement.com/ebidding/?comArea=tcc","evidence_url":"https://ebidding.taiwancement.com/ebidding/?comArea=tcc","source_level":"一手","query":"台泥集团 电子采购平台 招标","status":"查了有","note":"另有台泥大陆专区 comArea=tcc_cn"}
+{"name":"亚泰电子招标采购平台","owner":"亚泰集团","industry":"水泥","category":"集团SRM","url":"","evidence_url":"https://m.emailbak.com/zc/","source_level":"二手","query":"亚泰集团 电子采购招标平台","status":"查了有","note":"该链接为第三方镜像页面，未查到亚泰集团官方一级域名，故url留空"}
+{"name":"山水水泥集团自建采购平台","owner":"山水水泥集团","industry":"水泥","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"山水水泥集团 电子采购 招标平台","status":"查了没有","note":"仅查到山水集团官网基本信息，未发现其电子采购/招标平台"}
+{"name":"欧冶云商","owner":"中国宝武钢铁集团","industry":"钢铁","category":"集团SRM","url":"https://www.ouyeel.com/","evidence_url":"https://www.ouyeel.com/","source_level":"一手","query":"欧冶采购 宝武集团 电子采购平台","status":"查了有","note":""}
+{"name":"鞍钢智慧招投标平台","owner":"鞍钢集团","industry":"钢铁","category":"集团SRM","url":"https://bid.ansteel.cn/","evidence_url":"https://bid.ansteel.cn/","source_level":"一手","query":"鞍钢集团 电子采购平台 招标","status":"查了有","note":"另有鞍钢集团电子招投标交易平台ansteelscm.com，疑为同集团另一系统，未逐一核实"}
+{"name":"河钢供应链管理平台","owner":"河钢集团","industry":"钢铁","category":"集团SRM","url":"http://www.hbisscm.com/index","evidence_url":"http://www.hbisscm.com/index","source_level":"一手","query":"河钢云商 供应链管理平台 官网 hbisco","status":"查了有","note":""}
+{"name":"首钢招标采购平台","owner":"首钢集团","industry":"钢铁","category":"集团SRM","url":"https://zb.sggylpt.com/","evidence_url":"https://zb.sggylpt.com/","source_level":"一手","query":"首钢集团 电子采购平台 招标","status":"查了有","note":"搜索摘要提及投标需在线注册登录、下载文件前需付费800元(平台使用费)，未打开核实"}
+{"name":"沙钢集团电子采购门户","owner":"沙钢集团","industry":"钢铁","category":"集团SRM","url":"https://ebs.shasteel.cn/","evidence_url":"https://ebs.shasteel.cn/pur_portal/tel-us.html","source_level":"一手","query":"沙钢集团 电子采购平台 招标","status":"查了有","note":"搜索摘要提及供应商需登录平台完成注册、资质审核等，未打开核实"}
+{"name":"包钢电子采购智慧平台","owner":"包钢集团","industry":"钢铁","category":"集团SRM","url":"https://bdep.btsteel.com/","evidence_url":"https://bdep.btsteel.com/","source_level":"一手","query":"包钢电子采购智慧平台 bdep.btsteel.com","status":"查了有","note":"搜索摘要提及投标前需办理CA数字证书、响应文件须加密上传，未打开核实"}
+{"name":"建龙云采（龙翔云商）","owner":"建龙集团","industry":"钢铁","category":"集团SRM","url":"https://ebuy.longscs.com/","evidence_url":"https://ebuy.longscs.com/","source_level":"一手","query":"建龙集团 电子采购平台 招标","status":"查了有","note":"搜索结果称其为“建龙集团唯一的采购平台”"}
+{"name":"华菱集团自建电子采购平台","owner":"华菱钢铁（Valin）","industry":"钢铁","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"华菱钢铁 valin 电子采购平台 招标网","status":"查了没有","note":"仅查到华菱钢铁官网及下属涟源钢铁招标公告页面，未发现华菱集团级别的电子采购/招标平台"}
+{"name":"易派客","owner":"中国石化","industry":"化工","category":"集团SRM","url":"https://www.ouyeel.com/","evidence_url":"http://www.sasac.gov.cn/n2588020/n2877928/n4511638/c4613049/content.html","source_level":"二手","query":"中国石化 易派客 电子采购平台","status":"查了有","note":"url应为易派客官方域名，搜索结果显示中石化物资电子招投标交易网另有 https://bidding.epec.com/ 及 https://ebidding.sinopec.com/TPWeb4AAA/，均属中石化体系，此处以epec相关链接为准；未打开逐一核实各域名归属关系"}
+{"name":"中国石化电子招标投标交易网","owner":"中国石化","industry":"化工","category":"集团SRM","url":"https://ebidding.sinopec.com/TPWeb4AAA/","evidence_url":"https://ebidding.sinopec.com/TPWeb4AAA/","source_level":"一手","query":"中国化工集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"中国石油招标投标网","owner":"中国石油","industry":"化工","category":"集团SRM","url":"https://www.cnpcbidding.com/","evidence_url":"https://www.cnpcbidding.com/","source_level":"一手","query":"中国石油 电子招标采购平台","status":"查了有","note":""}
+{"name":"中国海洋石油集团采办业务管理与交易系统","owner":"中海油","industry":"化工","category":"集团SRM","url":"https://buy.cnooc.com.cn/cbjyweb/","evidence_url":"https://buy.cnooc.com.cn/cbjyweb/","source_level":"一手","query":"中海油 电子商务平台 招标采购","status":"查了有","note":""}
+{"name":"万华电子招标投标交易网","owner":"万华化学","industry":"化工","category":"集团SRM","url":"https://ebidding.whchem.com/","evidence_url":"https://ebidding.whchem.com/","source_level":"一手","query":"万华化学 电子采购平台 招标","status":"查了有","note":"搜索摘要提及招标文件仅在该网站在线发售，需注册审核后报名投标，未打开核实"}
+{"name":"荣盛石化电商平台","owner":"荣盛石化（含浙石化、中金石化）","industry":"化工","category":"集团SRM","url":"https://mall.rong-sheng.com/","evidence_url":"https://mall.rong-sheng.com/Home/Tendernotice","source_level":"一手","query":"荣盛石化 电子采购平台 招标","status":"查了有","note":""}
+{"name":"中国中化电子招投标平台","owner":"中国中化（中化商务）","industry":"化工","category":"集团SRM","url":"https://ebid.sinochemitc.com/web-portal/","evidence_url":"https://ebid.sinochemitc.com/web-portal/","source_level":"一手","query":"中国化工集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"中国化工集团电商平台","owner":"中国化工集团（ChemChina）","industry":"化工","category":"集团SRM","url":"https://e-chemchina.com/","evidence_url":"https://e-chemchina.com/","source_level":"一手","query":"中国化工集团 ChemChina 电子招标平台 官网","status":"查了有","note":""}
+{"name":"中国化学电子招标投标交易平台","owner":"中国化学工程集团","industry":"化工","category":"集团SRM","url":"https://bid.cncecyc.com/","evidence_url":"https://bid.cncecyc.com/","source_level":"一手","query":"中国化工集团 电子采购平台 招标","status":"查了有","note":"覆盖石油化工、煤化工等化学工程招标，非中国化工集团(ChemChina)本身，注意区分"}
+{"name":"恒力集团自建电子采购平台","owner":"恒力集团/恒力石化","industry":"化工","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"恒力石化 电商平台 采购招标 官网","status":"查了没有","note":"仅查到恒力相关项目分散刊登在中国石化、中国化学等第三方招标平台，未发现恒力集团自建的采购/招标平台"}
+{"name":"国家能源集团电子商务平台","owner":"国家能源集团","industry":"电力","category":"集团SRM","url":"https://e-chnenergy.dlzbxx.com/","evidence_url":"https://e-chnenergy.dlzbxx.com/","source_level":"二手","query":"国家能源集团 电子商务平台 招标采购","status":"查了有","note":"该域名疑为电力招标信息网镜像站，未查到国家能源集团一级官方域名，未打开核实归属"}
+{"name":"中国华能集团电子商务平台","owner":"华能集团","industry":"电力","category":"集团SRM","url":"http://ec.chng.com.cn/ecmall/more.do?type=103","evidence_url":"http://ec.chng.com.cn/ecmall/more.do?type=103","source_level":"一手","query":"华能集团 电子商务平台 招标采购","status":"查了有","note":""}
+{"name":"大唐电子商务平台","owner":"大唐集团","industry":"电力","category":"集团SRM","url":"https://www.cdt-ec.com/home/","evidence_url":"https://www.cdt-ec.com/home/","source_level":"一手","query":"大唐集团 电子商务平台 招标采购","status":"查了有","note":""}
+{"name":"中国华电集团电子商务平台","owner":"华电集团","industry":"电力","category":"集团SRM","url":"","evidence_url":"https://hddz.ccpc360.com/","source_level":"二手","query":"华电集团 电子商务平台 招标采购","status":"查了有","note":"搜索结果多为第三方镜像站(ccpc360.com等)，未找到华电集团一级官方域名，url留空"}
+{"name":"国家电投电子商务平台（电能e招采）","owner":"国家电投集团","industry":"电力","category":"集团SRM","url":"https://ebid.espic.com.cn/","evidence_url":"https://ebid.espic.com.cn/sdny_bulletin/2022-05-08/31289.html","source_level":"一手","query":"国家电投 电子商务平台 招标采购","status":"查了有","note":"平台由国家电投全资子公司中国电能成套设备有限公司旗下电能易购建设运营"}
+{"name":"中国三峡集团电子采购平台","owner":"三峡集团","industry":"电力","category":"集团SRM","url":"https://eps.ctg.com.cn/","evidence_url":"https://eps.ctg.com.cn/","source_level":"一手","query":"三峡集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"国家电网新一代电子商务平台（ECP）","owner":"国家电网","industry":"电力","category":"集团SRM","url":"https://ecp.sgcc.com.cn/","evidence_url":"https://ecp.sgcc.com.cn/","source_level":"一手","query":"国家电网 电子商务平台 ECP 招标采购","status":"查了有","note":""}
+{"name":"南方电网供应链统一服务平台","owner":"南方电网","industry":"电力","category":"集团SRM","url":"https://www.bidding.csg.cn/","evidence_url":"https://www.bidding.csg.cn/","source_level":"一手","query":"南方电网 电子商务平台 招标采购","status":"查了有","note":"另有南方电网电子采购交易平台ecsg.com.cn，疑为集团另一采购系统，未逐一核实关系"}
+{"name":"中广核电子商务平台","owner":"中国广核集团","industry":"电力","category":"集团SRM","url":"https://ecp.cgnpc.com.cn/","evidence_url":"https://ecp.cgnpc.com.cn/","source_level":"一手","query":"中国广核集团 电子商务平台 招标采购","status":"查了有","note":""}
+{"name":"中核集团电子采购平台","owner":"中国核工业集团","industry":"电力","category":"集团SRM","url":"http://www.cnncecp.com/","evidence_url":"http://cnncecp.toobiao.com/","source_level":"二手","query":"中国核工业集团 电子采购平台 招标","status":"查了有","note":"官方域名www.cnncecp.com由搜索摘要文字给出，未在链接列表中直接出现，故evidence_url采用可见的镜像链接，未打开逐一核实"}
+{"name":"浙江能源集团智慧供应链一体化平台","owner":"浙能集团","industry":"电力","category":"集团SRM","url":"https://zsrm.zjenergy.com.cn/","evidence_url":"https://zsrm.zjenergy.com.cn/","source_level":"一手","query":"浙能集团 电子采购平台 招标","status":"查了有","note":"另有浙能商务网zeec.cn/zeec.dlzbxx.com，疑为集团旧平台，未逐一核实"}
+{"name":"北京京能电子商务平台（京能e购）","owner":"京能集团","industry":"电力","category":"集团SRM","url":"https://www.powerbeijing-eshop.com/","evidence_url":"https://www.powerbeijing-eshop.com/biddingBulletin/2026-03-17/314073.html","source_level":"一手","query":"京能集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"广东能源集团自建采购平台","owner":"广东能源集团","industry":"电力","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"广东能源集团 电子采购平台 招标","status":"查了没有","note":"搜索结果中广东能源相关招标均刊登在广东省机电设备招标中心(gdebidding.com)等第三方平台，以及疑似第三方镜像“广东能源商务网”(gdydb2b.toobiao.com)，未发现广东能源集团自建的一级官方采购域名"}
+{"name":"申能集团自建电子采购平台","owner":"申能集团","industry":"电力","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"申能集团 电子采购平台 招标","status":"查了没有","note":"搜索结果显示申能相关招标项目由上海机电设备招标有限公司(SMEETC，shbid.com)等第三方代理机构平台发布，未发现申能集团自建的电子采购平台"}
+{"name":"中铝集团绿星链通招标平台","owner":"中国铝业（中铝集团）","industry":"有色","category":"集团SRM","url":"https://zb.chinalco.com.cn/","evidence_url":"https://zb.chinalco.com.cn/","source_level":"一手","query":"中国铝业 电子采购平台 招标","status":"查了有","note":"另有中铝集团电子招投标平台eb.chinalco.com.cn及电子采购交易系统e-al.chinalco.com.cn，疑为同集团不同子系统，未逐一核实关系"}
+{"name":"中国五矿集团供应链管理平台","owner":"中国五矿集团","industry":"有色","category":"集团SRM","url":"https://ec.minmetals.com.cn/","evidence_url":"https://ec.minmetals.com.cn/","source_level":"一手","query":"中国五矿集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"江西铜业集团采购管理系统","owner":"江西铜业集团","industry":"有色","category":"集团SRM","url":"http://ec.jxcc.com/web/index","evidence_url":"http://ec.jxcc.com/web/index","source_level":"一手","query":"江西铜业集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"紫金矿业招投标平台","owner":"紫金矿业集团","industry":"有色","category":"集团SRM","url":"https://www.zjky.cn/site/Bidding.jsp","evidence_url":"https://www.zjky.cn/site/Bidding.jsp","source_level":"一手","query":"紫金矿业集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"金川集团电子招标投标交易平台","owner":"金川集团","industry":"有色","category":"集团SRM","url":"http://ebidding.jnmc.com/","evidence_url":"http://ebidding.jnmc.com/","source_level":"一手","query":"金川集团 电子采购平台 招标","status":"查了有","note":"该域名由搜索摘要文字给出，未在链接列表原文中直接出现，未打开核实是否可访问"}
+{"name":"铜陵有色集团电子采购（招投标）系统","owner":"铜陵有色集团","industry":"有色","category":"集团SRM","url":"https://ec.tlys.cn:10000/","evidence_url":"https://ec.tlys.cn:10000/","source_level":"一手","query":"铜陵有色集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"中国有色集团采购招标电子商务平台","owner":"中国有色矿业集团","industry":"有色","category":"集团SRM","url":"http://ecp.cnmc.com.cn/","evidence_url":"http://ecp.cnmc.com.cn/","source_level":"一手","query":"洛阳钼业 电子采购平台 招标","status":"查了有","note":""}
+{"name":"中国黄金电子招标商务平台","owner":"中国黄金集团","industry":"有色","category":"集团SRM","url":"https://jzcg.chinagoldgroup.com/","evidence_url":"https://jzcg.chinagoldgroup.com/","source_level":"一手","query":"山东黄金集团 电子采购平台 招标","status":"查了有","note":""}
+{"name":"山东黄金供应链管理系统招标采购平台","owner":"山东黄金集团","industry":"有色","category":"集团SRM","url":"https://scm.sd-gold.com/ierp/login.html","evidence_url":"https://scm.sd-gold.com/ierp/login.html","source_level":"二手","query":"山东黄金集团 电子采购平台 招标","status":"查了有","note":"该域名由搜索摘要文字给出，未在链接列表原文中直接出现，未打开核实是否可访问"}
+{"name":"云南铜业独立自建采购平台","owner":"云南铜业","industry":"有色","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"云南铜业 电子采购平台 招标","status":"查了没有","note":"云南铜业为中铝集团下属企业，其采购主要通过中铝集团绿星链通招标平台及“中铜阳光采购平台”进行，未发现云南铜业自身独立的集团级采购平台"}
+{"name":"洛阳钼业独立自建采购平台","owner":"洛阳钼业","industry":"有色","category":"集团SRM","url":"","evidence_url":"","source_level":"二手","query":"洛阳钼业 电子采购平台 招标","status":"查了没有","note":"搜索结果未见洛阳钼业自建的集团级电子采购/招标平台，其相关矿业子公司招标多刊登在洛阳市公共资源交易中心等地方公共平台"}
+```
+
+=== 文件: 搜索记录/省级与全国平台.jsonl ===
+```json
+{"name":"北京市公共资源交易服务平台","owner":"北京市","industry":"综合","category":"省ggzy","url":"https://ggzyfw.beijing.gov.cn/","evidence_url":"https://ggzyfw.beijing.gov.cn/","source_level":"一手","query":"北京市公共资源交易服务平台 官网","status":"查了有","note":""}
+{"name":"天津市公共资源交易平台","owner":"天津市","industry":"综合","category":"省ggzy","url":"http://ggzy.zwfwb.tj.gov.cn/","evidence_url":"http://ggzy.zwfwb.tj.gov.cn/","source_level":"一手","query":"天津市公共资源交易网 官网","status":"查了有","note":""}
+{"name":"河北省全国公共资源交易平台","owner":"河北省","industry":"综合","category":"省ggzy","url":"https://szj.hebei.gov.cn/hbggfwpt/","evidence_url":"https://szj.hebei.gov.cn/hbggfwpt/","source_level":"一手","query":"河北省公共资源交易服务平台 官网","status":"查了有","note":""}
+{"name":"山西省公共资源交易平台","owner":"山西省","industry":"综合","category":"省ggzy","url":"https://prec.sxzwfw.gov.cn/","evidence_url":"https://prec.sxzwfw.gov.cn/","source_level":"一手","query":"山西省公共资源交易中心 网站","status":"查了有","note":""}
+{"name":"内蒙古自治区公共资源交易网","owner":"内蒙古自治区","industry":"综合","category":"省ggzy","url":"https://ggzyjy.nmg.gov.cn/","evidence_url":"https://ggzyjy.nmg.gov.cn/","source_level":"一手","query":"内蒙古自治区公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"辽宁省公共资源交易中心","owner":"辽宁省","industry":"综合","category":"省ggzy","url":"https://ggzy.ln.gov.cn/","evidence_url":"https://ggzy.ln.gov.cn/","source_level":"一手","query":"辽宁省公共资源交易平台 官网","status":"查了有","note":"搜索摘要还提及辽宁省公共资源交易一张网电子化平台 www.lnsggzy.com，未打开核实"}
+{"name":"吉林省公共资源交易中心","owner":"吉林省","industry":"综合","category":"省ggzy","url":"http://www.ggzyzx.jl.gov.cn/","evidence_url":"http://www.ggzyzx.jl.gov.cn/","source_level":"一手","query":"吉林省公共资源交易中心 网站","status":"查了有","note":""}
+{"name":"黑龙江公共资源交易网","owner":"黑龙江省","industry":"综合","category":"省ggzy","url":"https://ggzyjyw.hlj.gov.cn/","evidence_url":"https://ggzyjyw.hlj.gov.cn/","source_level":"一手","query":"黑龙江省公共资源交易平台 官网","status":"查了有","note":""}
+{"name":"上海市建设工程交易服务中心（上海公共资源交易相关）","owner":"上海市","industry":"综合","category":"省ggzy","url":"https://www.shcpe.cn/","evidence_url":"https://www.shcpe.cn/","source_level":"一手","query":"上海市建设工程招标投标管理中心/上海市公共资源交易 官网","status":"查了有","note":"未搜到明确名为“上海市公共资源交易中心”的统一官方域名，此为搜索结果中最相关的政府侧公共资源交易服务网站；另有 zjw.sh.gov.cn/gcztb 工程招投标栏目"}
+{"name":"江苏省公共资源交易网","owner":"江苏省","industry":"综合","category":"省ggzy","url":"http://jsggzy.jszwfw.gov.cn/","evidence_url":"http://jsggzy.jszwfw.gov.cn/","source_level":"一手","query":"江苏省公共资源交易平台 官网","status":"查了有","note":""}
+{"name":"浙江省公共资源交易服务平台系统","owner":"浙江省","industry":"综合","category":"省ggzy","url":"https://ggzy.zj.gov.cn/","evidence_url":"https://ggzy.zj.gov.cn/","source_level":"一手","query":"浙江政务服务网 公共资源交易 官网","status":"查了有","note":""}
+{"name":"安徽省公共资源交易电子服务平台","owner":"安徽省","industry":"综合","category":"省ggzy","url":"https://ahggzy.dljczb.com/","evidence_url":"https://ahggzy.dljczb.com/","source_level":"二手","query":"安徽省公共资源交易平台 官网","status":"查了有","note":"域名非 gov.cn，为第三方技术支持域名，未打开核实是否官方唯一入口"}
+{"name":"福建省公共资源交易电子公共服务平台","owner":"福建省","industry":"综合","category":"省ggzy","url":"https://ggzyfw.fujian.gov.cn/","evidence_url":"https://ggzyfw.fujian.gov.cn/","source_level":"一手","query":"福建省公共资源交易电子服务平台 官网","status":"查了有","note":""}
+{"name":"江西省公共资源交易平台","owner":"江西省","industry":"综合","category":"省ggzy","url":"https://www.jxsggzy.cn/","evidence_url":"https://www.jxsggzy.cn/","source_level":"二手","query":"江西省公共资源交易网 官网","status":"查了有","note":"另有 ggzy.jiangxi.gov.cn 政府域名同名平台，未打开核实两者关系"}
+{"name":"山东省公共资源交易中心","owner":"山东省","industry":"综合","category":"省ggzy","url":"https://ggzyjyzx.shandong.gov.cn/","evidence_url":"https://ggzyjyzx.shandong.gov.cn/","source_level":"一手","query":"山东省公共资源交易网 官网","status":"查了有","note":"另有 http://ggzyjy.shandong.gov.cn/ 山东省公共资源交易网，未打开核实两者关系"}
+{"name":"河南省公共资源交易中心","owner":"河南省","industry":"综合","category":"省ggzy","url":"https://hnsggzyjy.henan.gov.cn/","evidence_url":"https://hnsggzyjy.henan.gov.cn/","source_level":"一手","query":"河南省公共资源交易中心 网站","status":"查了有","note":""}
+{"name":"湖北省公共资源电子交易服务系统","owner":"湖北省","industry":"综合","category":"省ggzy","url":"https://www.hbggzyfwpt.cn/","evidence_url":"https://www.hbggzyfwpt.cn/","source_level":"二手","query":"湖北省公共资源交易网 官网","status":"查了有","note":"域名非 gov.cn，未打开核实"}
+{"name":"湖南省公共资源交易中心","owner":"湖南省","industry":"综合","category":"省ggzy","url":"https://ggzy.hunan.gov.cn/","evidence_url":"https://ggzy.hunan.gov.cn/","source_level":"一手","query":"湖南省公共资源交易中心 网站","status":"查了有","note":""}
+{"name":"广东省政府采购中心/公共资源交易平台","owner":"广东省","industry":"综合","category":"省ggzy","url":"http://gpcgd.gd.gov.cn/","evidence_url":"http://gpcgd.gd.gov.cn/","source_level":"一手","query":"广东省政府采购网/公共资源交易平台 官网","status":"查了有","note":"搜索摘要称该网站由广东省公共资源交易中心运营，未搜到独立命名的“广东省公共资源交易中心”官方域名"}
+{"name":"广西壮族自治区公共资源交易中心网站","owner":"广西壮族自治区","industry":"综合","category":"省ggzy","url":"http://gxggzy.gxzf.gov.cn/","evidence_url":"http://gxggzy.gxzf.gov.cn/fwdt/bszn/","source_level":"一手","query":"广西壮族自治区公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"海南省公共资源交易服务中心","owner":"海南省","industry":"综合","category":"省ggzy","url":"https://ggzy.hainan.gov.cn/","evidence_url":"https://ggzy.hainan.gov.cn/","source_level":"一手","query":"海南省公共资源交易服务网 官网","status":"查了有","note":""}
+{"name":"重庆市公共资源交易网","owner":"重庆市","industry":"综合","category":"省ggzy","url":"https://www.cqggzy.com/","evidence_url":"https://www.cqggzy.com/","source_level":"二手","query":"重庆市公共资源交易网 官网","status":"查了有","note":"域名非 gov.cn；另有政府域名 重庆市公共资源交易监督网 ggzyjyjgj.cq.gov.cn，未打开核实两者关系"}
+{"name":"四川省公共资源交易信息网","owner":"四川省","industry":"综合","category":"省ggzy","url":"https://ggzyjy.sc.gov.cn/","evidence_url":"https://ggzyjy.sc.gov.cn/","source_level":"一手","query":"四川政府采购网/四川省公共资源交易网 官网","status":"查了有","note":""}
+{"name":"贵州省公共资源交易云","owner":"贵州省","industry":"综合","category":"省ggzy","url":"https://ggzy.guizhou.gov.cn/","evidence_url":"https://ggzy.guizhou.gov.cn/","source_level":"一手","query":"贵州省公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"云南省公共资源交易中心","owner":"云南省","industry":"综合","category":"省ggzy","url":"https://www.ynggzy.com/","evidence_url":"https://www.ynggzy.com/","source_level":"二手","query":"云南省公共资源交易中心 官网","status":"查了有","note":"域名非 gov.cn；另有政府域名 ggzy.yn.gov.cn 云南省公共资源交易信息网/平台，未打开核实两者关系"}
+{"name":"西藏自治区公共资源交易平台","owner":"西藏自治区","industry":"综合","category":"省ggzy","url":"https://ggzy.xizang.gov.cn/","evidence_url":"https://ggzy.xizang.gov.cn/","source_level":"一手","query":"西藏自治区公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"陕西省公共资源交易中心","owner":"陕西省","industry":"综合","category":"省ggzy","url":"https://www.sxggzyjy.cn/","evidence_url":"https://www.sxggzyjy.cn/index.html","source_level":"二手","query":"陕西省公共资源交易中心 网站","status":"查了有","note":"域名非 gov.cn，未打开核实"}
+{"name":"甘肃省公共资源交易网","owner":"甘肃省","industry":"综合","category":"省ggzy","url":"https://ggzyjy.gansu.gov.cn/","evidence_url":"https://ggzyjy.gansu.gov.cn/","source_level":"一手","query":"甘肃省公共资源交易网 官网","status":"查了有","note":""}
+{"name":"青海公共资源交易网","owner":"青海省","industry":"综合","category":"省ggzy","url":"https://www.qhggzyjy.gov.cn/ggzy/","evidence_url":"https://www.qhggzyjy.gov.cn/ggzy/","source_level":"一手","query":"青海省公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"宁夏回族自治区公共资源交易网","owner":"宁夏回族自治区","industry":"综合","category":"省ggzy","url":"https://ggzyjy.fzggw.nx.gov.cn/","evidence_url":"https://ggzyjy.fzggw.nx.gov.cn/","source_level":"一手","query":"宁夏回族自治区公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"新疆公共资源交易网","owner":"新疆维吾尔自治区","industry":"综合","category":"省ggzy","url":"https://ggzy.xinjiang.gov.cn/xinjiangggzy/","evidence_url":"https://ggzy.xinjiang.gov.cn/xinjiangggzy/","source_level":"一手","query":"新疆维吾尔自治区公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"兵团公共资源交易平台","owner":"新疆生产建设兵团","industry":"综合","category":"省ggzy","url":"http://ggzy.xjbt.gov.cn/","evidence_url":"http://ggzy.xjbt.gov.cn/","source_level":"一手","query":"新疆生产建设兵团公共资源交易中心 官网","status":"查了有","note":""}
+{"name":"全国公共资源交易平台","owner":"国家发改委","industry":"综合","category":"公开招标门户","url":"https://www.ggzy.gov.cn/","evidence_url":"https://www.ggzy.gov.cn/","source_level":"一手","query":"全国公共资源交易平台 官网 ggzy.gov.cn","status":"查了有","note":""}
+{"name":"中国招标投标公共服务平台","owner":"国家发改委","industry":"综合","category":"公开招标门户","url":"http://www.cebpubservice.com/","evidence_url":"http://www.cebpubservice.com/","source_level":"一手","query":"中国招标投标公共服务平台 官网","status":"查了有","note":""}
+{"name":"中国政府采购网","owner":"财政部","industry":"综合","category":"公开招标门户","url":"https://www.ccgp.gov.cn/","evidence_url":"https://www.ccgp.gov.cn/","source_level":"一手","query":"中国政府采购网 官网 ccgp.gov.cn","status":"查了有","note":""}
+{"name":"中国采购与招标网","owner":"中国经济信息社/新华社系统","industry":"综合","category":"公开招标门户","url":"https://www.e-bidding.org/","evidence_url":"https://www.e-bidding.org/cms/china_bidding/search/otherList.html?dates=300&categoryId=107&page=1","source_level":"二手","query":"中国采购与招标网 官网","status":"查了有","note":"另有相似名 chinabidding.com.cn，未打开核实是否为同一平台"}
+{"name":"必联网","owner":"中国建设银行/必联电子商务","industry":"综合","category":"公开招标门户","url":"https://www.ebnew.com/","evidence_url":"https://www.ebnew.com/","source_level":"一手","query":"必联网 官网","status":"查了有","note":""}
+{"name":"河北省政府采购网","owner":"河北省","industry":"工业","category":"省政府采购网","url":"","evidence_url":"http://www.ccgp-hebei.gov.cn/hd/hd/","source_level":"二手","query":"河北省政府采购网 ccgp-hebei 官网","status":"查了没有","note":"搜索结果给出的入口 hebeicg.ccpc360.com 非 gov.cn 官方域名，另一结果 www.ccgp-hebei.gov.cn/hd/hd/ 未见到直接的顶级官网首页确认，未核实到明确统一官网，故留空"}
+{"name":"山西省政府采购网","owner":"山西省","industry":"工业","category":"省政府采购网","url":"http://www.ccgp-shanxi.gov.cn/","evidence_url":"http://www.ccgp-shanxi.gov.cn/","source_level":"一手","query":"山西省政府采购网 ccgp-shanxi 官网","status":"查了有","note":""}
+{"name":"内蒙古自治区政府采购网","owner":"内蒙古自治区","industry":"工业","category":"省政府采购网","url":"https://www.ccgp-neimenggu.gov.cn/","evidence_url":"https://www.ccgp-neimenggu.gov.cn/","source_level":"一手","query":"内蒙古自治区政府采购网 ccgp-neimenggu 官网","status":"查了有","note":""}
+{"name":"辽宁政府采购网","owner":"辽宁省","industry":"工业","category":"省政府采购网","url":"https://www.ccgp-liaoning.gov.cn/","evidence_url":"https://www.ccgp-liaoning.gov.cn/","source_level":"一手","query":"辽宁省政府采购网 ccgp-liaoning 官网","status":"查了有","note":""}
+{"name":"山东省政府采购信息公开平台","owner":"山东省","industry":"工业","category":"省政府采购网","url":"http://www.ccgp-shandong.gov.cn/","evidence_url":"http://www.ccgp-shandong.gov.cn/","source_level":"一手","query":"山东省公共资源交易网 官网","status":"查了有","note":"该链接为此前搜索“山东省公共资源交易网 官网”结果中附带出现"}
+{"name":"河南省政府采购网","owner":"河南省","industry":"工业","category":"省政府采购网","url":"http://www.ccgp-henan.gov.cn/","evidence_url":"http://www.ccgp-henan.gov.cn/","source_level":"一手","query":"河南省政府采购网 ccgp-henan 官网","status":"查了有","note":""}
+{"name":"四川政府采购网","owner":"四川省","industry":"工业","category":"省政府采购网","url":"https://www.ccgp-sichuan.gov.cn/","evidence_url":"https://www.ccgp-sichuan.gov.cn/","source_level":"一手","query":"四川政府采购网/四川省公共资源交易网 官网","status":"查了有","note":""}
+{"name":"云南省政府采购网","owner":"云南省","industry":"工业","category":"省政府采购网","url":"http://www.ccgp-yunnan.gov.cn/","evidence_url":"http://www.ccgp-yunnan.gov.cn/","source_level":"一手","query":"云南省政府采购网 ccgp-yunnan 官网","status":"查了有","note":""}
+```
+
+=== 文件: 公共/抓取.py ===
+```python
+"""礼貌抓取器（仅标准库）：限速、超时、字节上限、本地缓存、断点续跑、访问障碍识别。
+
+用法：
+    python3 抓取.py --输入 链接.jsonl --缓存 本地产出/原文 [--间隔 3] [--上限 0]
+输入每行一个 JSON，至少含 "url"。结果写到 <缓存>/索引.jsonl（每 URL 一行，追加写，已抓过的跳过）。
+访问障碍（登录/验证码/JS 挑战/403 等）会如实记为 状态，绝不当作"没有公告"。
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+最大字节 = 5 * 1024 * 1024
+
+# 反爬/访问障碍特征：键为状态名，值为特征正则（在前 20KB 原始 HTML 中找）
+障碍特征 = {
+    "反爬-瑞数": r"\$_ts\s*=|FSSBBIl1UgzbN7N|_\$[a-z]{2}\(",
+    "反爬-加速乐": r"__jsl_clearance|document\.cookie\s*=.*?__jsl",
+    "反爬-阿里云WAF": r"acw_sc__v2|aliyun_waf|_waf_bd8ce2ce37",
+    "验证码": r"验证码|captcha|geetest|滑块|slider-?verify|nc_1_wrapper|安全验证|人机验证",
+    "需登录": r"请先登录|用户登录|登录后查看|请登录|login\.html|/login\b|sso/login",
+}
+
+
+def 键(url: str) -> str:
+    return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+
+
+def 识别障碍(http状态: int, 原始: str, 正文: str, 最终url: str) -> str:
+    if http状态 in (412, 521):
+        return "反爬-JS挑战(HTTP%d)" % http状态
+    if http状态 == 403:
+        return "拒绝访问(403,可能需国内IP)"
+    if http状态 >= 400:
+        return "HTTP%d" % http状态
+    头 = 原始[:20000]
+    for 名, 式 in 障碍特征.items():
+        if 名 == "需登录":
+            continue
+        if re.search(式, 头, re.I):
+            # 页面只有很少正文 + 命中特征才判为被挡；正文丰富说明只是页面上有个"验证码"字样
+            if len(正文) < 400:
+                return 名
+    if re.search(障碍特征["需登录"], 最终url, re.I) or (len(正文) < 400 and re.search(障碍特征["需登录"], 头, re.I)):
+        return "需登录"
+    if len(正文) < 150 and 原始.count("<script") >= 3:
+        return "JS渲染(静态无正文)"
+    return "ok"
+
+
+def 抓一个(url: str, 超时: int = 20) -> dict:
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"})
+    try:
+        with urllib.request.urlopen(req, timeout=超时) as r:
+            数据 = r.read(最大字节 + 1)
+            return {"http": r.status, "最终url": r.geturl(), "ct": r.headers.get("Content-Type", ""), "数据": 数据[:最大字节]}
+    except urllib.error.HTTPError as e:
+        try:
+            数据 = e.read(200000)
+        except Exception:
+            数据 = b""
+        return {"http": e.code, "最终url": url, "ct": e.headers.get("Content-Type", "") if e.headers else "", "数据": 数据}
+    except Exception as e:  # DNS/超时/TLS 等
+        return {"http": 0, "最终url": url, "ct": "", "数据": b"", "错误": f"{type(e).__name__}: {e}"[:200]}
+
+
+def 读索引(缓存: Path) -> dict:
+    已有 = {}
+    f = 缓存 / "索引.jsonl"
+    if f.exists():
+        for 行 in f.read_text(encoding="utf-8").splitlines():
+            try:
+                d = json.loads(行)
+                已有[d["url"]] = d
+            except Exception:
+                continue
+    return 已有
+
+
+def 读正文(缓存: Path, url: str) -> str | None:
+    p = 缓存 / (键(url) + ".txt")
+    return p.read_text(encoding="utf-8") if p.exists() else None
+
+
+def 批量抓取(链接: list[dict], 缓存: Path, 间隔: float = 3.0, 上限: int = 0, 重试失败: bool = False) -> dict:
+    缓存.mkdir(parents=True, exist_ok=True)
+    已有 = 读索引(缓存)
+    计数 = {"新抓": 0, "跳过": 0}
+    with open(缓存 / "索引.jsonl", "a", encoding="utf-8") as idx:
+        for 条 in 链接:
+            url = 条["url"]
+            旧 = 已有.get(url)
+            if 旧 and (旧["状态"] == "ok" or not 重试失败):
+                计数["跳过"] += 1
+                continue
+            if 上限 and 计数["新抓"] >= 上限:
+                break
+            if 附件型(url):
+                记录 = {"url": url, "状态": "附件(PDF/DOC,需人工或另行解析)", "http": None, "字数": 0, "时间": time.strftime("%Y-%m-%d %H:%M:%S")}
+            else:
+                r = 抓一个(url)
+                原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+                正文 = 转文本(原始) if 原始 else ""
+                状态 = 识别障碍(r["http"], 原始, 正文, r["最终url"]) if r["http"] else "连接失败:" + r.get("错误", "")
+                if 原始:
+                    (缓存 / (键(url) + ".html")).write_text(原始, encoding="utf-8")
+                    (缓存 / (键(url) + ".txt")).write_text(正文, encoding="utf-8")
+                记录 = {"url": url, "状态": 状态, "http": r["http"], "最终url": r["最终url"], "字数": len(正文), "时间": time.strftime("%Y-%m-%d %H:%M:%S")}
+            idx.write(json.dumps(记录, ensure_ascii=False) + "\n")
+            idx.flush()  # 流式落盘：被杀进程也只丢当前一条
+            计数["新抓"] += 1
+            计数[记录["状态"]] = 计数.get(记录["状态"], 0) + 1
+            print(f"[{计数['新抓']}] {记录['状态']} {url}", flush=True)
+            time.sleep(间隔)
+    return 计数
+
+
+def 附件型(url: str) -> bool:
+    return bool(re.search(r"\.(pdf|docx?|xlsx?|zip|rar)(\?|$)", url, re.I))
+
+
+def 读jsonl(路径: Path) -> list[dict]:
+    return [json.loads(x) for x in 路径.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--输入", required=True, type=Path)
+    ap.add_argument("--缓存", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0, help="每次请求间隔秒数（默认 3，别调太小）")
+    ap.add_argument("--上限", type=int, default=0, help="本轮最多新抓多少条，0=不限")
+    ap.add_argument("--重试失败", action="store_true", help="对之前非 ok 的 URL 再试一次")
+    a = ap.parse_args()
+    计数 = 批量抓取(读jsonl(a.输入), a.缓存, a.间隔, a.上限, a.重试失败)
+    print(json.dumps(计数, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 公共/网页文本.py ===
+```python
+"""HTML → 纯文本（仅标准库）。
+
+表格按行输出为 `| 单元格 | 单元格 |`，供 抽限价.py 的表格模式识别；
+<br>/<p>/<div>/<li> 变换行；script/style 丢弃。
+"""
+from __future__ import annotations
+
+import html
+import re
+from html.parser import HTMLParser
+
+_BLOCK = {"p", "div", "br", "li", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "ul", "ol", "table", "tbody", "thead"}
+_SKIP = {"script", "style", "noscript", "template"}
+
+
+class _Conv(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.out: list[str] = []
+        self.skip = 0
+        self.row: list[str] | None = None
+        self.cell: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in _SKIP:
+            self.skip += 1
+        elif tag == "tr":
+            self.row = []
+        elif tag in ("td", "th"):
+            self.cell = []
+        elif tag in _BLOCK and self.cell is None:
+            self.out.append("\n")
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in _SKIP:
+            self.skip = max(0, self.skip - 1)
+        elif tag in ("td", "th"):
+            if self.cell is not None and self.row is not None:
+                self.row.append(re.sub(r"\s+", " ", "".join(self.cell)).strip())
+            self.cell = None
+        elif tag == "tr":
+            if self.row:
+                self.out.append("\n| " + " | ".join(self.row) + " |\n")
+            self.row = None
+        elif tag in _BLOCK and self.cell is None:
+            self.out.append("\n")
+
+    def handle_data(self, data):
+        if self.skip:
+            return
+        if self.cell is not None:
+            self.cell.append(data)
+        else:
+            self.out.append(data)
+
+
+def 转文本(源: str) -> str:
+    """HTML 或纯文本 → 规整后的纯文本（多空行压成一行）。"""
+    if "<" not in 源:
+        return 源
+    c = _Conv()
+    try:
+        c.feed(源)
+        c.close()
+    except Exception:  # 残缺 HTML 退化为粗暴去标签
+        return html.unescape(re.sub(r"<[^>]+>", "\n", 源))
+    文本 = "".join(c.out).replace("\xa0", " ").replace("　", " ")
+    行 = [re.sub(r"[ \t]+", " ", x).strip() for x in 文本.split("\n")]
+    return "\n".join(x for x in 行 if x)
+
+
+def 解码(字节: bytes, content_type: str = "") -> str:
+    """按 Content-Type → <meta charset> → utf-8 → gb18030 顺序解码。"""
+    候选: list[str] = []
+    m = re.search(r"charset=([\w-]+)", content_type or "", re.I)
+    if m:
+        候选.append(m.group(1))
+    m = re.search(rb"<meta[^>]+charset=[\"']?([\w-]+)", 字节[:4096], re.I)
+    if m:
+        候选.append(m.group(1).decode("ascii", "ignore"))
+    候选 += ["utf-8", "gb18030"]
+    for enc in 候选:
+        enc = enc.lower()
+        if enc in ("gb2312", "gbk"):
+            enc = "gb18030"
+        try:
+            return 字节.decode(enc)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return 字节.decode("utf-8", "replace")
+```
+
+=== 文件: 公共/列表抽链接.py ===
+```python
+"""从任意公告列表页抽取候选公告链接（仅标准库），追加到候选链接 jsonl（按 url 去重）。
+
+    # C2：抽中标/成交结果里的维修类
+    python3 列表抽链接.py --列表页 "https://站点/jyxx/zbjg/index_{页}.html" --页 1-20 \
+        --必含 "中标|成交|候选人|结果" --且含 "检修|维修|大修|维保|修复|安装|改造|技改|探伤|检测" \
+        --输出 ../C2/候选链接.jsonl
+    # C3：抽招标公告（任意行业，后续由 生成待标注.py 挑难例）
+    python3 列表抽链接.py --列表页 "https://站点/list?page={页}" --页 1-10 --必含 "招标|采购|比选|询价" --排除 "结果|中标|成交" --输出 ../C3/候选链接.jsonl
+--列表页 里的 {页} 会被 --页 范围逐个替换；不含 {页} 就只抓这一页。也可用 --列表文件 每行一个列表页 URL。
+只能处理"静态 HTML 列表"；遇到 JS 渲染/反爬，会打印抓取状态，别当成"没有公告"。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import time
+import urllib.parse
+from html.parser import HTMLParser
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 抓取 import 抓一个, 识别障碍  # noqa: E402
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+
+class _A(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._href = None
+        self._buf: list[str] = []
+        self._title = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() == "a":
+            a = dict(attrs)
+            self._href = a.get("href")
+            self._title = a.get("title") or ""
+            self._buf = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            txt = re.sub(r"\s+", " ", "".join(self._buf)).strip()
+            self.links.append((self._href, self._title if len(self._title) > len(txt) else txt))
+            self._href = None
+
+
+def 抽链接(html: str, 基址: str, 必含: str, 且含: str = "", 排除: str = "") -> list[dict]:
+    p = _A()
+    try:
+        p.feed(html)
+    except Exception:
+        pass
+    出, 见 = [], set()
+    for href, 标题 in p.links:
+        if not href or href.startswith(("javascript:", "#", "mailto:")) or len(标题) < 6:
+            continue
+        if not re.search(必含, 标题) or (且含 and not re.search(且含, 标题)) or (排除 and re.search(排除, 标题)):
+            continue
+        url = urllib.parse.urljoin(基址, href)
+        if url in 见:
+            continue
+        见.add(url)
+        出.append({"url": url, "title": 标题, "site": urllib.parse.urlparse(url).netloc, "来源列表页": 基址})
+    return 出
+
+
+def 展开页(模板: str, 页: str) -> list[str]:
+    if "{页}" not in 模板:
+        return [模板]
+    a, _, b = 页.partition("-")
+    return [模板.replace("{页}", str(i)) for i in range(int(a), int(b or a) + 1)]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--列表页", action="append", default=[])
+    ap.add_argument("--列表文件", type=Path)
+    ap.add_argument("--页", default="1")
+    ap.add_argument("--必含", required=True)
+    ap.add_argument("--且含", default="")
+    ap.add_argument("--排除", default="")
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0)
+    a = ap.parse_args()
+    模板们 = list(a.列表页) + ([x.strip() for x in a.列表文件.read_text(encoding="utf-8").splitlines() if x.strip()] if a.列表文件 else [])
+    已有 = set()
+    if a.输出.exists():
+        已有 = {json.loads(x)["url"] for x in a.输出.read_text(encoding="utf-8").splitlines() if x.strip()}
+    新增 = 0
+    with open(a.输出, "a", encoding="utf-8") as f:
+        for 模板 in 模板们:
+            for url in 展开页(模板, a.页):
+                r = 抓一个(url)
+                原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+                状态 = 识别障碍(r["http"], 原始, 转文本(原始) if 原始 else "", r["最终url"]) if r["http"] else "连接失败"
+                n = 0
+                if 状态 == "ok":
+                    for d in 抽链接(原始, r["最终url"], a.必含, a.且含, a.排除):
+                        if d["url"] not in 已有:
+                            已有.add(d["url"])
+                            f.write(json.dumps(d, ensure_ascii=False) + "\n")
+                            n += 1
+                    f.flush()
+                新增 += n
+                print(f"{状态}\t+{n}\t{url}", flush=True)
+                time.sleep(a.间隔)
+    print(f"新增 {新增} 条 → {a.输出}（累计 {len(已有)}）")
+
+
+if __name__ == "__main__":
+    main()
+```

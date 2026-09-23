@@ -1,0 +1,1323 @@
+=== 文件: README.md ===
+```markdown
+# C3 金额抽取难例库（抽取器已完成，真实难例待本地标注）
+
+**做了什么**：写了一个只用标准库的参考抽取器 `抽限价(原文) -> list[dict]`。它覆盖 8 类难点：多标段、中文大写、万元/元混写、含税/不含税、详见文件、预算与限价并存、单价与总价并存、表格；另外会挡掉保证金、注册资本、业绩、电话、日期、编号这类干扰金额。每条结果输出标段、限价元（统一为元）、含税、类型、单位、依据、片段和存疑说明。云端打不开公告原文，所以**真实难例是 0 条**。配套交付了本地流水线：`生成待标注.py`（切 ≤200 字片段、自动打难点标签、预填预测）→ 人工独立标注 → `标注校验.py`（校验片段长度和字段，**逐个核对答案数字在片段里找得到，防编数**，达到 200 条才放行）→ `评测.py`（按难点标签分组报准确率）。
+
+**关键数字**
+- 构造样例 36 条（边写边调）：36/36。
+- 盲测样例 20 条（写完后不改代码直接跑）：**原始 16/20 = 80%**。错在罗马数字标段、后置的含税说明（2 例）、"在开标时公布"。修复后 20/20，**之后它就不算盲测了**。
+- 候选公告链接 121 条：大写 31／多标段 31／单价 21／预算 vs 限价 10／详见 10／含税 9／表格 9／**万元元混写 0**。整个会话的搜索额度已经用完，还差约 180 条。
+- 离线测试：C3 单元测试 12 项＋全链路端到端 4 项（C1/C2/C3/公共各 1）全部通过。
+
+**局限**：样例都是构造的（文件里有标注），**在真实公告上的准确率没测**，以本地难例的评测结果为准。
+
+**复审**：见文末。
+```
+
+=== 文件: 抽限价.py ===
+```python
+"""招标公告限价抽取器（仅 Python 3 标准库，离线可跑）。
+
+主入口：
+    抽限价(原文: str) -> list[dict]
+每个 dict：
+    标段     str|None   标段/包号，统一成阿拉伯数字字符串（"1"、"2"、"A"）；无标段为 None
+    限价元   float|None 统一成"元"；"详见招标文件"类为 None
+    含税     True/False/None   原文说明含税/不含税；未说明为 None
+    类型     "最高限价" | "预算(代限价)" | "单价限价" | "详见文件"
+    单位     "元" 或 "元/吨" 等（单价时）
+    依据     命中的关键词
+    片段     原文中该金额附近的文字（便于人工核对）
+    存疑     list[str]  例如 ["无单位,按元计"]
+
+规则：公告里只要出现"最高限价/控制价/拦标价"等，就只返回这类；
+一个都没有时，才用"预算金额/采购预算"代替，类型标"预算(代限价)"。
+通用函数 抽金额(原文, 关键词表) 也给 C2 用来抽中标价。
+"""
+from __future__ import annotations
+
+import re
+import unicodedata
+
+# ---------------------------------------------------------------- 关键词
+限价词 = ["最高投标限价", "最高限价", "招标控制价", "投标控制价", "采购控制价", "控制价", "拦标价", "最高报价", "最高投标价", "限价", "上限价", "封顶价"]
+预算词 = ["采购预算金额", "项目预算金额", "采购预算", "预算金额", "项目预算", "预算价", "预算", "估算金额", "估算价"]
+单价词 = ["单价最高限价", "最高单价", "综合单价", "单价限价", "单价"]
+# 干扰金额：出现在它们后面的金额一律不是限价
+干扰词 = ["投标保证金", "履约保证金", "保证金", "注册资本", "注册资金", "业绩", "合同金额", "服务费", "代理费", "文件售价", "标书费", "售价", "资产总额", "净资产", "营业收入", "中标价", "中标金额", "成交金额", "投标报价", "报价", "罚款", "违约金", "赔偿", "工程款", "保险"]
+详见式 = r"(?:详见|见)(?:招标|采购|谈判|磋商|询价|比选|竞争性)?(?:文件|附件|公告附件|清单)|另行(?:公布|通知|发布)|开标(?:前|时)(?:公布|宣读)|不(?:予)?公开|暂不公布|以.{0,6}为准"
+
+标段名 = r"(?:标段|标包|包件|分包|子包|包号|批次|包|标)"
+_中数 = "一二三四五六七八九十"
+_罗马式 = r"(?:VIII|VII|VI|IV|IX|III|II|I|V|X)"
+标段式 = re.compile(
+    r"(?:第\s*([%s\d]{1,3}|%s|[A-Za-z])\s*%s)"  # 第一标段 / 第1包
+    r"|(?:(?<![%s\dA-Za-z])([%s\d]{1,3}|%s|[A-Za-z])\s*(?:号)?%s(?![件]?[的内外]))"  # 一标段 / 1包 / A包 / II标段
+    r"|(?:%s\s*[:：]?\s*(0?\d{1,2}|[%s]{1,3}|%s(?![A-Za-z])|[A-Za-z](?![A-Za-z]))(?![\d\.万元]))"  # 标段一 / 包1 / 包号：01
+    % (_中数, _罗马式, 标段名, _中数, _中数, _罗马式, 标段名, 标段名, _中数, _罗马式)
+)
+_罗马 = {"Ⅰ": "1", "Ⅱ": "2", "Ⅲ": "3", "Ⅳ": "4", "Ⅴ": "5", "Ⅵ": "6", "Ⅶ": "7", "Ⅷ": "8", "Ⅸ": "9", "Ⅹ": "10"}
+
+# ---------------------------------------------------------------- 数字
+_大写数 = {"零": 0, "〇": 0, "○": 0, "壹": 1, "一": 1, "贰": 2, "貳": 2, "二": 2, "两": 2, "叁": 3, "參": 3, "三": 3, "肆": 4, "四": 4,
+          "伍": 5, "五": 5, "陆": 6, "陸": 6, "六": 6, "柒": 7, "七": 7, "捌": 8, "八": 8, "玖": 9, "九": 9}
+_小位 = {"拾": 10, "十": 10, "佰": 100, "百": 100, "仟": 1000, "千": 1000}
+_大位 = {"万": 10 ** 4, "萬": 10 ** 4, "亿": 10 ** 8, "億": 10 ** 8}
+_大写字 = "".join(_大写数) + "".join(_小位) + "".join(_大位)
+大写式 = re.compile(r"[%s]{2,}(?:元|圆)(?:[%s]角)?(?:[%s]分)?(?:整|正)?" % (_大写字, "".join(_大写数), "".join(_大写数)))
+# 阿拉伯数字：1,234,567.89 / 1234567.89 / 120.5，后接可选单位
+数字式 = re.compile(r"(?<![\d.A-Za-z_])[¥￥]?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(亿元|万元|千元|百万元|元|万|亿)?(\s*/\s*[一-龥a-zA-Z²³]{1,4})?")
+
+
+def 中文数(s: str) -> int:
+    """'壹佰贰拾万' → 1200000；'十二' → 12。"""
+    总, 节, 位数 = 0, 0, 0
+    for ch in s:
+        if ch in _大写数:
+            位数 = _大写数[ch]
+        elif ch in _小位:
+            节 += (位数 or 1) * _小位[ch]
+            位数 = 0
+        elif ch in _大位:
+            节 += 位数
+            总 = (总 + 节) * _大位[ch] if _大位[ch] > 10 ** 4 else 总 + 节 * _大位[ch]
+            节, 位数 = 0, 0
+    return 总 + 节 + 位数
+
+
+def 大写转数(s: str) -> float:
+    s = s.rstrip("整正")
+    m = re.match(r"(.*?)(?:元|圆)(?:(.)角)?(?:(.)分)?$", s)
+    if not m:
+        return float(中文数(s))
+    值 = float(中文数(m.group(1)))
+    if m.group(2):
+        值 += _大写数.get(m.group(2), 0) / 10
+    if m.group(3):
+        值 += _大写数.get(m.group(3), 0) / 100
+    return 值
+
+
+def 规整(文本: str) -> str:
+    """全角转半角、统一符号，保留原有长度无关性（后续用规整后的文本定位）。"""
+    t = unicodedata.normalize("NFKC", 文本)
+    t = t.replace("，", ",").replace("：", ":").replace("（", "(").replace("）", ")")
+    # 千分位里的中文逗号已转半角；去掉数字内部空格 "1 200 000"
+    t = re.sub(r"(?<=\d) (?=\d{3}\b)", "", t)
+    return t
+
+
+_单位倍数 = {"元": 1, "千元": 1e3, "万元": 1e4, "万": 1e4, "百万元": 1e6, "亿元": 1e8, "亿": 1e8}
+
+
+def _标段规整(tok: str) -> str:
+    tok = tok.strip()
+    if tok in _罗马:
+        return _罗马[tok]
+    if re.fullmatch(_罗马式, tok):
+        return str({"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}[tok])
+    if tok.isdigit():
+        return str(int(tok))
+    if all(c in _大写数 or c in "十" for c in tok):
+        return str(中文数(tok))
+    return tok.upper()
+
+
+def _找标段(t: str, pos: int, 回看: int = 120) -> str | None:
+    起 = max(0, pos - 回看)
+    最近 = None
+    for m in 标段式.finditer(t, 起, pos):
+        tok = m.group(1) or m.group(2) or m.group(3)
+        if tok:
+            最近 = _标段规整(tok)
+    return 最近
+
+
+_税式 = re.compile(r"不含税|不含增值税|未含税|税前|除税|含税|含增值税|含\d{1,2}%\s*(?:增值税|税)|含\d{1,2}%税率|包含.{0,6}税")
+
+
+def _判税(t: str, 窗起: int, 起: int, 止: int) -> bool | None:
+    """税口径：①关键词及其与金额之间（含关键词前 6 字）②金额后紧跟的括号或到下一个逗号为止 ③关键词前 15 字。"""
+    def 判(m):
+        return not re.match(r"不含|未含|税前|除税", m.group())
+
+    前 = list(_税式.finditer(t, max(0, 窗起 - 6), 起))
+    if 前:
+        return 判(前[-1])
+    后文 = t[止: 止 + 30]
+    k = re.match(r"\s*(?:元|万元)?\s*\(([^)]{0,28})\)", 后文)
+    后段 = k.group(0) if k else re.split(r"[,;。\n]", 后文, maxsplit=1)[0]
+    m = _税式.search(后段)
+    if m:
+        return 判(m)
+    前 = list(_税式.finditer(t, max(0, 窗起 - 15), 起))
+    if 前:
+        return 判(前[-1])
+    # ④ 同一句剩余部分若不再出现别的金额，句内的"为含税价/含6%增值税"也算
+    句 = re.split(r"[。\n]", t[止: 止 + 60], maxsplit=1)[0]
+    if not re.search(r"\d[\d,.]*\s*(?:亿元|万元|元)|" + 大写式.pattern, 句):
+        m = _税式.search(句)
+        if m:
+            return 判(m)
+    return None
+
+
+def _表头单位(t: str, 左: int, 右: int) -> float | None:
+    段 = t[左:右]
+    m = re.search(r"(?:单位\s*:?\s*|\(|\[)\s*(万元|元|亿元|千元)\s*[\)\]]?", 段)
+    return _单位倍数[m.group(1)] if m else None
+
+
+def _所有关键词(词表组: dict[str, list[str]]):
+    项 = []
+    for 类, 词表 in 词表组.items():
+        for w in 词表:
+            项.append((w, 类))
+    项.sort(key=lambda x: -len(x[0]))  # 长词优先
+    return re.compile("|".join(re.escape(w) for w, _ in 项)), {w: 类 for w, 类 in 项}
+
+
+def _金额列表(t: str):
+    """找出所有金额：(起, 止, 值元或None, 单位后缀, 是大写, 原单位)"""
+    结果 = []
+    for m in 大写式.finditer(t):
+        结果.append([m.start(), m.end(), 大写转数(m.group()), "", True, "元"])
+    for m in 数字式.finditer(t):
+        数, 单位, 斜杠 = m.group(1), m.group(2), m.group(3)
+        # 排除日期、电话、编号、百分比、年份
+        尾 = t[m.end(): m.end() + 2]
+        if 尾.startswith(("%", "％", "年", "月", "日", "天", "个", "人", "号", "-", "吨", "台", "套", "米", "㎡", "项", "次", "家", "名", "小时", "期")) and not 单位:
+            continue
+        前 = t[max(0, m.start() - 1): m.start()]
+        if 前 in ("-", "/", ".", "第") or (前.isalpha() and 前.isascii()):
+            continue
+        原 = 数.replace(",", "")
+        if not 单位 and not 斜杠 and "," not in 数 and "." not in 数 and len(原) >= 11:
+            continue  # 很可能是电话/编号
+        值 = float(原)
+        结果.append([m.start(), m.end(), 值, (斜杠 or "").replace(" ", ""), False, 单位 or ""])
+    结果.sort(key=lambda x: x[0])
+    return 结果
+
+
+def 抽金额(原文: str, 目标: dict[str, list[str]], 窗口: int = 60) -> list[dict]:
+    """通用金额抽取。目标 = {"类型名": [关键词...]}；干扰词会自动加入以挡住误配。
+
+    每个金额归属于它前方最近的关键词（窗口内、不跨句号/换行）。
+    """
+    t = 规整(原文)
+    组 = dict(目标)
+    组["_干扰"] = [w for w in 干扰词 if not any(w in ws for ws in 目标.values())]
+    词式, 词类 = _所有关键词(组)
+    词位 = [(m.start(), m.end(), 词类[m.group()], m.group()) for m in 词式.finditer(t)]
+    金额 = _金额列表(t)
+    输出: list[dict] = []
+    已用大写 = []
+
+    for 起, 止, 值, 斜杠, 是大写, 单位 in 金额:
+        # 最近的前置关键词
+        前词 = None
+        for w in reversed(词位):
+            if w[1] <= 起:
+                if 起 - w[1] <= 窗口 and not re.search(r"[。\n]", t[w[1]:起]):
+                    前词 = w
+                break
+        if not 前词 or 前词[2] == "_干扰":
+            continue
+        # 前词与金额之间若夹着另一个金额且中间有标点分隔，仍允许（多标段 "限价:一标段100万;二标段80万"）
+        存疑 = []
+        if not 是大写:
+            倍 = _单位倍数.get(单位) if 单位 else _表头单位(t, 前词[0], 起 + 1) or _表头单位(t, 前词[1], 前词[1] + 12)
+            if 倍 is None:
+                后 = t[止: 止 + 3]
+                if 后.startswith("元"):
+                    倍 = 1
+                else:
+                    倍 = 1
+                    存疑.append("无单位,按元计")
+            值元 = round(值 * 倍, 2)
+        else:
+            值元 = round(值, 2)
+        类型 = 前词[2]
+        单位名 = "元"
+        if 斜杠:
+            类型 = "单价限价" if 类型 in ("最高限价", "单价限价") else 类型
+            单位名 = "元" + 斜杠 if not 单位 or 单位 == "元" else 单位 + 斜杠
+        输出.append({
+            "标段": _找标段(t, 起),
+            "限价元": 值元,
+            "含税": _判税(t, 前词[0], 起, 止),
+            "类型": 类型,
+            "单位": 单位名,
+            "依据": 前词[3],
+            "片段": t[max(0, 前词[0] - 10): min(len(t), 止 + 15)],
+            "存疑": 存疑,
+            "_pos": 起,
+            "_大写": 是大写,
+        })
+        if 是大写:
+            已用大写.append(len(输出) - 1)
+
+    # 详见文件：关键词后紧跟"详见招标文件"之类
+    for w in 词位:
+        if w[2] in ("_干扰",):
+            continue
+        后 = t[w[1]: w[1] + 25]
+        if re.match(r"\s*(?:为|是|:)?\s*(?:将)?(?:在|于)?\s*(?:" + 详见式 + ")", 后):
+            输出.append({"标段": _找标段(t, w[0]), "限价元": None, "含税": None, "类型": "详见文件", "单位": "", "依据": w[3],
+                       "片段": t[max(0, w[0] - 10): w[1] + 25], "存疑": [], "_pos": w[0], "_大写": False, "_源类": w[2]})
+
+    输出 += _表格(t, 目标)
+    return _去重(输出)
+
+
+def _表格(t: str, 目标: dict[str, list[str]]) -> list[dict]:
+    """识别 `| a | b |` 行格式的表格（网页文本.py 输出）。"""
+    行们 = t.split("\n")
+    结果 = []
+    偏移 = 0
+    位置 = []
+    for 行 in 行们:
+        位置.append(偏移)
+        偏移 += len(行) + 1
+    i = 0
+    while i < len(行们):
+        行 = 行们[i].strip()
+        if not (行.startswith("|") and 行.endswith("|")):
+            i += 1
+            continue
+        头 = [c.strip() for c in 行.strip("|").split("|")]
+        列, 类 = None, None
+        for 类名, 词表 in 目标.items():
+            for j, c in enumerate(头):
+                if any(w in c for w in 词表) and not any(g in c for g in ("保证金",)):
+                    列, 类 = j, 类名
+                    break
+            if 列 is not None:
+                break
+        if 列 is None:
+            i += 1
+            continue
+        头单位 = re.search(r"(万元|亿元|千元|元)", 头[列])
+        倍 = _单位倍数[头单位.group(1)] if 头单位 else None
+        头税 = None
+        if re.search(r"不含税|不含增值税", 头[列]):
+            头税 = False
+        elif re.search(r"含税|含增值税", 头[列]):
+            头税 = True
+        段列 = next((j for j, c in enumerate(头) if re.search(r"标段|包号|标包|分包|包件|包名|序号|批次", c)), None)
+        j = i + 1
+        while j < len(行们) and 行们[j].strip().startswith("|"):
+            格 = [c.strip() for c in 行们[j].strip().strip("|").split("|")]
+            if len(格) == len(头) and 列 < len(格):
+                c = 规整(格[列])
+                m = 大写式.search(c)
+                if m:
+                    值 = 大写转数(m.group())
+                else:
+                    n = re.search(r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(亿元|万元|千元|元|万)?", c)
+                    值 = None
+                    if n:
+                        值 = float(n.group(1).replace(",", "")) * (_单位倍数[n.group(2)] if n.group(2) else (倍 or 1))
+                段 = None
+                if 段列 is not None:
+                    s = _找标段(格[段列] + " ", len(格[段列]) + 1) if 标段式.search(格[段列]) else None
+                    if s is None and re.fullmatch(r"0?\d{1,2}|[A-Z]", 格[段列].strip()):
+                        s = _标段规整(格[段列].strip())
+                    段 = s
+                if 值 is not None:
+                    结果.append({"标段": 段, "限价元": round(值, 2), "含税": 头税 if 头税 is not None else _判税(t, 位置[j], 位置[j], 位置[j] + len(行们[j])),
+                               "类型": 类, "单位": "元", "依据": "表格:" + 头[列], "片段": 行们[j][:200],
+                               "存疑": [] if (头单位 or (n and n.group(2)) or m) else ["表格无单位,按元计"], "_pos": 位置[j], "_大写": bool(m)})
+                elif re.search(详见式, c):
+                    结果.append({"标段": 段, "限价元": None, "含税": None, "类型": "详见文件", "单位": "", "依据": "表格:" + 头[列],
+                               "片段": 行们[j][:200], "存疑": [], "_pos": 位置[j], "_大写": False, "_源类": 类})
+            j += 1
+        i = j
+    return 结果
+
+
+def _去重(项: list[dict]) -> list[dict]:
+    """同一标段、同值、同税口径只留一条；大写与阿拉伯并写（值相同、相距近）合并。"""
+    项 = sorted(项, key=lambda x: x["_pos"])
+    留 = []
+    for x in 项:
+        重复 = False
+        for y in 留:
+            if x["类型"] == "详见文件" and y["类型"] == "详见文件" and x["标段"] == y["标段"]:
+                重复 = True
+                break
+            if x["类型"] == y["类型"] and x["限价元"] is not None and y["限价元"] is not None and abs(x["限价元"] - y["限价元"]) < 0.005:
+                同段 = x["标段"] == y["标段"] or x["标段"] is None or y["标段"] is None
+                同税 = x["含税"] == y["含税"] or x["含税"] is None or y["含税"] is None
+                if 同段 and 同税:
+                    y["标段"] = y["标段"] or x["标段"]
+                    y["含税"] = y["含税"] if y["含税"] is not None else x["含税"]
+                    重复 = True
+                    break
+        if not 重复:
+            留.append(x)
+    return 留
+
+
+def 抽限价(原文: str) -> list[dict]:
+    """返回公告的限价列表（见模块说明）。"""
+    全部 = 抽金额(原文, {"最高限价": 限价词, "预算(代限价)": 预算词, "单价限价": 单价词})
+    # 某标段已有真实金额，就不再保留它的"详见文件"
+    有值段 = {x["标段"] for x in 全部 if x["限价元"] is not None and x["类型"] != "预算(代限价)"}
+    限价 = [x for x in 全部 if x["类型"] in ("最高限价", "单价限价") or (x["类型"] == "详见文件" and x.get("_源类") in ("最高限价", "单价限价"))]
+    限价 = [x for x in 限价 if not (x["类型"] == "详见文件" and x["标段"] in 有值段)]
+    if not any(x["限价元"] is not None for x in 限价):
+        预算 = [x for x in 全部 if x["类型"] == "预算(代限价)"]
+        if 预算:
+            限价 = [x for x in 限价 if x["类型"] == "详见文件"] + 预算
+        # 只有预算的"详见文件"也返回
+        if not 限价:
+            限价 = [dict(x, 类型="详见文件") for x in 全部 if x["类型"] == "详见文件"]
+    # 若同时有总价限价，单价限价也保留（题目要求区分单价与总价）
+    for x in 限价:
+        x.pop("_pos", None)
+        x.pop("_大写", None)
+        x.pop("_源类", None)
+    return 限价
+
+
+if __name__ == "__main__":
+    import json
+    import sys
+
+    文本 = sys.stdin.read()
+    print(json.dumps(抽限价(文本), ensure_ascii=False, indent=1))
+```
+
+=== 文件: 评测.py ===
+```python
+"""在难例集上评测 抽限价()，按难点标签分组报准确率。
+
+    python3 评测.py 难例.jsonl            # 真实难例（字段：原文片段 / 正确答案 / 难点标签）
+    python3 评测.py 构造样例.jsonl        # 构造样例（字段：原文 / 答案 / 标签）
+    python3 评测.py 难例.jsonl --错例 20  # 另外打印前 20 个错例
+
+判定：一条难例"对" = 抽出的 (标段, 限价元, 含税) 集合与答案集合完全相同。
+限价元允许 0.01 元误差；"详见文件"按 (标段, None, None) 比。
+另报条目级 精确率 / 召回率。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 抽限价 import 抽限价  # noqa: E402
+
+
+def 规范(项: dict) -> tuple:
+    值 = 项.get("限价元")
+    return (项.get("标段"), None if 值 is None else round(float(值), 2), 项.get("含税"))
+
+
+def 读(路径: Path) -> list[dict]:
+    行们 = []
+    for x in 路径.read_text(encoding="utf-8").splitlines():
+        if not x.strip():
+            continue
+        d = json.loads(x)
+        行们.append({
+            "id": d.get("id") or d.get("url"),
+            "原文": d.get("原文片段") or d.get("原文") or "",
+            "答案": d.get("正确答案") if "正确答案" in d else d.get("答案", []),
+            "标签": d.get("难点标签") or d.get("标签") or [],
+        })
+    return 行们
+
+
+def 评测(行们: list[dict]) -> dict:
+    组 = defaultdict(lambda: [0, 0])
+    tp = fp = fn = 0
+    错例 = []
+    for r in 行们:
+        预测 = {规范(x) for x in 抽限价(r["原文"])}
+        答案 = {规范(x) for x in r["答案"]}
+        对 = 预测 == 答案
+        for t in list(r["标签"]) + ["全部"]:
+            组[t][0] += 对
+            组[t][1] += 1
+        tp += len(预测 & 答案)
+        fp += len(预测 - 答案)
+        fn += len(答案 - 预测)
+        if not 对:
+            错例.append({"id": r["id"], "标签": r["标签"], "原文": r["原文"][:200], "多抽": sorted(map(str, 预测 - 答案)), "漏抽": sorted(map(str, 答案 - 预测))})
+    return {
+        "分组准确率": {k: {"对": v[0], "总": v[1], "准确率": round(v[0] / v[1], 4)} for k, v in sorted(组.items(), key=lambda kv: (kv[0] != "全部", kv[0]))},
+        "条目精确率": round(tp / (tp + fp), 4) if tp + fp else None,
+        "条目召回率": round(tp / (tp + fn), 4) if tp + fn else None,
+        "错例": 错例,
+    }
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("文件", type=Path)
+    ap.add_argument("--错例", type=int, default=0)
+    a = ap.parse_args()
+    结果 = 评测(读(a.文件))
+    错例 = 结果.pop("错例")
+    print(json.dumps(结果, ensure_ascii=False, indent=1))
+    for e in 错例[: a.错例]:
+        print(json.dumps(e, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: test_抽限价.py ===
+```python
+"""离线测试：python3 -m unittest test_抽限价 -v"""
+import sys
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from 抽限价 import 大写转数, 抽金额, 抽限价  # noqa: E402
+from 评测 import 评测, 读  # noqa: E402
+
+
+def 值集(文本):
+    return sorted((x["标段"], x["限价元"], x["含税"]) for x in 抽限价(文本))
+
+
+class 大写(unittest.TestCase):
+    def test_常见(self):
+        self.assertEqual(大写转数("壹佰贰拾万元整"), 1200000)
+        self.assertEqual(大写转数("贰拾叁万伍仟元整"), 235000)
+        self.assertEqual(大写转数("壹仟零伍拾万零捌佰元整"), 10500800)
+        self.assertAlmostEqual(大写转数("叁佰肆拾伍万陆仟柒佰捌拾玖元伍角贰分"), 3456789.52)
+        self.assertEqual(大写转数("壹亿贰仟万元整"), 120000000)
+        self.assertEqual(大写转数("拾万元整"), 100000)
+        self.assertEqual(大写转数("一百二十万元"), 1200000)
+
+
+class 不该抽(unittest.TestCase):
+    def test_电话日期编号(self):
+        t = "项目编号：KM-2025-0012；联系电话：0371-65432100，13800138000；开标时间：2025年10月8日9:30。最高限价：36万元。"
+        self.assertEqual(值集(t), [(None, 360000.0, None)])
+
+    def test_保证金业绩注册资本(self):
+        t = "投标保证金：1万元；注册资本不少于300万元；近三年单项业绩不低于200万元；最高投标限价：158万元。"
+        self.assertEqual(值集(t), [(None, 1580000.0, None)])
+
+    def test_无限价无预算(self):
+        self.assertEqual(抽限价("本项目为设备检修服务，工期60日历天，质保期12个月。"), [])
+
+    def test_百分比不当金额(self):
+        t = "最高限价：下浮率不低于5%。"
+        self.assertEqual([x for x in 抽限价(t) if x["限价元"] is not None], [])
+
+
+class 类型(unittest.TestCase):
+    def test_只有预算时降级(self):
+        r = 抽限价("预算金额：80万元")
+        self.assertEqual(r[0]["类型"], "预算(代限价)")
+
+    def test_有限价时不返回预算(self):
+        r = 抽限价("预算金额：80万元；最高限价：78万元")
+        self.assertEqual([(x["类型"], x["限价元"]) for x in r], [("最高限价", 780000.0)])
+
+    def test_单价单位(self):
+        r = 抽限价("单价最高限价：1,800元/吨")
+        self.assertEqual((r[0]["类型"], r[0]["单位"], r[0]["限价元"]), ("单价限价", "元/吨", 1800.0))
+
+    def test_无单位存疑(self):
+        r = 抽限价("最高限价：560000")
+        self.assertIn("无单位,按元计", r[0]["存疑"])
+
+    def test_通用抽中标价(self):
+        r = 抽金额("中标金额：人民币92.8万元", {"中标价": ["中标金额"]})
+        self.assertEqual(r[0]["限价元"], 928000.0)
+
+
+class 样例集(unittest.TestCase):
+    def test_构造样例全对(self):
+        结果 = 评测(读(HERE / "构造样例.jsonl"))
+        self.assertEqual(结果["分组准确率"]["全部"]["准确率"], 1.0, 结果["错例"])
+
+    def test_盲测样例全对(self):
+        结果 = 评测(读(HERE / "盲测样例.jsonl"))
+        self.assertEqual(结果["分组准确率"]["全部"]["准确率"], 1.0, 结果["错例"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+=== 文件: 构造样例.jsonl ===
+```json
+{"id":"S01","标签":["multi_lot"],"原文":"本项目分为两个标段，标段一：窑系统检修，最高限价120万元；标段二：磨机检修，最高限价80万元。","答案":[{"标段":"1","限价元":1200000,"含税":null},{"标段":"2","限价元":800000,"含税":null}]}
+{"id":"S02","标签":["multi_lot"],"原文":"最高投标限价：第一标段 356,800.00元；第二标段 210,000.00元；第三标段 98,500.00元。","答案":[{"标段":"1","限价元":356800,"含税":null},{"标段":"2","限价元":210000,"含税":null},{"标段":"3","限价元":98500,"含税":null}]}
+{"id":"S03","标签":["multi_lot"],"原文":"包1：减速机齿轮修复，采购最高限价：45万元\n包2：托轮轴承更换，采购最高限价：38.5万元","答案":[{"标段":"1","限价元":450000,"含税":null},{"标段":"2","限价元":385000,"含税":null}]}
+{"id":"S04","标签":["capital"],"原文":"本次招标最高限价为人民币壹佰贰拾万元整（¥1,200,000.00），投标报价超过最高限价的按无效投标处理。","答案":[{"标段":null,"限价元":1200000,"含税":null}]}
+{"id":"S05","标签":["capital"],"原文":"招标控制价：贰拾叁万伍仟元整。","答案":[{"标段":null,"限价元":235000,"含税":null}]}
+{"id":"S06","标签":["capital"],"原文":"最高限价（大写）：壹仟零伍拾万零捌佰元整","答案":[{"标段":null,"限价元":10500800,"含税":null}]}
+{"id":"S07","标签":["capital"],"原文":"最高投标限价：人民币叁佰肆拾伍万陆仟柒佰捌拾玖元伍角贰分","答案":[{"标段":null,"限价元":3456789.52,"含税":null}]}
+{"id":"S08","标签":["unit_mix"],"原文":"项目预算金额：150万元，最高限价：1,450,000元。","答案":[{"标段":null,"限价元":1450000,"含税":null}]}
+{"id":"S09","标签":["unit_mix"],"原文":"最高限价(万元)：86.5","答案":[{"标段":null,"限价元":865000,"含税":null}]}
+{"id":"S10","标签":["unit_mix"],"原文":"采购预算：0.98万元","答案":[{"标段":null,"限价元":9800,"含税":null}]}
+{"id":"S11","标签":["tax"],"原文":"本项目最高限价为含税价113万元（不含税价100万元），税率13%。","答案":[{"标段":null,"限价元":1130000,"含税":true},{"标段":null,"限价元":1000000,"含税":false}]}
+{"id":"S12","标签":["tax"],"原文":"招标控制价：2,260,000元（含13%增值税）。","答案":[{"标段":null,"限价元":2260000,"含税":true}]}
+{"id":"S13","标签":["tax"],"原文":"不含税最高限价：50万元，含税最高限价：56.5万元。","答案":[{"标段":null,"限价元":500000,"含税":false},{"标段":null,"限价元":565000,"含税":true}]}
+{"id":"S14","标签":["tax"],"原文":"最高限价：人民币88万元（含税、含运输及安装费用）","答案":[{"标段":null,"限价元":880000,"含税":true}]}
+{"id":"S15","标签":["see_doc"],"原文":"最高限价：详见招标文件。","答案":[{"标段":null,"限价元":null,"含税":null,"类型":"详见文件"}]}
+{"id":"S16","标签":["see_doc"],"原文":"预算金额：详见采购文件；最高限价：详见采购文件","答案":[{"标段":null,"限价元":null,"含税":null,"类型":"详见文件"}]}
+{"id":"S17","标签":["see_doc","multi_lot"],"原文":"标段一最高限价：60万元；标段二最高限价：开标前公布。","答案":[{"标段":"1","限价元":600000,"含税":null},{"标段":"2","限价元":null,"含税":null,"类型":"详见文件"}]}
+{"id":"S18","标签":["budget_vs_cap"],"原文":"预算金额：300万元；最高限价：280万元。","答案":[{"标段":null,"限价元":2800000,"含税":null}]}
+{"id":"S19","标签":["budget_vs_cap"],"原文":"项目预算：人民币5,000,000.00元，招标控制价：4,650,000.00元，投标保证金：50,000元。","答案":[{"标段":null,"限价元":4650000,"含税":null}]}
+{"id":"S20","标签":["budget_vs_cap"],"原文":"采购预算金额（元）：980000.00\n最高限价（元）：960000.00","答案":[{"标段":null,"限价元":960000,"含税":null}]}
+{"id":"S21","标签":["unit_price"],"原文":"耐火砖更换单价最高限价：1,800元/吨，总价最高限价：36万元。","答案":[{"标段":null,"限价元":1800,"含税":null,"单位":"元/吨"},{"标段":null,"限价元":360000,"含税":null}]}
+{"id":"S22","标签":["unit_price"],"原文":"综合单价最高限价为350元/平方米。","答案":[{"标段":null,"限价元":350,"含税":null,"单位":"元/平方米"}]}
+{"id":"S23","标签":["table"],"原文":"| 包号 | 包名称 | 最高限价（万元） |\n| 1 | 回转窑托轮检修 | 45 |\n| 2 | 立磨检修 | 62.8 |","答案":[{"标段":"1","限价元":450000,"含税":null},{"标段":"2","限价元":628000,"含税":null}]}
+{"id":"S24","标签":["table"],"原文":"| 序号 | 标段名称 | 预算金额（元） | 最高限价（元） |\n| 1 | 一标段 | 500000 | 480000 |\n| 2 | 二标段 | 300000 | 290000 |","答案":[{"标段":"1","限价元":480000,"含税":null},{"标段":"2","限价元":290000,"含税":null}]}
+{"id":"S25","标签":["table","tax"],"原文":"| 标段 | 最高限价（含税，元） |\n| A | 1,200,000.00 |\n| B | 850,000.00 |","答案":[{"标段":"A","限价元":1200000,"含税":true},{"标段":"B","限价元":850000,"含税":true}]}
+{"id":"S26","标签":["distractor"],"原文":"投标保证金：2万元。注册资本不低于500万元。最高限价：68万元。","答案":[{"标段":null,"限价元":680000,"含税":null}]}
+{"id":"S27","标签":["distractor"],"原文":"近三年具有单项合同金额不低于100万元的检修业绩。本项目最高限价：95万元。","答案":[{"标段":null,"限价元":950000,"含税":null}]}
+{"id":"S28","标签":["budget_only"],"原文":"预算金额：1,280,000.00元（人民币）","答案":[{"标段":null,"限价元":1280000,"含税":null,"类型":"预算(代限价)"}]}
+{"id":"S29","标签":["unit_mix"],"原文":"预算金额：120.000000 万元（人民币）\n最高限价（如有）：120.000000 万元（人民币）","答案":[{"标段":null,"限价元":1200000,"含税":null}]}
+{"id":"S30","标签":["multi_lot","capital"],"原文":"一标段最高限价：人民币柒拾伍万元整；二标段最高限价：人民币肆拾万元整。","答案":[{"标段":"1","限价元":750000,"含税":null},{"标段":"2","限价元":400000,"含税":null}]}
+{"id":"S31","标签":["multi_lot"],"原文":"合同包1(辊压机辊面堆焊):\n合同包预算金额：560,000.00元\n最高限价：560,000.00元\n合同包2(减速机维修):\n合同包预算金额：240,000.00元\n最高限价：230,000.00元","答案":[{"标段":"1","限价元":560000,"含税":null},{"标段":"2","限价元":230000,"含税":null}]}
+{"id":"S32","标签":["distractor"],"原文":"招标文件售价：500元/套。最高限价：41.2万元。联系电话：13800138000","答案":[{"标段":null,"限价元":412000,"含税":null}]}
+{"id":"S33","标签":["tax","unit_mix"],"原文":"最高投标限价（不含税）：1,850,000元；增值税税率9%，含税限价201.65万元。","答案":[{"标段":null,"限价元":1850000,"含税":false},{"标段":null,"限价元":2016500,"含税":true}]}
+{"id":"S34","标签":["capital"],"原文":"拦标价：人民币伍拾万元整。","答案":[{"标段":null,"限价元":500000,"含税":null}]}
+{"id":"S35","标签":["multi_lot","see_doc"],"原文":"本项目共3个标包，各标包最高限价详见招标文件。","答案":[{"标段":null,"限价元":null,"含税":null,"类型":"详见文件"}]}
+{"id":"S36","标签":["unit_mix"],"原文":"最高限价：人民币 1.2 亿元","答案":[{"标段":null,"限价元":120000000,"含税":null}]}
+```
+
+=== 文件: 盲测样例.jsonl ===
+```json
+{"id":"B01","标签":["multi_lot"],"原文":"二、项目概况：本次招标共划分为3个标段。Ⅰ标段：水泥磨检修，招标控制价为人民币78.6万元；Ⅱ标段：篦冷机改造，招标控制价为人民币152万元；Ⅲ标段：除尘器维修，招标控制价为人民币33万元。","答案":[{"标段":"1","限价元":786000,"含税":null},{"标段":"2","限价元":1520000,"含税":null},{"标段":"3","限价元":330000,"含税":null}]}
+{"id":"B02","标签":["capital","tax"],"原文":"最高投标限价：人民币（大写）玖拾捌万陆仟元整（小写：¥986,000.00元），该价格为含税价。","答案":[{"标段":null,"限价元":986000,"含税":true}]}
+{"id":"B03","标签":["budget_vs_cap","unit_mix"],"原文":"3.预算金额：35.000000万元（人民币） 4.最高限价（如有）：34.500000万元（人民币）","答案":[{"标段":null,"限价元":345000,"含税":null}]}
+{"id":"B04","标签":["see_doc"],"原文":"招标控制价：本项目设招标控制价，招标控制价在开标时公布。","答案":[{"标段":null,"限价元":null,"含税":null,"类型":"详见文件"}]}
+{"id":"B05","标签":["multi_lot","budget_vs_cap"],"原文":"采购包1：\n采购包预算金额：1,500,000.00元\n采购包最高限价：1,480,000.00元\n采购包2：\n采购包预算金额：600,000.00元\n采购包最高限价：600,000.00元","答案":[{"标段":"1","限价元":1480000,"含税":null},{"标段":"2","限价元":600000,"含税":null}]}
+{"id":"B06","标签":["unit_price"],"原文":"本项目为单价招标，托轮车削修复最高单价限价为8,500元/次，预计年工作量20次。","答案":[{"标段":null,"限价元":8500,"含税":null,"单位":"元/次"}]}
+{"id":"B07","标签":["distractor"],"原文":"投标人须提交投标保证金人民币壹万元整。本项目最高限价为人民币叁拾捌万元整。","答案":[{"标段":null,"限价元":380000,"含税":null}]}
+{"id":"B08","标签":["table"],"原文":"| 标包 | 项目名称 | 数量 | 最高限价（元） | 交货期 |\n| 01 | 减速机大修 | 1项 | 420,000.00 | 30天 |\n| 02 | 齿轮更换 | 2套 | 186,000.00 | 45天 |","答案":[{"标段":"1","限价元":420000,"含税":null},{"标段":"2","限价元":186000,"含税":null}]}
+{"id":"B09","标签":["tax","unit_mix"],"原文":"本项目最高限价为265万元，报价为含税价（含6%增值税）。","答案":[{"标段":null,"限价元":2650000,"含税":true}]}
+{"id":"B10","标签":["multi_lot"],"原文":"包件一最高限价：52万元，包件二最高限价：47万元，包件三最高限价：61万元。","答案":[{"标段":"1","限价元":520000,"含税":null},{"标段":"2","限价元":470000,"含税":null},{"标段":"3","限价元":610000,"含税":null}]}
+{"id":"B11","标签":["unit_mix"],"原文":"最高限价：￥2,850,000.00（贰佰捌拾伍万元整）","答案":[{"标段":null,"限价元":2850000,"含税":null}]}
+{"id":"B12","标签":["distractor"],"原文":"项目编号：ZB2025-0312。最高限价：45万元。开标时间：2025年3月12日9时30分。","答案":[{"标段":null,"限价元":450000,"含税":null}]}
+{"id":"B13","标签":["budget_only","capital"],"原文":"项目预算：人民币贰佰万元整。","答案":[{"标段":null,"限价元":2000000,"含税":null}]}
+{"id":"B14","标签":["tax"],"原文":"最高限价（不含税）：人民币120万元整；税率：13%。","答案":[{"标段":null,"限价元":1200000,"含税":false}]}
+{"id":"B15","标签":["multi_lot","see_doc"],"原文":"标段1：最高限价32万元。标段2：最高限价详见招标文件第二章。","答案":[{"标段":"1","限价元":320000,"含税":null},{"标段":"2","限价元":null,"含税":null,"类型":"详见文件"}]}
+{"id":"B16","标签":["unit_price","multi_lot"],"原文":"第1包：耐磨件堆焊，单价最高限价45元/公斤；第2包：探伤检测，单价最高限价1200元/台次。","答案":[{"标段":"1","限价元":45,"含税":null,"单位":"元/公斤"},{"标段":"2","限价元":1200,"含税":null,"单位":"元/台次"}]}
+{"id":"B17","标签":["unit_mix"],"原文":"本次采购最高限价为 0.85 亿元。","答案":[{"标段":null,"限价元":85000000,"含税":null}]}
+{"id":"B18","标签":["budget_vs_cap"],"原文":"本项目概算投资约800万元，招标控制价为756.32万元。","答案":[{"标段":null,"限价元":7563200,"含税":null}]}
+{"id":"B19","标签":["table","multi_lot"],"原文":"| 标段号 | 标段名称 | 招标控制价（万元） |\n| 第一标段 | 窑头检修 | 96.5 |\n| 第二标段 | 窑尾检修 | 88 |","答案":[{"标段":"1","限价元":965000,"含税":null},{"标段":"2","限价元":880000,"含税":null}]}
+{"id":"B20","标签":["distractor","unit_mix"],"原文":"投标人近三年完成过合同额500万元以上的类似项目。本项目最高投标限价1,860,000元。","答案":[{"标段":null,"限价元":1860000,"含税":null}]}
+```
+
+=== 文件: 候选链接.jsonl ===
+```json
+{"url":"https://www.ggzy.gov.cn/html/b/340000/0101/202503/27/0034847a85e1b3c24800a745cc835e2cbf3d.shtml","title":"涡阳县2025年病险桥梁建设工程项目招标公告","site":"ggzy.gov.cn","tag_guess":"budget_vs_cap","query":"预算金额 最高限价 详见招标文件 公告"}
+{"url":"https://zwc.xcvtc.edu.cn/u/cms/xcvtczwc/202503/051739270rxq.pdf","title":"宣城职业技术学院辅导员值班室改造工程工程 最高投标限价","site":"xcvtc.edu.cn","tag_guess":"capital","query":"最高投标限价 壹佰 万元整 招标公告"}
+{"url":"https://yn.qianlima.com/zbcontent-511491935.html","title":"文山分行运营档案中心库库房建设项目马关县支行金鑫楼运营档案中心库库房建设项目公开招标公告-千里马招标网","site":"qianlima.com","tag_guess":"tax","query":"招标控制价 含税 不含税 招标公告"}
+{"url":"https://zb.zhaobiao.cn/bidding_v_8f33ed4ed2494d22f14b1670a6fc366e.html","title":"中国铁路西安局集团公司安康房建公寓段陇县养殖基地养殖物、饲料及养殖技术服务业务采购项目招标公告_招标网","site":"zhaobiao.cn","tag_guess":"unit_price","query":"单价最高限价 元/吨 招标公告"}
+{"url":"https://nmg.qianlima.com/zbcontent-466389952.html","title":"中国石油西北化工销售分公司液体化工产品公路运输服务项目（甲基叔丁基醚）-千里马招标网","site":"qianlima.com","tag_guess":"unit_price","query":"单价最高限价 元/吨 招标公告"}
+{"url":"https://qh.sz.gov.cn/gkmlpt/content/12/12196/post_12196874.html","title":"前海管理局2024年度档案和进馆档案整理服务招标公告","site":"sz.gov.cn","tag_guess":"see_doc","query":"预算金额 最高限价 详见招标文件 公告"}
+{"url":"https://wjw.sz.gov.cn/zfcg/content/post_12100456.html","title":"深圳市康宁医院大数据服务器、AI超融合算力服务器采购招标公告","site":"sz.gov.cn","tag_guess":"budget_vs_cap","query":"预算金额 最高限价 详见招标文件 公告"}
+{"url":"https://www.sigs.tsinghua.edu.cn/2024/0930/c952a96451/page.htm","title":"自旋探测器功能升级、高通量能量分析器招标公告","site":"tsinghua.edu.cn","tag_guess":"see_doc","query":"预算金额 最高限价 详见招标文件 公告"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260730/00672901bc0ab1554bd6a1b2d0ad15793cf0.html","title":"中国移动海南公司国铁专网施工一体化服务项目_招标公告","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0104/20260801/0067e8d719d2cd1e40eba8816f144aa17c4f.html","title":"【国家电投集团东北电力有限公司二〇二六年第12批集中招标...","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/420000/0101/20260617/0042cb72a440eb0d46ce94fa47e5ebc1f3b2.html","title":"湖北荆宜高速公路2026-2028年机电系统日常维护","site":"ggzy.gov.cn","tag_guess":"unit_price","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260403/0067869c2c430cb2451fab7d1a540f0f06e8.html","title":"甘肃分公司所辖各场站升压站及箱变年检预试","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260323/0067ae8aaa6c2b894324b7cd358d25fcd1a8.html","title":"中国移动天津公司2025年电力引入施工集中采购项目","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260205/00670b28628d1dc44d33992c558dff6bca32.html","title":"2026年1月维检修——招标3招标公告","site":"ggzy.gov.cn","tag_guess":"table","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260701/0067c47ec76be35d4965bd89222af22cff14.html","title":"中广核新能源科技公司AGC、AVC技改采购项目（标段一北方...）","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260429/0067aa009442b4d9436e9b8b6ccb77259f6e.html","title":"中国安能一局雅砻江孟底沟水电站大坝工程开挖支护Ⅱ标","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://www.ggzy.gov.cn/information/deal/html/b/420000/0101/20260514/0042640388aa40164b2d899ddc655713f34c.html","title":"EGXJTJ-1标段(HBSJ-202605GL-046001001)招标公告","site":"ggzy.gov.cn","tag_guess":"multi_lot","query":"检修 最高限价 标段一 标段二 招标公告 site:ggzy.gov.cn"}
+{"url":"https://ggzyfw.beijing.gov.cn/jyxxcggg/20230606/4094979.html","title":"设备设施维修保养服务项目（第2包）公开招标公告","site":"beijing.gov.cn","tag_guess":"multi_lot","query":"设备维修 招标公告 最高限价 包1 包2"}
+{"url":"https://ggzy.yueyang.gov.cn/56114/56131/56132/content_2372251.html","title":"二次装修及设备设施购置安装工程-装饰家具、信息化项目及声光电剧场系统及补充部分项目公开招标公告","site":"yueyang.gov.cn","tag_guess":"table","query":"设备维修 招标公告 最高限价 包1 包2"}
+{"url":"https://b2b.10086.cn/b2b/main/viewNoticeContent.html?noticeBean.id=856417","title":"中国移动采购与招标网","site":"10086.cn","tag_guess":"unit_price","query":"设备维修 招标公告 最高限价 包1 包2"}
+{"url":"https://www.ebnew.com/businessShow/706786801.html","title":"设备维修议价采购公告（2026-1）-必联网","site":"ebnew.com","tag_guess":"see_doc","query":"设备维修 招标公告 最高限价 包1 包2"}
+{"url":"https://hyzbzx.com/news/tenders/2026-06-12/4774.html","title":"天津市第二人民医院全院设备维修维保平台服务项目 (项目编号:TGPC-2026-D-0518)公开招标公告","site":"hyzbzx.com","tag_guess":"budget_vs_cap","query":"设备维修 招标公告 最高限价 包1 包2"}
+{"url":"https://www.chinabidding.cn/zbgs/n-IZup.html","title":"2023年机电设备年度维修遴选供应商(D包重新)-采购与招标网(www.chinabidding.cn)","site":"chinabidding.cn","tag_guess":"multi_lot","query":"设备维修 招标公告 最高限价 包1 包2"}
+{"url":"http://szwb.sz.gov.cn/gwszwfw/ztbcx/zhaobgg/content/post_11537352.html","title":"深圳市光明区人民检察院办案及专业技术用房建设工程项目","site":"sz.gov.cn","tag_guess":"capital","query":"安装工程 招标控制价 人民币 万元整 公告"}
+{"url":"https://ggzy.suzhou.gov.cn/EpointWebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=af9718ff-c8a9-4090-90ea-a7f15af04de2&appUrlFlag=ztbszsj&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"中国中医科学院大学（西区）项目内装工程一标段 招标控制价（大写）壹亿贰仟伍佰叁拾万零肆佰玖拾伍元肆角玖分","site":"suzhou.gov.cn","tag_guess":"capital","query":"安装工程 招标控制价 人民币 万元整 公告"}
+{"url":"https://www.jiangjin.gov.cn/jz/xbzrmzf_69066/zwgk_81486/zfxxgkml/jczwgkdg1116/ggzyjy/202406/P020240603417023583890.PDF","title":"夏坝镇场镇基础设施整治工程 封-2 招标控制价(大写)：叁拾柒万肆仟壹佰零叁元陆角玖分","site":"jiangjin.gov.cn","tag_guess":"capital","query":"安装工程 招标控制价 人民币 万元整 公告"}
+{"url":"https://www.jiangjin.gov.cn/jz/smszrmzf_69069/zwgk_81486/zfxxgkml/jczwgkj1115/ggzyjy/202408/P020240809386368190652.PDF","title":"四面山镇2024年美丽乡村建设项目工程 封-2 招标控制价(大写)：玖拾壹万壹仟贰佰元整","site":"jiangjin.gov.cn","tag_guess":"capital","query":"安装工程 招标控制价 人民币 万元整 公告"}
+{"url":"https://www.scls.gov.cn/lsxrmzf/c105339/1831263632457003008/K4GowdjJ.pdf","title":"城南镇2024年新建花石村宜居和美乡村项目 工程 招标控制价(大写):壹佰陆拾玖万伍仟肆佰陆拾伍元玖角玖分","site":"scls.gov.cn","tag_guess":"capital","query":"安装工程 招标控制价 人民币 万元整 公告"}
+{"url":"http://ggzyjy.quanzhou.gov.cn:83/ebid/com.hymake.fjbid.comm.viewTask.filesDownload.flow?FileName=-7421_BE89C5F4BD084F6492151F993DBB86AE.pdf&FilePath=\\UPLOADS\\10555\\ZBWJ\\&oldFileName=%E5%85%AC%E5%91%8A%E6%96%87%E4%BB%B6.pdf","title":"第一章招标公告","site":"quanzhou.gov.cn","tag_guess":"capital","query":"安装工程 招标控制价 人民币 万元整 公告"}
+{"url":"http://jsggzy.jszwfw.gov.cn/jyxx/003001/003001001/20250430/798f3b5f-6697-4ec7-8096-162b419dd601.html","title":"改造装修工程施工 - 江苏省公共资源交易网","site":"jszwfw.gov.cn","tag_guess":"table","query":"改造工程 最高限价 不公开 招标公告"}
+{"url":"https://guangdong.zhaobiao.cn/bidding_v_152374398.html","title":"天羽道提升改造工程施工总承包项目招标公告","site":"zhaobiao.cn","tag_guess":"capital","query":"改造工程 最高限价 不公开 招标公告"}
+{"url":"https://shandong.zhaobiao.cn/bidding_v_108644366.html","title":"硫酸","site":"zhaobiao.cn","tag_guess":"unit_price","query":"改造工程 最高限价 不公开 招标公告"}
+{"url":"https://www.nia.gov.cn/News/news/content.jsp?id=1580054","title":"国家移民管理局机关2023-2025年度招标代理机构公开征集公告","site":"nia.gov.cn","tag_guess":"see_doc","query":"分包一览表 最高限价 招标公告"}
+{"url":"http://www.szzj.gov.cn/art/2023/4/26/art_1677274_59045251.html","title":"中国铁建·新时代中心三期（环球港项目）施工总承包工程招标公告","site":"szzj.gov.cn","tag_guess":"capital","query":"大修 招标公告 最高限价 万元整 大写"}
+{"url":"https://portal.ythpt.sg.gov.cn/api/common/download?domain=Ggwzfj&id=23580c6992974186add5eefd0d4a187d","title":"韶关高新区基础设施改造提升工程(三期)A段施工招标控制价","site":"sg.gov.cn","tag_guess":"multi_lot","query":"大修 招标公告 最高限价 万元整 大写"}
+{"url":"https://zjw.beijing.gov.cn/bjjs/gcjs/zczjxx/tzgg/436369541/index.shtml","title":"2023年度北京市房屋修缮工程项目最高投标限价检查情况","site":"beijing.gov.cn","tag_guess":"multi_lot","query":"大修 招标公告 最高限价 万元整 大写"}
+{"url":"https://www.122bid.com/view/90/xC1mvp0BMqitpwL5Cly_.html","title":"大石桥市2026年农村公路维修改造工程-大修（一标段）招标公告_招标详情","site":"122bid.com","tag_guess":"multi_lot","query":"大修 招标公告 最高限价 万元整 大写"}
+{"url":"https://www.scls.gov.cn/lsxrmzf/c105339/1831265240137920512/kth1Onzg.pdf","title":"城南镇2024年新建馨明村宜居和美乡村项目 工程 招标控制价(大写):壹佰陆拾万玖仟捌佰叁拾柒元玖角贰分","site":"scls.gov.cn","tag_guess":"capital","query":"增值税税率13% 招标控制价 公告 施工"}
+{"url":"https://www.szzyjy.com.cn/EpointWebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=845043d3-9742-4d4a-a5af-5d045b14f1e1&appUrlFlag=ztb581&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"招标控制价","site":"szzyjy.com.cn","tag_guess":"capital","query":"增值税税率13% 招标控制价 公告 施工"}
+{"url":"https://www.chongchuan.gov.cn/ntsccqcqjd/gggs/content/dea4ed40-0d40-4874-91fe-ab19c797d213.html","title":"招标公告 - 公告公示","site":"chongchuan.gov.cn","tag_guess":"see_doc","query":"另行公布 最高限价 招标公告"}
+{"url":"http://xxgk.yczf.gov.cn/xzzf/ycdzz/fdzdgknr/gzdt/202407/t20240719_2009472.shtml","title":"招标公告","site":"yczf.gov.cn","tag_guess":"see_doc","query":"另行公布 最高限价 招标公告"}
+{"url":"https://wap.qianlima.com/gjxx/467081/index.html","title":"体外碎石机招标采购","site":"qianlima.com","tag_guess":"budget_vs_cap","query":"采购需求一览表 最高限价 招标公告 site:qianlima.com"}
+{"url":"https://wap.qianlima.com/gjxx/508918/index.html","title":"外墙翻新招标采购","site":"qianlima.com","tag_guess":"table","query":"采购需求一览表 最高限价 招标公告 site:qianlima.com"}
+{"url":"https://jpg.zfcg.sh.gov.cn/sh-gov-open-doc/1108QZ/2a2bcfb2-fd28-4cb9-93d0-736bd759fa56.pdf","title":"2026 年零星维修","site":"zfcg.sh.gov.cn","tag_guess":"budget_vs_cap","query":"检修 招标公告 预算金额 万元 最高限价 元 不一致"}
+{"url":"https://obs.gcy.zfcg.gxzf.gov.cn/guangxi-gov-open-doc/1023FP/451002/10011157362/20263/ecbe07da-56f8-4185-9c65-cb52999680b4.pdf","title":"广西壮族自治区百色公路发展中心2026 年普通国省干道桥梁...招标公告","site":"gxzf.gov.cn","tag_guess":"multi_lot","query":"检修 招标公告 预算金额 万元 最高限价 元 不一致"}
+{"url":"https://obs.gcy.zfcg.gxzf.gov.cn/guangxi-xc-gov-open-doc/1023FP/450602/10007282833/20264/86bddd9d-c42f-4aff-bb47-0f411e1f0875.pdf","title":"广西“一表通”数据管理系统二期项目招标公告","site":"gxzf.gov.cn","tag_guess":"see_doc","query":"检修 招标公告 预算金额 万元 最高限价 元 不一致"}
+{"url":"http://ggzyjy.bjxch.gov.cn/ec/csAndTalkNoticeDetail.jsp?type=6&uuid=b3bc1d91b19d46bea924767d4d136757","title":"招标公告--西城区六铺炕街1号院锅炉改造竞争性磋商公告","site":"bjxch.gov.cn","tag_guess":"budget_vs_cap","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"https://swj.beijing.gov.cn/zwgk/zfcg/zbgg/201912/P020191220631490707308.pdf","title":"燃煤锅炉改造 （施工一标：锅炉房改造） 招标文件","site":"beijing.gov.cn","tag_guess":"multi_lot","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"https://ego.chinacoal.com/pm-common/group1/M00/03/C3/rBAIcmURXReAV8ToABWMSA9dDrM421.pdf?filename=%E4%B8%AD%E7%85%A4%E5%8D%8E%E6%99%8B%E9%9B%86%E5%9B%A2%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8%E6%99%8B%E5%9F%8E%E7%83%AD%E7%94%B5%E5%88%86%E5%85%AC%E5%8F%B8","title":"第一章 招标公告 项目编号：CCTC30230869","site":"chinacoal.com","tag_guess":"capital","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"https://www.gdebidding.com/zbxxgg/147898.jhtml","title":"2024年#2机组A修电气热控设备检修项目（第二次）招标公告","site":"gdebidding.com","tag_guess":"multi_lot","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"https://www.diantizb.com/view/15464/jmSXUp0BXPVcpvRs2KDF.html","title":"第1标段 - 电梯招标","site":"diantizb.com","tag_guess":"multi_lot","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"https://oss.aliyuncs.com/chengxing-test1/ea54e9fc92f9a62215a90538f8867946.pdf","title":"甘肃电投常乐发电有限责任公司2026 年度机组检修项目（锅炉","site":"aliyuncs.com","tag_guess":"multi_lot","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"http://www.zgdl.vip/g-zb-9990353.html","title":"首钢长治钢铁有限公司2023－074“焦化厂焦炉部分热态维修工程、粗苯回收智能优化系统改造工程”招标公告-中电中招电子商务平台","site":"zgdl.vip","tag_guess":"multi_lot","query":"锅炉 检修 招标公告 最高限价 标段"}
+{"url":"https://ggzy.yzcity.gov.cn/jyxx/003006/003006001/20260424/b7aa1397-5d59-4388-9d44-4b08db60e8a9.html","title":"宋家绿洲小区电梯维保服务项目招标公告","site":"yzcity.gov.cn","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://jiangsu.zhaobiao.cn/bidding_v_898648b17fbd5853710be356080c53d2.html","title":"24222【招标文件】富新安置区电梯年检、维保、维修、保险、校验项目","site":"zhaobiao.cn","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://www.cntcitc.com.cn/more.html?chanType=3&chanId=14&contentId=4a8e9833a45d4b419bea29e5373148d3","title":"2026-2028年中国联通葫芦岛市分公司电梯维保服务采购","site":"cntcitc.com.cn","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://www.diantizb.com/view/580/0ylmr50BMqitpwL5_6EX.html","title":"邯钢本部及新区2026年电梯维保询比公告_招标详情","site":"diantizb.com","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://jcaizz.com/notice_detail.php?ID=1645416216019501056","title":"电梯维保服务项目竞价采购公告","site":"jcaizz.com","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://www.yfbzb.com/inviteBid/detail/20241220_474167901.html","title":"电梯日常维护保养和维修服务（第二批）（第二次）询价公告","site":"yfbzb.com","tag_guess":"multi_lot","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://yn.qianlima.com/zbcontent-501532478.html","title":"2台电梯维保服务（含电梯检验费、限速器校验费）-千里马招标网","site":"qianlima.com","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://gx.qianlima.com/zbcontent-618142704.html","title":"龙圩镇卫生院电梯维保服务项目遴选公告-千里马招标网","site":"qianlima.com","tag_guess":"unit_price","query":"电梯 维保 招标公告 最高限价 元/台"}
+{"url":"https://www.yx.gov.cn/zfxxgk/fdzdgknr/zbcg/zbgg_11088/202511/P020251127595810743562.pdf","title":"黄石1000千伏特高压变电站白沙镇山口村及陶港镇官塘村还建农村道路项目（二次）招标公告","site":"yx.gov.cn","tag_guess":"table","query":"变电站 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://ggzyjy.sc.gov.cn/jyxx/002001/002001001/20240918/9e967325-1887-41bd-8ace-15e32f0acf11.html","title":"攀田、丽攀、德会高速公路2024～2026年场外电力线路及设施设备招标公告","site":"sc.gov.cn","tag_guess":"multi_lot","query":"变电站 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://ggzyjy.sc.gov.cn/WebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=d4c7d396-e2fe-44b7-a1dd-79bab635376b&appUrlFlag=scztb001&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"110 千伏景阳变电站至城北10 千伏线路分流改造工程EPC 总承包招标公告","site":"sc.gov.cn","tag_guess":"capital","query":"变电站 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://ggzyjy.xuancheng.gov.cn/EpointWebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=3cbb6eac-2c2c-4db9-a237-289de3557a70&appUrlFlag=ztb002&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"安徽省宣城兴盛110 千伏变电站2 号主变扩建工程主变压器项目货物招标","site":"xuancheng.gov.cn","tag_guess":"capital","query":"变电站 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://csscbidding.com/zgcb/106d0875-9389-4f7a-86bd-bb29d7ea386d/c5d87970-8014-4635-ae95-85e50a43cde9/%E6%8B%9B%E6%A0%87%E5%85%AC%E5%91%8A.pdf","title":"江南造船（集团）有限责任公司变电站更新招标公告","site":"csscbidding.com","tag_guess":"capital","query":"变电站 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://qdlszlsc.com/html/bianminfuwu/zhaobiaogonggao/410.html","title":"吕四港镇零星、维修工程管道修补器、PE管件采购项目（第二次）招标公告","site":"qdlszlsc.com","tag_guess":"unit_price","query":"管道 维修 招标公告 综合单价 总价 最高限价"}
+{"url":"https://jjc.nju.edu.cn/_upload/article/files/9f/01/ca62e6c84e77b304417f8d67570c/873a8618-32f3-467a-a1f3-386746cfbc84.pdf","title":"南京大学水电零星维修材料（水管、阀门等）采购 招标文件","site":"nju.edu.cn","tag_guess":"unit_price","query":"管道 维修 招标公告 综合单价 总价 最高限价"}
+{"url":"https://www.zjg.gov.cn/zjgszwz/zbgs01bngkvrgepkgkbcnng/202407/88ade7f9f934431ba1b30eb1e7e920c6.shtml","title":"张家港市乐余城乡投资发展有限公司空调及其安装服务项目（二次）询价公告","site":"zjg.gov.cn","tag_guess":"budget_vs_cap","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://ggzyjy.sc.gov.cn/jyxx/002007/002007001/20241104/d51e98a1-0de9-47ac-8c96-043c0f4ae9e9.html","title":"四川中烟工业有限责任公司绵阳卷烟厂2024年空调设备维保项目招标公告","site":"sc.gov.cn","tag_guess":"multi_lot","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://zwb.pku.edu.cn/zbtb/zbgg/314560.htm","title":"北京大学中关新园8#9#楼空调管线改造工程项目招标公告","site":"pku.edu.cn","tag_guess":"capital","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.chinapost.com.cn/html1/report/2603/8610-1.htm","title":"中国邮政储蓄银行重庆分行2026-2027年空调供应商入围项目招标公告","site":"chinapost.com.cn","tag_guess":"unit_price","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.ebnew.com/businessShow/706519693.html","title":"空调维修和保养服务采购项目招标公告-必联网","site":"ebnew.com","tag_guess":"budget_vs_cap","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://fujian.zhaobiao.cn/bidding_v_81229096ea5c1786b7cdfe134c4e2aab.html","title":"某单位空调维保招标采购招标公告（2025-VGBLKE-F1001）","site":"zhaobiao.cn","tag_guess":"see_doc","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://ebid.chinatowercom.cn/zgtt/gggs/003002/20250428/9e33e0af-9280-42bc-af34-83425abdc9a4.html","title":"2028年空调维修服务采购项目-招标公告（变更公告）","site":"chinatowercom.cn","tag_guess":"multi_lot","query":"空调 维修改造 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.jiangjin.gov.cn/jz/sfjdbsc_69045/zwgk_81486/zfxxgkml/jczwgkdg1116/ggzyjy/202404/P020240407455252584029.PDF","title":"双福街道2024年市政零星维修单价项目 工程 招标控制价(大写)：壹万壹仟叁佰玖拾伍元陆角","site":"jiangjin.gov.cn","tag_guess":"unit_price","query":"道路 大修 工程 招标控制价 大写 壹佰万元"}
+{"url":"https://www.jiangyin.gov.cn/uploadfiles/202605/27/2026052708152555181624.pdf","title":"招标控制价","site":"jiangyin.gov.cn","tag_guess":"capital","query":"道路 大修 工程 招标控制价 大写 壹佰万元"}
+{"url":"http://www.jszb.com.cn/jszb/YW_info/ZuiGaoXJ/RetrieveImageData.aspx?TableName=YW_ZuiGaoXJWJ&FieldName=FileContent&RowID=1014495","title":"钟庄街道集镇“十必接”主管网工程 招标控制价","site":"jszb.com.cn","tag_guess":"capital","query":"道路 大修 工程 招标控制价 大写 壹佰万元"}
+{"url":"https://ggzy.suzhou.gov.cn/EpointWebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=0a034a50-c58d-4c7c-92b5-e2c73344db4b&appUrlFlag=ztb581&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"招标控制价","site":"suzhou.gov.cn","tag_guess":"capital","query":"道路 大修 工程 招标控制价 大写 壹佰万元"}
+{"url":"https://hlyz-archive-file.oss-cn-hangzhou.aliyuncs.com/%E6%B1%9F%E5%B1%B1%E5%B8%82%E5%85%AC%E5%85%B1%E8%B5%84%E6%BA%90%E4%BA%A4%E6%98%93%E4%B8%AD%E5%BF%83/20231/9608f130-f407-4981-a93a-2d221046cca4/H202303290010001001/ZB/610259f9-a4bf-4b62-9546-acfeba915e64bsWorkflowAttachmentAddUpload_file_path_1680072374768/2023-03-27%20%E5%9F%8E%E5%8C%97%E7%89%87%E5%8C%BA%E9%9B%A8%E6%B1%A1%E7%AE%A1%E7%BD%91%E6%94%B9%E9%80%A0%E5%8F%8A%E9%85%8D%E5%A5%97%E8%AE%BE%E6%96%BD%E5%BB%BA%E8%AE%BE%E5%B7%A5%E7%A8%8B%EF%BC%88%E5%9F%8E%E5%8C%97%E9%81%93%E8%B7%AF%E6%8F%90%E5%8D%87%E5%B7%A5%E7%A8%8B%EF%BC%89.PDF","title":"城北片区雨污管网改造及配套设施建设工程（城北道路提升工程）招标控制价","site":"aliyuncs.com","tag_guess":"capital","query":"道路 大修 工程 招标控制价 大写 壹佰万元"}
+{"url":"https://www.122bid.com/view/475/VtmDvp0Bni4p5U9Xxnh_.html","title":"大石桥市2026年农村公路维修改造工程-大修（一标段）_招标详情","site":"122bid.com","tag_guess":"multi_lot","query":"道路 大修 工程 招标控制价 大写 壹佰万元"}
+{"url":"https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2760/site/attach/-1/2503271536199182154.pdf","title":"温岭市供水有限公司二次供水泵房运维服务采购招标文件","site":"zj.gov.cn","tag_guess":"unit_price","query":"水泵 检修 招标公告 单价 元/台 总价"}
+{"url":"https://hn.qianlima.com/zbcontent-525835995.html","title":"遂平县石寨铺镇办公区空调检修及维修项目-千里马招标网","site":"qianlima.com","tag_guess":"unit_price","query":"水泵 检修 招标公告 单价 元/台 总价"}
+{"url":"https://whsggzy.wuhu.gov.cn/whggzyjy/wsxj/036001/20250327/cf609333-102c-4458-b666-7915db9c176c.html","title":"芜湖公共资源交易中心--2025年澜亭雅居消防维保询价项目询价公告","site":"wuhu.gov.cn","tag_guess":"tax","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"https://csbidding.csair.cn/cms/nfhk/webfile/fzbcg/cggg/20250610/1117131633699323904.html","title":"南航工程技术分公司黑龙江基地-2025年度消防器材和检测采购公告","site":"csair.cn","tag_guess":"tax","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"https://csbidding.csair.cn/cms/nfhk/webfile/fzbcg/cggg/20250808/1138393905604067328.html","title":"新疆酒店消防设施维保、检测项目","site":"csair.cn","tag_guess":"tax","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"http://www.cgw.sdu.edu.cn/zb/cms/contentwh/download.htm?attachmentid=d03b251fa72d497784f114f2a53cb6da","title":"2026年度山东大学学生宿舍及智慧消防系统维保项目电子参考招标文件","site":"sdu.edu.cn","tag_guess":"tax","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"https://www.diantizhaobiao.cn/news-f817d61927b9332b5bd9fd61e2f8a273/","title":"重庆市妇幼保健院两院区建筑消防设施维保服务采购 采购需求公告","site":"diantizhaobiao.cn","tag_guess":"table","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"https://www.hau.edu.cn/__local/0/73/48/1EBBF434E21BCCBBD1272465011_0E3C007B_2C800.doc?e=.doc","title":"淮阴工学院保卫处消防设施维保服务采购项目招标文件","site":"hau.edu.cn","tag_guess":"tax","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"http://www.bjzb.com/opportunity/getPublishBidDetail?id=4458991526469021575","title":"中国银行股份有限公司北京市分行消防维保服务采购项目采购公告","site":"bjzb.com","tag_guess":"tax","query":"消防设施 维保 招标公告 最高限价 不含税 含税"}
+{"url":"https://sthjj.beijing.gov.cn/bjhrb/index/xxgk69/zfxxgk43/fdzdgknr2/czxx35/zbggjzcdylygs/543502479/index.html","title":"机动车中心一期配电室安全节能改造项目（设备购置及安装）公开招标公告","site":"beijing.gov.cn","tag_guess":"budget_vs_cap","query":"配电室 改造 招标公告 采购需求一览表 最高限价"}
+{"url":"https://whsggzy.wuhu.gov.cn/whggzyjy/005/005001/005001001/20240531/8eda7516-d6e9-4a28-88d3-ad7526c08c2f.html","title":"芜湖赭山春秋三期供配电工程（供配电施工标）","site":"wuhu.gov.cn","tag_guess":"capital","query":"配电室 改造 招标公告 采购需求一览表 最高限价"}
+{"url":"https://hnsggzyjy.henan.gov.cn/jyxx/002001/002001001/20250422/c7443ab0-ca38-46e8-aa1f-45f547f2a02c.html","title":"新乡医学院教学实验楼供配电工程项目招标公告","site":"henan.gov.cn","tag_guess":"capital","query":"配电室 改造 招标公告 采购需求一览表 最高限价"}
+{"url":"https://www.cec-ec.com.cn/cms/channel/2xmgg1/3503.htm","title":"六所大厦配电室及箱式变压器更新改造（二次）项目公告","site":"cec-ec.com.cn","tag_guess":"table","query":"配电室 改造 招标公告 采购需求一览表 最高限价"}
+{"url":"https://www.bidding.csg.cn/zbgg/1200374754.jhtml","title":"招标公告-中国南方电网-供应链统一服务平台","site":"csg.cn","tag_guess":"multi_lot","query":"配电室 改造 招标公告 采购需求一览表 最高限价"}
+{"url":"https://wap.qianlima.com/zb/detail/20241105_459662509.html","title":"8101台实施配电室升级改造工程竞价公告","site":"qianlima.com","tag_guess":"table","query":"配电室 改造 招标公告 采购需求一览表 最高限价"}
+{"url":"http://ggzy.lyg.gov.cn/lygweb/jyxx/001007/001007001/20221124/2db3b42a-6d95-4ca6-9e34-d54ee37d7dd6.html","title":"[招标公告]关于连云港碱业有限公司搬迁升级改造项目普通设备招标公告","site":"lyg.gov.cn","tag_guess":"multi_lot","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.gksb1688.com/newsDetaile/1337.html","title":"码头带式输送机及起重机采购安装项目采购招标公告-港口设备网","site":"gksb1688.com","tag_guess":"multi_lot","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.qianlima.com/bid-539177740.html","title":"中国石油四川石化有限责任公司2026~2029年装置维护和检修（区域保运）-千里马招标网","site":"qianlima.com","tag_guess":"multi_lot","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.hbbidcloud.cn/EpointWebBuilder_hubeiggzy/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=2afe4fe8-76ce-4b70-8826-e17446e427cd&appUrlFlag=hbztb&siteGuid=cda38846-7172-4e08-a00b-4facef167518","title":"房县20万吨高纯阴极铜清洁生产项目双主梁门式起重机及轨道式电动平车项目","site":"hbbidcloud.cn","tag_guess":"capital","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.qianlima.com/bid-486697786.html","title":"山东中金岭南铜业有限责任公司2025年一期系统计划性检修-千里马招标网","site":"qianlima.com","tag_guess":"multi_lot","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://zhengxin-pub.cdn.bcebos.com/tender/c28185c8ff5fcbfcbb242ae49e5cc817/%E4%B8%AD%E9%93%81%E7%A7%91%E5%B7%A5%E9%9B%86%E5%9B%A2%E8%BD%A8%E9%81%93%E4%BA%A4%E9%80%9A%E8%A3%85%E5%A4%87%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8%E8%B5%B7%E9%87%8D%E8%AE%BE%E5%A4%87%E7%BB%B4%E4%BF%9D%E6%8B%9B%E6%A0%87%E5%85%AC%E5%91%8A.pdf","title":"中铁科工集团轨道交通装备有限公司起重设备维保公开招标招标公告","site":"bcebos.com","tag_guess":"capital","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.chinabidding.cn/zbgg/nkEXGK.html","title":"单轨电动起重机等7项招标公告-采购与招标网(www.chinabidding.cn)","site":"chinabidding.cn","tag_guess":"table","query":"起重机 检修 招标公告 最高限价 标段一 标段二"}
+{"url":"https://www.ccgp-neimenggu.gov.cn/gpx-bid-file/150430/gpx-tender/2024/4/25/402881cc8ec1d157018f147785ad702a.PDF?accessCode=d2c97a76bd50f4799d2804c957e724ba","title":"木头营子乡东湾子村东湾子组自来水工程 招标控制价(大写)：陆拾壹万陆仟捌佰玖拾玖元整","site":"ccgp-neimenggu.gov.cn","tag_guess":"capital","query":"给排水 改造工程 招标控制价 大写 元整"}
+{"url":"https://ggzy.suzhou.gov.cn/EpointWebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=f89565c6-ae5c-425a-a5f1-b7b58e881230&appUrlFlag=ztb581&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"招标控制价","site":"suzhou.gov.cn","tag_guess":"capital","query":"给排水 改造工程 招标控制价 大写 元整"}
+{"url":"https://www.szzyjy.com.cn/EpointWebBuilder/WebbuilderMIS/attach/downloadZtbAttach.jspx?attachGuid=2295a1c5-e3c0-4732-94fa-51062149da05&appUrlFlag=ztb581&siteGuid=7eb5f7f1-9041-43ad-8e13-8fcb82ea831a","title":"招标控制价","site":"szzyjy.com.cn","tag_guess":"capital","query":"给排水 改造工程 招标控制价 大写 元整"}
+{"url":"https://ec.sinopec.com/f/supp/notice/bidNotice.do?id=4907438632","title":"中石化物资采购电子商务系统 招标公告","site":"sinopec.com","tag_guess":"unit_price","query":"化工装置 检修 招标公告 单价 综合单价 元/吨"}
+{"url":"https://www.sise.org.cn/view-6030565d5c1c418d80363492d794e502-82e69bdc0f08490a9d5016dcb4b5c915.html","title":"特检基地机电试验室设备和配套工装维修服务招标需求公示","site":"sise.org.cn","tag_guess":"see_doc","query":"化工装置 检修 招标公告 单价 综合单价 元/吨"}
+{"url":"https://www.sise.org.cn/view-6030565d5c1c418d80363492d794e502-8cdd3e8e5e0f4ca9a2bd2b2293110fe6.html","title":"液氮协议供货（2024年度）（重新招标第1次）采购项目招标需求公示","site":"sise.org.cn","tag_guess":"unit_price","query":"化工装置 检修 招标公告 单价 综合单价 元/吨"}
+{"url":"https://e.sinochemitc.com/cms/channel/ywgg1fw/142100.htm","title":"大为制焦甲醇分厂静止设备检维修外包服务项目招标公告","site":"sinochemitc.com","tag_guess":"tax","query":"化工装置 检修 招标公告 单价 综合单价 元/吨"}
+{"url":"https://www.sise.org.cn/view-6030565d5c1c418d80363492d794e502-a155fc3dab5e4756bfeeae4e0da36b63.html","title":"液氮协议供货采购项目招标文件（第二次）","site":"sise.org.cn","tag_guess":"unit_price","query":"化工装置 检修 招标公告 单价 综合单价 元/吨"}
+{"url":"https://smejs.cn/jszbtb_tender_show.aspx?id=562139","title":"江苏高速加油站便利店施工项目（三）招标公告","site":"smejs.cn","tag_guess":"tax","query":"加油站 改造 招标公告 含13%增值税 最高限价"}
+{"url":"https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2760/site/attach/-1/2505141607543747131.pdf","title":"温岭市箬东综合供能加油站建设项目招标文件","site":"zj.gov.cn","tag_guess":"capital","query":"加油站 改造 招标公告 含13%增值税 最高限价"}
+{"url":"https://gs.qianlima.com/zbcontent-584387032.html","title":"中国石油甘肃销售分公司金昌永昌路加油站新建项目(变更)-千里马招标网","site":"qianlima.com","tag_guess":"budget_vs_cap","query":"加油站 改造 招标公告 含13%增值税 最高限价"}
+{"url":"https://m.yfbzb.com/winbid/detail/20250219_485694711.html","title":"某单位加油站翻新维修整治工程招标公告(2025-JLDJAE-G1002)-乙方宝官网","site":"yfbzb.com","tag_guess":"see_doc","query":"加油站 改造 招标公告 含13%增值税 最高限价"}
+{"url":"https://jtw.beijing.gov.cn/xxgk/ztbxx/202410/P020241015520439833157.pdf","title":"北京市2024年市管城市桥梁抗倾覆治理专项工程1标段-2024年市管城市桥梁抗倾覆治理专项工程第一标段","site":"beijing.gov.cn","tag_guess":"multi_lot","query":"桥梁 加固 工程 招标公告 分标段 最高投标限价"}
+{"url":"http://jsggzy.jszwfw.gov.cn/jyxx/003002/003002001/20260624/2c9e88449ed43621019ef41ece190006.html","title":"90座农村公路三类桥梁加固维修及25座跨干线航道桥梁防碰撞设施建设工程招标公告","site":"jszwfw.gov.cn","tag_guess":"multi_lot","query":"桥梁 加固 工程 招标公告 分标段 最高投标限价"}
+{"url":"https://www.smejs.cn/jszbtb_winbid_show.aspx?id=341494","title":"沿江公司2024年太仓港疏港高速桥梁维修加固项目招标公告","site":"smejs.cn","tag_guess":"capital","query":"桥梁 加固 工程 招标公告 分标段 最高投标限价"}
+{"url":"http://jsggzy.jszwfw.gov.cn/jyxx/003002/003002001/20260522/db0e3aee30764d8cadc4615c43796a6f.html","title":"2026年度泗阳县农村公路桥梁改造项目SYGLWQ02标段","site":"jszwfw.gov.cn","tag_guess":"multi_lot","query":"桥梁 加固 工程 招标公告 分标段 最高投标限价"}
+{"url":"https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web3177/site/attach/0/501ae6ac9ed0429fa44ae1f2419dd260.pdf","title":"牛桥和众安桥维修加固工程 招标文件","site":"zj.gov.cn","tag_guess":"capital","query":"桥梁 加固 工程 招标公告 分标段 最高投标限价"}
+{"url":"http://www.dlzb.org/news/202407/24/59074.html","title":"京哈高速儒林桥维修加固工程-京哈高速儒林桥项目设备租赁招标公告","site":"dlzb.org","tag_guess":"capital","query":"桥梁 加固 工程 招标公告 分标段 最高投标限价"}
+```
+
+=== 文件: 生成待标注.py ===
+```python
+"""从已抓取的公告原文里切出"难抽"的限价片段（≤200 字），自动打难点标签并预填抽取器结果。
+
+    python3 生成待标注.py --缓存 本地产出/C3原文 --输出 本地产出/C3/待标注.jsonl
+每行：{"id","url","证据级别","原文片段","难点标签","预测","正确答案":null,"标注状态":"待标注"}
+标注人要**独立**读片段填 正确答案（别照抄 预测），填完把 标注状态 改成 "已标注"，再跑 标注校验.py。
+一个公告最多出 3 个片段；没有任何难点标签的片段不收（简单样例不进难例库）。
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+# 依赖既可与本目录平级（仓库布局 产物/公共、产物/C3），也可在本目录内（回件切件后 C2/公共、C2/抽限价.py）
+for _p in (HERE.parent / "C3", HERE.parent / "公共", HERE / "公共", HERE):
+    if _p.is_dir():
+        sys.path.insert(0, str(_p))
+from 抽限价 import 大写式, 标段式, 抽限价, 规整, 详见式, 限价词, 预算词, 单价词, _税式  # noqa: E402
+from 抓取 import 读正文, 读索引  # noqa: E402
+
+关键式 = re.compile("|".join(re.escape(w) for w in sorted(限价词 + 预算词 + 单价词, key=len, reverse=True)))
+
+
+def 打标签(片段: str) -> list[str]:
+    标 = []
+    段 = {m.group(0) for m in 标段式.finditer(片段)}
+    if len(段) >= 2:
+        标.append("multi_lot")
+    if 大写式.search(片段):
+        标.append("capital")
+    if re.search(r"\d\s*万元?", 片段) and re.search(r"\d\s*元", 片段.replace("万元", "")):
+        标.append("unit_mix")
+    if _税式.search(片段):
+        标.append("tax")
+    if re.search(详见式, 片段):
+        标.append("see_doc")
+    if any(w in 片段 for w in 预算词) and any(w in 片段 for w in 限价词):
+        标.append("budget_vs_cap")
+    if re.search(r"元\s*/\s*[一-龥a-zA-Z²³]", 片段):
+        标.append("unit_price")
+    if re.search(r"^\|.*\|$", 片段, re.M):
+        标.append("table")
+    return 标
+
+
+def 切片段(t: str, 最长: int = 200) -> list[str]:
+    """以关键词簇为中心切 ≤最长 字的片段；相邻关键词尽量放进同一片段（多标段要完整）。"""
+    位 = [m.start() for m in 关键式.finditer(t)]
+    # 表头行也算锚点
+    位 += [m.start() for m in re.finditer(r"^\|[^\n]*(?:限价|控制价|预算)[^\n]*\|$", t, re.M)]
+    位.sort()
+    片段们, i = [], 0
+    while i < len(位):
+        起 = max(0, 位[i] - 30)
+        止 = 起 + 最长
+        while i < len(位) and 位[i] < 止 - 20:
+            i += 1
+        片 = t[起:止].strip()
+        if 片:
+            片段们.append(片)
+    return 片段们
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--缓存", required=True, type=Path)
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--每篇最多", type=int, default=3)
+    a = ap.parse_args()
+    a.输出.parent.mkdir(parents=True, exist_ok=True)
+    计 = {"公告": 0, "片段": 0}
+    with open(a.输出, "w", encoding="utf-8") as f:
+        for url, 记录 in 读索引(a.缓存).items():
+            if 记录["状态"] != "ok":
+                continue
+            t = 规整(读正文(a.缓存, url) or "")
+            计["公告"] += 1
+            n = 0
+            for 片 in 切片段(t):
+                标 = 打标签(片)
+                if not 标:
+                    continue
+                预测 = 抽限价(片)
+                f.write(json.dumps({
+                    "id": hashlib.sha1((url + 片).encode()).hexdigest()[:12], "url": url, "证据级别": "一手(公告原文页面)",
+                    "原文片段": 片, "难点标签": 标,
+                    "预测": [{k: x[k] for k in ("标段", "限价元", "含税", "类型", "单位")} for x in 预测],
+                    "正确答案": None, "标注状态": "待标注", "标注备注": "",
+                }, ensure_ascii=False) + "\n")
+                n += 1
+                计["片段"] += 1
+                for t_ in 标:
+                    计[t_] = 计.get(t_, 0) + 1
+                if n >= a.每篇最多:
+                    break
+    print(json.dumps(计, ensure_ascii=False, indent=1))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 标注校验.py ===
+```python
+"""校验人工标注并产出 难例.jsonl。
+
+    python3 标注校验.py --待标注 本地产出/C3/待标注.jsonl --输出 本地产出/C3/难例.jsonl [--至少 200]
+检查：
+  1. 原文片段 ≤200 字；url 以 http 开头；同一 (url, 片段) 不重复
+  2. 正确答案每项有 标段/限价元/含税；限价元为 null 时 类型 必须是 "详见文件"
+  3. **防编数**：每个非空 限价元 必须能在片段里找到对应写法（阿拉伯数字按元/万元/亿元换算，或大写金额）
+  4. 汇总：已标注条数、各难点标签条数；不足 --至少 时退出码 1
+只有 标注状态=="已标注" 且通过 1–3 的行写入 难例.jsonl。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from 抽限价 import 大写式, 大写转数, 规整  # noqa: E402
+
+
+def 片段内金额(片: str) -> set[float]:
+    t = 规整(片)
+    值 = set()
+    for m in 大写式.finditer(t):
+        值.add(round(大写转数(m.group()), 2))
+    for m in re.finditer(r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", t):
+        x = float(m.group(1).replace(",", ""))
+        for 倍 in (1, 1e3, 1e4, 1e6, 1e8):
+            值.add(round(x * 倍, 2))
+    return 值
+
+
+def 校验行(d: dict) -> list[str]:
+    错 = []
+    片 = d.get("原文片段") or ""
+    if len(片) > 200:
+        错.append(f"片段 {len(片)} 字 > 200")
+    if not str(d.get("url", "")).startswith("http"):
+        错.append("url 非 http")
+    答 = d.get("正确答案")
+    if not isinstance(答, list):
+        return 错 + ["正确答案 不是列表"]
+    有 = 片段内金额(片)
+    for x in 答:
+        if not {"标段", "限价元", "含税"} <= set(x):
+            错.append(f"答案项缺字段: {x}")
+            continue
+        if x["限价元"] is None:
+            if x.get("类型") != "详见文件":
+                错.append("限价元为 null 但 类型 不是 详见文件")
+        elif round(float(x["限价元"]), 2) not in 有:
+            错.append(f"限价元 {x['限价元']} 在片段里找不到对应写法（疑似编造或换算错）")
+    if not d.get("难点标签"):
+        错.append("缺难点标签")
+    return 错
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--待标注", required=True, type=Path)
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--至少", type=int, default=200)
+    a = ap.parse_args()
+    好, 坏, 未标, 见 = [], [], 0, set()
+    for 行 in a.待标注.read_text(encoding="utf-8").splitlines():
+        if not 行.strip():
+            continue
+        d = json.loads(行)
+        if d.get("标注状态") != "已标注":
+            未标 += 1
+            continue
+        键 = (d.get("url"), d.get("原文片段"))
+        错 = 校验行(d) + (["重复"] if 键 in 见 else [])
+        见.add(键)
+        (坏 if 错 else 好).append((d, 错))
+    with open(a.输出, "w", encoding="utf-8") as f:
+        for d, _ in 好:
+            f.write(json.dumps({k: d[k] for k in ("id", "url", "证据级别", "原文片段", "正确答案", "难点标签", "标注备注") if k in d}, ensure_ascii=False) + "\n")
+    标签 = Counter(t for d, _ in 好 for t in d["难点标签"])
+    print(json.dumps({"通过": len(好), "不通过": len(坏), "未标注": 未标, "按难点": dict(标签.most_common())}, ensure_ascii=False, indent=1))
+    for d, 错 in 坏[:30]:
+        print("✗", d.get("id"), "；".join(错))
+    if len(好) < a.至少:
+        print(f"未达标：通过 {len(好)} 条 < {a.至少}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 公共/抓取.py ===
+```python
+"""礼貌抓取器（仅标准库）：限速、超时、字节上限、本地缓存、断点续跑、访问障碍识别。
+
+用法：
+    python3 抓取.py --输入 链接.jsonl --缓存 本地产出/原文 [--间隔 3] [--上限 0]
+输入每行一个 JSON，至少含 "url"。结果写到 <缓存>/索引.jsonl（每 URL 一行，追加写，已抓过的跳过）。
+访问障碍（登录/验证码/JS 挑战/403 等）会如实记为 状态，绝不当作"没有公告"。
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+最大字节 = 5 * 1024 * 1024
+
+# 反爬/访问障碍特征：键为状态名，值为特征正则（在前 20KB 原始 HTML 中找）
+障碍特征 = {
+    "反爬-瑞数": r"\$_ts\s*=|FSSBBIl1UgzbN7N|_\$[a-z]{2}\(",
+    "反爬-加速乐": r"__jsl_clearance|document\.cookie\s*=.*?__jsl",
+    "反爬-阿里云WAF": r"acw_sc__v2|aliyun_waf|_waf_bd8ce2ce37",
+    "验证码": r"验证码|captcha|geetest|滑块|slider-?verify|nc_1_wrapper|安全验证|人机验证",
+    "需登录": r"请先登录|用户登录|登录后查看|请登录|login\.html|/login\b|sso/login",
+}
+
+
+def 键(url: str) -> str:
+    return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+
+
+def 识别障碍(http状态: int, 原始: str, 正文: str, 最终url: str) -> str:
+    if http状态 in (412, 521):
+        return "反爬-JS挑战(HTTP%d)" % http状态
+    if http状态 == 403:
+        return "拒绝访问(403,可能需国内IP)"
+    if http状态 >= 400:
+        return "HTTP%d" % http状态
+    头 = 原始[:20000]
+    for 名, 式 in 障碍特征.items():
+        if 名 == "需登录":
+            continue
+        if re.search(式, 头, re.I):
+            # 页面只有很少正文 + 命中特征才判为被挡；正文丰富说明只是页面上有个"验证码"字样
+            if len(正文) < 400:
+                return 名
+    if re.search(障碍特征["需登录"], 最终url, re.I) or (len(正文) < 400 and re.search(障碍特征["需登录"], 头, re.I)):
+        return "需登录"
+    if len(正文) < 150 and 原始.count("<script") >= 3:
+        return "JS渲染(静态无正文)"
+    return "ok"
+
+
+def 抓一个(url: str, 超时: int = 20) -> dict:
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"})
+    try:
+        with urllib.request.urlopen(req, timeout=超时) as r:
+            数据 = r.read(最大字节 + 1)
+            return {"http": r.status, "最终url": r.geturl(), "ct": r.headers.get("Content-Type", ""), "数据": 数据[:最大字节]}
+    except urllib.error.HTTPError as e:
+        try:
+            数据 = e.read(200000)
+        except Exception:
+            数据 = b""
+        return {"http": e.code, "最终url": url, "ct": e.headers.get("Content-Type", "") if e.headers else "", "数据": 数据}
+    except Exception as e:  # DNS/超时/TLS 等
+        return {"http": 0, "最终url": url, "ct": "", "数据": b"", "错误": f"{type(e).__name__}: {e}"[:200]}
+
+
+def 读索引(缓存: Path) -> dict:
+    已有 = {}
+    f = 缓存 / "索引.jsonl"
+    if f.exists():
+        for 行 in f.read_text(encoding="utf-8").splitlines():
+            try:
+                d = json.loads(行)
+                已有[d["url"]] = d
+            except Exception:
+                continue
+    return 已有
+
+
+def 读正文(缓存: Path, url: str) -> str | None:
+    p = 缓存 / (键(url) + ".txt")
+    return p.read_text(encoding="utf-8") if p.exists() else None
+
+
+def 批量抓取(链接: list[dict], 缓存: Path, 间隔: float = 3.0, 上限: int = 0, 重试失败: bool = False) -> dict:
+    缓存.mkdir(parents=True, exist_ok=True)
+    已有 = 读索引(缓存)
+    计数 = {"新抓": 0, "跳过": 0}
+    with open(缓存 / "索引.jsonl", "a", encoding="utf-8") as idx:
+        for 条 in 链接:
+            url = 条["url"]
+            旧 = 已有.get(url)
+            if 旧 and (旧["状态"] == "ok" or not 重试失败):
+                计数["跳过"] += 1
+                continue
+            if 上限 and 计数["新抓"] >= 上限:
+                break
+            if 附件型(url):
+                记录 = {"url": url, "状态": "附件(PDF/DOC,需人工或另行解析)", "http": None, "字数": 0, "时间": time.strftime("%Y-%m-%d %H:%M:%S")}
+            else:
+                r = 抓一个(url)
+                原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+                正文 = 转文本(原始) if 原始 else ""
+                状态 = 识别障碍(r["http"], 原始, 正文, r["最终url"]) if r["http"] else "连接失败:" + r.get("错误", "")
+                if 原始:
+                    (缓存 / (键(url) + ".html")).write_text(原始, encoding="utf-8")
+                    (缓存 / (键(url) + ".txt")).write_text(正文, encoding="utf-8")
+                记录 = {"url": url, "状态": 状态, "http": r["http"], "最终url": r["最终url"], "字数": len(正文), "时间": time.strftime("%Y-%m-%d %H:%M:%S")}
+            idx.write(json.dumps(记录, ensure_ascii=False) + "\n")
+            idx.flush()  # 流式落盘：被杀进程也只丢当前一条
+            计数["新抓"] += 1
+            计数[记录["状态"]] = 计数.get(记录["状态"], 0) + 1
+            print(f"[{计数['新抓']}] {记录['状态']} {url}", flush=True)
+            time.sleep(间隔)
+    return 计数
+
+
+def 附件型(url: str) -> bool:
+    return bool(re.search(r"\.(pdf|docx?|xlsx?|zip|rar)(\?|$)", url, re.I))
+
+
+def 读jsonl(路径: Path) -> list[dict]:
+    return [json.loads(x) for x in 路径.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--输入", required=True, type=Path)
+    ap.add_argument("--缓存", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0, help="每次请求间隔秒数（默认 3，别调太小）")
+    ap.add_argument("--上限", type=int, default=0, help="本轮最多新抓多少条，0=不限")
+    ap.add_argument("--重试失败", action="store_true", help="对之前非 ok 的 URL 再试一次")
+    a = ap.parse_args()
+    计数 = 批量抓取(读jsonl(a.输入), a.缓存, a.间隔, a.上限, a.重试失败)
+    print(json.dumps(计数, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 公共/网页文本.py ===
+```python
+"""HTML → 纯文本（仅标准库）。
+
+表格按行输出为 `| 单元格 | 单元格 |`，供 抽限价.py 的表格模式识别；
+<br>/<p>/<div>/<li> 变换行；script/style 丢弃。
+"""
+from __future__ import annotations
+
+import html
+import re
+from html.parser import HTMLParser
+
+_BLOCK = {"p", "div", "br", "li", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "ul", "ol", "table", "tbody", "thead"}
+_SKIP = {"script", "style", "noscript", "template"}
+
+
+class _Conv(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.out: list[str] = []
+        self.skip = 0
+        self.row: list[str] | None = None
+        self.cell: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in _SKIP:
+            self.skip += 1
+        elif tag == "tr":
+            self.row = []
+        elif tag in ("td", "th"):
+            self.cell = []
+        elif tag in _BLOCK and self.cell is None:
+            self.out.append("\n")
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in _SKIP:
+            self.skip = max(0, self.skip - 1)
+        elif tag in ("td", "th"):
+            if self.cell is not None and self.row is not None:
+                self.row.append(re.sub(r"\s+", " ", "".join(self.cell)).strip())
+            self.cell = None
+        elif tag == "tr":
+            if self.row:
+                self.out.append("\n| " + " | ".join(self.row) + " |\n")
+            self.row = None
+        elif tag in _BLOCK and self.cell is None:
+            self.out.append("\n")
+
+    def handle_data(self, data):
+        if self.skip:
+            return
+        if self.cell is not None:
+            self.cell.append(data)
+        else:
+            self.out.append(data)
+
+
+def 转文本(源: str) -> str:
+    """HTML 或纯文本 → 规整后的纯文本（多空行压成一行）。"""
+    if "<" not in 源:
+        return 源
+    c = _Conv()
+    try:
+        c.feed(源)
+        c.close()
+    except Exception:  # 残缺 HTML 退化为粗暴去标签
+        return html.unescape(re.sub(r"<[^>]+>", "\n", 源))
+    文本 = "".join(c.out).replace("\xa0", " ").replace("　", " ")
+    行 = [re.sub(r"[ \t]+", " ", x).strip() for x in 文本.split("\n")]
+    return "\n".join(x for x in 行 if x)
+
+
+def 解码(字节: bytes, content_type: str = "") -> str:
+    """按 Content-Type → <meta charset> → utf-8 → gb18030 顺序解码。"""
+    候选: list[str] = []
+    m = re.search(r"charset=([\w-]+)", content_type or "", re.I)
+    if m:
+        候选.append(m.group(1))
+    m = re.search(rb"<meta[^>]+charset=[\"']?([\w-]+)", 字节[:4096], re.I)
+    if m:
+        候选.append(m.group(1).decode("ascii", "ignore"))
+    候选 += ["utf-8", "gb18030"]
+    for enc in 候选:
+        enc = enc.lower()
+        if enc in ("gb2312", "gbk"):
+            enc = "gb18030"
+        try:
+            return 字节.decode(enc)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return 字节.decode("utf-8", "replace")
+```
+
+=== 文件: 公共/列表抽链接.py ===
+```python
+"""从任意公告列表页抽取候选公告链接（仅标准库），追加到候选链接 jsonl（按 url 去重）。
+
+    # C2：抽中标/成交结果里的维修类
+    python3 列表抽链接.py --列表页 "https://站点/jyxx/zbjg/index_{页}.html" --页 1-20 \
+        --必含 "中标|成交|候选人|结果" --且含 "检修|维修|大修|维保|修复|安装|改造|技改|探伤|检测" \
+        --输出 ../C2/候选链接.jsonl
+    # C3：抽招标公告（任意行业，后续由 生成待标注.py 挑难例）
+    python3 列表抽链接.py --列表页 "https://站点/list?page={页}" --页 1-10 --必含 "招标|采购|比选|询价" --排除 "结果|中标|成交" --输出 ../C3/候选链接.jsonl
+--列表页 里的 {页} 会被 --页 范围逐个替换；不含 {页} 就只抓这一页。也可用 --列表文件 每行一个列表页 URL。
+只能处理"静态 HTML 列表"；遇到 JS 渲染/反爬，会打印抓取状态，别当成"没有公告"。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import time
+import urllib.parse
+from html.parser import HTMLParser
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 抓取 import 抓一个, 识别障碍  # noqa: E402
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+
+class _A(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._href = None
+        self._buf: list[str] = []
+        self._title = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() == "a":
+            a = dict(attrs)
+            self._href = a.get("href")
+            self._title = a.get("title") or ""
+            self._buf = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            txt = re.sub(r"\s+", " ", "".join(self._buf)).strip()
+            self.links.append((self._href, self._title if len(self._title) > len(txt) else txt))
+            self._href = None
+
+
+def 抽链接(html: str, 基址: str, 必含: str, 且含: str = "", 排除: str = "") -> list[dict]:
+    p = _A()
+    try:
+        p.feed(html)
+    except Exception:
+        pass
+    出, 见 = [], set()
+    for href, 标题 in p.links:
+        if not href or href.startswith(("javascript:", "#", "mailto:")) or len(标题) < 6:
+            continue
+        if not re.search(必含, 标题) or (且含 and not re.search(且含, 标题)) or (排除 and re.search(排除, 标题)):
+            continue
+        url = urllib.parse.urljoin(基址, href)
+        if url in 见:
+            continue
+        见.add(url)
+        出.append({"url": url, "title": 标题, "site": urllib.parse.urlparse(url).netloc, "来源列表页": 基址})
+    return 出
+
+
+def 展开页(模板: str, 页: str) -> list[str]:
+    if "{页}" not in 模板:
+        return [模板]
+    a, _, b = 页.partition("-")
+    return [模板.replace("{页}", str(i)) for i in range(int(a), int(b or a) + 1)]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--列表页", action="append", default=[])
+    ap.add_argument("--列表文件", type=Path)
+    ap.add_argument("--页", default="1")
+    ap.add_argument("--必含", required=True)
+    ap.add_argument("--且含", default="")
+    ap.add_argument("--排除", default="")
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0)
+    a = ap.parse_args()
+    模板们 = list(a.列表页) + ([x.strip() for x in a.列表文件.read_text(encoding="utf-8").splitlines() if x.strip()] if a.列表文件 else [])
+    已有 = set()
+    if a.输出.exists():
+        已有 = {json.loads(x)["url"] for x in a.输出.read_text(encoding="utf-8").splitlines() if x.strip()}
+    新增 = 0
+    with open(a.输出, "a", encoding="utf-8") as f:
+        for 模板 in 模板们:
+            for url in 展开页(模板, a.页):
+                r = 抓一个(url)
+                原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+                状态 = 识别障碍(r["http"], 原始, 转文本(原始) if 原始 else "", r["最终url"]) if r["http"] else "连接失败"
+                n = 0
+                if 状态 == "ok":
+                    for d in 抽链接(原始, r["最终url"], a.必含, a.且含, a.排除):
+                        if d["url"] not in 已有:
+                            已有.add(d["url"])
+                            f.write(json.dumps(d, ensure_ascii=False) + "\n")
+                            n += 1
+                    f.flush()
+                新增 += n
+                print(f"{状态}\t+{n}\t{url}", flush=True)
+                time.sleep(a.间隔)
+    print(f"新增 {新增} 条 → {a.输出}（累计 {len(已有)}）")
+
+
+if __name__ == "__main__":
+    main()
+```

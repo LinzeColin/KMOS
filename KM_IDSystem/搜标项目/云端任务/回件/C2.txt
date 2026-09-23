@@ -1,0 +1,1089 @@
+=== 文件: README.md ===
+```markdown
+# C2 公开开标结果的下浮率分布（工具版，样本待本地采）
+
+**做了什么**：云端打不开任何招标网站（出网策略拦截），所以**云端产出的样本数为 0**。已交付的是一条可离线验证的流水线，到国内网络下就能出数：
+`列表抽链接.py`（从任意结果列表页抽维修类链接）→ `抓取.py`（限速 3 秒、断点续跑、识别登录/验证码/瑞数/加速乐）→ `解析结果.py`（抽限价与中标价，按标段配对，算下浮率，抹掉中标单位名）→ `统计分布.py`（评标办法 × 项目类型 × 金额档，给 P25/P50/P75、样本数和边际分组）。
+
+**关键数字**
+- 候选结果公告链接 **36 条**（检修维修 27／技改 5／安装 2／检测 2），全部原样来自搜索结果，没有打开核实。目标 300 条样本，还差 **300 条**。整个会话的搜索额度（200 次）已经用完。
+- 高产来源线索（二手，出自搜索过程）：广西投资集团 gigeps.com、国能 e 招、三峡 eps.ctg.com.cn、中铝、陕西中技、剑鱼各省子站。
+- 端到端离线测试：5 个构造页面（含瑞数反爬页、费率报价页），出 4 个样本，下浮率与手算一致；费率页记为跳过；单位名脱敏有专项断言。
+
+**口径**：限价优先取"最高限价/控制价"，只有预算时标"预算(代限价)"；中标价没有明确金额时，取"第一中标候选人报价"，并在口径列注明；下浮率不在 0～60% 之间的记"异常"，不进统计；费率报价跳过并写明原因。
+
+**局限**：解析是规则法，真实页面的准确率**没测**，本地要抽 30 条人工核对。
+
+**复审**：见文末。
+```
+
+=== 文件: 候选链接.jsonl ===
+```json
+{"url":"https://liaoning.jianyu360.cn/jybx/20260509_26050852244796.html","title":"【招标结果】阜矿集团2026年度第27批集中招标（白音华公司党群活动中心座椅改造工程、白音华公司机动车辆2026年保险、热电厂4#汽轮机组大修）招标中标候选人公示-辽宁招标网","site":"liaoning.jianyu360.cn","province_guess":"辽宁","type_guess":"检修维修","query":"汽轮机 大修 中标结果公告"}
+{"url":"https://www.huanbaozhaobiao.com/news-5b38a0d00aa4066771d0535a1a82257d/","title":"内蒙古第一机械集团股份有限公司造型落砂除尘系统技术升级改造中标候选人公示","site":"huanbaozhaobiao.com","province_guess":"内蒙古","type_guess":"技改","query":"除尘器 改造 中标候选人公示"}
+{"url":"https://www.qianlima.com/bid-530399710.html","title":"上海振华重工长兴分公司干式除尘器安装无焰泄爆装置项目中标候选人公示-千里马招标网","site":"qianlima.com","province_guess":"上海","type_guess":"安装","query":"除尘器 改造 中标候选人公示"}
+{"url":"https://hebei.zhaobiao.cn/succeed_v_a21851a243b6597e3a8afdbc0763c9c7.html","title":"回转窑托轮组维修中标公告","site":"hebei.zhaobiao.cn","province_guess":"河北","type_guess":"检修维修","query":"回转窑 维修 中标结果公告"}
+{"url":"http://www.chinacrane.net/news/202310/09/275019.html","title":"减速机及其配件结果公告_中标公告_招标中心_资讯频道_全球起重机械网","site":"chinacrane.net","province_guess":"","type_guess":"检修维修","query":"减速机 齿轮 检修 中标公告 最高限价"}
+{"url":"http://www.chinacrane.net/news/202310/11/275210.html","title":"减速机修理结果公告_中标公告_招标中心_资讯频道_全球起重机械网","site":"chinacrane.net","province_guess":"","type_guess":"检修维修","query":"减速机 齿轮 检修 中标公告 最高限价"}
+{"url":"https://wap.qianlima.com/zb/detail/20250127_482883027.html","title":"减速机，法兰盘，离心泵叶轮等一批中标公告 - 千里马招标网","site":"qianlima.com","province_guess":"","type_guess":"检修维修","query":"减速机 齿轮 检修 中标公告 最高限价"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg5fw/65520.htm","title":"水泵维修服务【重新采购】成交结果公告","site":"gigeps.com","province_guess":"","type_guess":"检修维修","query":"水泵 检修 成交结果公告"}
+{"url":"https://www.zsjypt.cn/artical/55/247875","title":"广东省特种设备检测研究院中山检测院特种设备无损检测及检验辅助技术服务项目结果公告 中山市公共资源交易平台","site":"zsjypt.cn","province_guess":"广东","type_guess":"检测","query":"探伤检测 中标结果公告 设备"}
+{"url":"https://ggzyjy.xuancheng.gov.cn/xcspfront/zfcg/017001/017001004/20260625/88855441-9400-4bcc-b56d-20438ac9f7da.html","title":"检验检测仪器设备中标结果","site":"ggzyjy.xuancheng.gov.cn","province_guess":"安徽","type_guess":"检测","query":"探伤检测 中标结果公告 设备"}
+{"url":"https://liaoning.jianyu360.cn/jybx/20260609_26060860340697.html","title":"【招标结果】全厂起重机检修、维护、保养中标候选人公示-辽宁招标网","site":"liaoning.jianyu360.cn","province_guess":"辽宁","type_guess":"检修维修","query":"钢铁厂 检修 中标结果公告 site:jianyu360.cn"}
+{"url":"http://bid.xkjt.net/bid_ol/awardWeb/sdetail.do?id=162ce87f349a4962bd1be46c6a345f58","title":"陕西郭家河煤业有限责任公司年度链轮维修项目","site":"bid.xkjt.net","province_guess":"陕西","type_guess":"检修维修","query":"矿山 设备检修 中标候选人公示"}
+{"url":"https://baohuabidding.com/shbhgjzb/jyxx/018001/018001003/018001003003/20241112/011f79a2-cc85-46a1-945e-6afe5653f743.html","title":"太原钢铁（集团）有限公司矿业分公司尖山铁矿2024年起...中标候选人公示","site":"baohuabidding.com","province_guess":"山西","type_guess":"检修维修","query":"矿山 设备检修 中标候选人公示"}
+{"url":"https://liaoning.jianyu360.cn/jybx/20250124_250123159350970.html","title":"【招标结果】鞍山中特新材料科技有限公司全厂防腐、保温维修中标候选人公示-辽宁招标网","site":"liaoning.jianyu360.cn","province_guess":"辽宁","type_guess":"检修维修","query":"辽宁 检修 中标候选人公示 site:liaoning.jianyu360.cn"}
+{"url":"https://liaoning.jianyu360.cn/jybx/20250605_250604189125135.html","title":"【招标结果】华电辽宁能源发展股份有限公司工程检修公司2025年阜新公司3号机组大修汽轮机本体等设备检修外委项目燃煤发电机组大修服务批次评标结果公示-辽宁招标网","site":"liaoning.jianyu360.cn","province_guess":"辽宁","type_guess":"检修维修","query":"辽宁 检修 中标候选人公示 site:liaoning.jianyu360.cn"}
+{"url":"http://www.kszbw.cn.yunliyun.com/g-kuangshan-601615576--75201947.html","title":"黑龙江龙煤鸡西矿业有限责任公司平岗煤矿精煤火车牵引装置维修项目【重新招标】-中标候选人公示_中国矿山招标网","site":"kszbw.cn.yunliyun.com","province_guess":"黑龙江","type_guess":"检修维修","query":"陕西 煤矿 设备维修 中标候选人公示"}
+{"url":"https://www.sxzjtc.com/cms/zhongbiaohouxuanrengongshi/5797.html","title":"陕西延长石油天然气股份有限公司2026年装置检修、消缺项目项目中标候选人公示 - 陕西中技招标有限公司","site":"sxzjtc.com","province_guess":"陕西","type_guess":"检修维修","query":"陕西 煤矿 设备维修 中标候选人公示"}
+{"url":"https://sxzjtc.com/cms/zhongbiaohouxuanrengongshi/3700.html","title":"陕西延长石油天然气股份有限公司2025年装置检修消缺项目中标候选人公示 - 陕西中技招标有限公司","site":"sxzjtc.com","province_guess":"陕西","type_guess":"检修维修","query":"陕西 煤矿 设备维修 中标候选人公示"}
+{"url":"http://bulletin.sntba.com/candidateBulletin/2023-09-04/645505.html","title":"01 公示内容 - 陕西招标投标公共服务平台","site":"bulletin.sntba.com","province_guess":"陕西","type_guess":"检修维修","query":"陕西 煤矿 设备维修 中标候选人公示"}
+{"url":"https://shanxi.jianyu360.cn/jybx/20251030_2510297728652.html","title":"【招标结果】山西潞安矿业（集团）有限责任公司古城煤矿选煤厂全厂智能化改造项目EPC总承包项目中标候选人公示-山西招标网","site":"shanxi.jianyu360.cn","province_guess":"山西","type_guess":"技改","query":"山西招标网 中标候选人公示 检修 site:jianyu360.cn"}
+{"url":"https://www.chnenergybidding.com.cn/bidweb/001/001005/7313.html","title":"CEZB260106313 龙源电力风电机组全年检修部分外委服务长协采购公开招标中标候选人公示","site":"chnenergybidding.com.cn","province_guess":"","type_guess":"检修维修","query":"国家能源集团 电子招标 中标候选人公示 检修 site:chnenergybidding.com.cn"}
+{"url":"https://liaoning.jianyu360.cn/jybx/20250103_250102154242724.html","title":"【招标结果】辽宁尚威医疗用品有限公司手套VOCS净化治理技改项目--吸脱附轮转罐、连接管道及活性炭采购项目中标候选人公示-辽宁招标网","site":"liaoning.jianyu360.cn","province_guess":"辽宁","type_guess":"技改","query":"脱硫脱硝 改造 中标候选人公示 site:jianyu360.cn"}
+{"url":"https://zb.sec.com.cn/zbhxrgs/20310.jhtml","title":"中标候选人公示 - 深圳能源电子招标投标平台（\"嘉泰\"轮特检修理招标项目）","site":"zb.sec.com.cn","province_guess":"广东","type_guess":"检修维修","query":"球磨机 检修 中标候选人公示"}
+{"url":"https://shandong.jianyu360.cn/jybx/20241117_241116140561616.html","title":"【招标结果】临邑恒利热电有限责任公司热电联产项目（1×5万千瓦背压机组）脱硫脱硝除尘项目中标公示-山东招标网","site":"shandong.jianyu360.cn","province_guess":"山东","type_guess":"技改","query":"脱硫塔 检修 中标候选人公示 site:jianyu360.cn"}
+{"url":"https://shaanxi.jianyu360.cn/jybx/20240103_2401028167019.html","title":"【招标结果】陕西美鑫产业投资有限公司铝镁合金分公司电解烟气净化脱硫系统运行托管项目中标结果公示-陕西招标网","site":"shaanxi.jianyu360.cn","province_guess":"陕西","type_guess":"检修维修","query":"脱硫塔 检修 中标候选人公示 site:jianyu360.cn"}
+{"url":"https://gansu.jianyu360.cn/jybx/20240207_24020623622252.html","title":"【招标结果】[华能煤业公司华亭煤业清能煤化工公司气化锁斗阀门及执行机构维修（框架协议18个月）]候选人公示-甘肃招标网","site":"gansu.jianyu360.cn","province_guess":"甘肃","type_guess":"检修维修","query":"阀门 检修 中标候选人公示 site:jianyu360.cn"}
+{"url":"https://www.baohuabidding.com/shbhgjzb/jyxx/018001/018001003/018001003003/20250707/92ef5284-48e2-4595-bad3-9baf30a343ca.html","title":"热电仪器及自动线、FLSmidth制样设备等维护中标候选人公示","site":"baohuabidding.com","province_guess":"","type_guess":"检修维修","query":"site:baohuabidding.com 中标候选人公示 检修"}
+{"url":"https://www.baohuabidding.com/shbhgjzb/jyxx/018001/018001003/018001003003/20250513/160b3233-edc5-4dc8-b1fc-a32798f285d5.html","title":"新蒸氨区域机电设备及非生产性设施检修协力保产公开招标","site":"baohuabidding.com","province_guess":"","type_guess":"检修维修","query":"site:baohuabidding.com 中标候选人公示 检修"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg5hw/61295.htm","title":"一期载氟氧化铝输送系统开发项目【重新采购】成交结果公告","site":"gigeps.com","province_guess":"广西","type_guess":"安装","query":"site:gigeps.com 成交结果公告 大修"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg5hw/61722.htm","title":"广西广投北海发电有限公司推土机维护材料采购成交结果公告","site":"gigeps.com","province_guess":"广西","type_guess":"检修维修","query":"site:gigeps.com 成交结果公告 大修"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg2hw/71415.htm","title":"广西来宾广投银海铝业有限责任公司二期40台电解槽大修全石墨化阴极炭块等槽修材料采购项目中标结果公告","site":"gigeps.com","province_guess":"广西","type_guess":"检修维修","query":"site:gigeps.com 中标结果公告 电解槽"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg7gc/61224.htm","title":"广西来宾广投银海铝业有限责任公司二期50台电解槽大修施工项目中标候选人公示","site":"gigeps.com","province_guess":"广西","type_guess":"检修维修","query":"site:gigeps.com 中标结果公告 电解槽"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg7hw/81450.htm","title":"广西来宾广投银海铝业有限责任公司2026年330kA电解槽智能打壳系统采购项目中标候选人公示","site":"gigeps.com","province_guess":"广西","type_guess":"技改","query":"site:gigeps.com 中标结果公告 电解槽"}
+{"url":"https://www.gigeps.com/cms/channel/xmgg4hw/80561.htm","title":"广西广投桂旭能源发展投资有限公司2026年#1机组C级检修汽泵机封备件采购项目成交结果公告","site":"gigeps.com","province_guess":"广西","type_guess":"检修维修","query":"site:gigeps.com 成交结果公告 检修"}
+{"url":"https://eps.ctg.com.cn/cms/channel/1ywgg3/240608319.htm","title":"中国三峡集团电子采购平台 - 中国长江三峡集团有限公司（三峡右岸电站上游副厂房屋面大修中标候选人公示）","site":"eps.ctg.com.cn","province_guess":"湖北","type_guess":"检修维修","query":"site:eps.ctg.com.cn 中标候选人公示 大修"}
+{"url":"http://www.chnenergybidding.com.cn/bidweb/001/001005/001005002/20250311/bd7b66f6-06c9-4bed-95f0-c2b91c4fbc48.html","title":"绥中公司-维护部-2025年1号机组C修锅炉辅机设备检修施工中标候选人公示","site":"chnenergybidding.com.cn","province_guess":"辽宁","type_guess":"检修维修","query":"site:chnenergybidding.com.cn 中标候选人公示 检修"}
+```
+
+=== 文件: 解析结果.py ===
+```python
+"""把已抓取的中标/成交结果公告解析成下浮率样本（仅标准库）。
+
+    python3 解析结果.py --缓存 本地产出/C2原文 --链接 c2_候选链接.jsonl --输出 本地产出/C2
+产出：
+    下浮率样本.csv   每行一个（公告, 标段）样本，列见 列名；**不含中标单位名**
+    解析明细.jsonl   每个公告的解析过程/跳过原因（片段里的单位名已抹成 [单位]），供复核
+下浮率 = 1 − 中标价 ÷ 限价。只在两者口径能一一配上时出样本，配不上就记跳过原因，不硬凑。
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+# 依赖既可与本目录平级（仓库布局 产物/公共、产物/C3），也可在本目录内（回件切件后 C2/公共、C2/抽限价.py）
+for _p in (HERE.parent / "C3", HERE.parent / "公共", HERE / "公共", HERE):
+    if _p.is_dir():
+        sys.path.insert(0, str(_p))
+from 抽限价 import 抽金额, 抽限价, 规整  # noqa: E402
+from 抓取 import 读正文, 读索引, 读jsonl  # noqa: E402
+
+列名 = ["公告URL", "日期", "省份", "项目类型", "评标办法", "限价", "中标价", "下浮率", "标段", "限价口径", "中标价口径", "税口径", "金额档", "质检", "来源站点"]
+
+中标词 = ["中标（成交）金额", "中标(成交)金额", "中标（成交）价", "中标(成交)价", "中标金额", "中标价格", "中标价", "中标总价", "成交金额", "成交价格", "成交价", "成交总价", "中选金额", "中选价"]
+候选报价词 = ["投标报价", "投标总价", "报价金额", "投标价格", "评标价"]
+
+省份表 = ["北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江", "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州", "云南", "西藏", "陕西", "甘肃", "青海", "宁夏", "新疆"]
+域名省份 = {"beijing": "北京", "tianjin": "天津", "hebei": "河北", "shanxi": "山西", "nmg": "内蒙古", "nmgov": "内蒙古", "ln.": "辽宁", "liaoning": "辽宁", "jl.": "吉林", "jilin": "吉林", "hlj": "黑龙江", "shanghai": "上海", "jiangsu": "江苏", "js.": "江苏", "zj.": "浙江", "zhejiang": "浙江", "ah.": "安徽", "anhui": "安徽", "fujian": "福建", "fj.": "福建", "jiangxi": "江西", "jx.": "江西", "shandong": "山东", "sd.": "山东", "henan": "河南", "hubei": "湖北", "hunan": "湖南", "gd.": "广东", "guangdong": "广东", "gxzf": "广西", "guangxi": "广西", "hainan": "海南", "cq.": "重庆", "chongqing": "重庆", "sc.": "四川", "sichuan": "四川", "guizhou": "贵州", "gz.gov": "贵州", "yn.": "云南", "yunnan": "云南", "xizang": "西藏", "shaanxi": "陕西", "gansu": "甘肃", "qinghai": "青海", "nx.": "宁夏", "ningxia": "宁夏", "xinjiang": "新疆", "xj.": "新疆"}
+
+类型规则 = [("改造", r"改造|技改|升级|更新改造"), ("安装", r"安装|拆装|迁装"), ("检测", r"检测|探伤|监测|无损|检验"), ("检修维修", r"检修|维修|大修|中修|小修|维保|修复|抢修|修理|保运|维护")]
+评标规则 = [("综合评分法", r"综合评分|综合评估|综合打分"), ("合理低价法", r"合理低价"), ("最低评标价法", r"最低评标价|经评审的最低投标价|最低投标价法|最低价中标|最低价法"),
+          ("竞争性磋商", r"竞争性磋商"), ("竞争性谈判", r"竞争性谈判"), ("询价", r"询价"), ("评定分离", r"评定分离")]
+
+_单位名式 = re.compile(r"[一-龥（）()·A-Za-z0-9]{2,40}?(?:有限责任公司|股份有限公司|有限公司|分公司|公司|集团|研究院|研究所|工程处|厂)")
+
+
+_单位标签式 = re.compile(r"((?:第[一二三四五1-5]名?)?(?:中标|成交|中选)?(?:候选人|人|单位|供应商|供应商名称|单位名称)(?:名称)?\s*[:：]\s*)[^,，;；\n。|]{1,40}")
+
+
+def 抹单位(s: str) -> str:
+    """片段里的单位名一律抹掉：①"中标人：xxx"类标签后的名字（不论有无公司后缀，防截断漏网）②带公司后缀的名称。"""
+    return _单位名式.sub("[单位]", _单位标签式.sub(r"\1[单位]", s))
+
+
+def 金额档(限价: float) -> str:
+    万 = 限价 / 1e4
+    if 万 < 50:
+        return "<50万"
+    if 万 < 200:
+        return "50-200万"
+    if 万 < 1000:
+        return "200-1000万"
+    return "≥1000万"
+
+
+def 找日期(t: str) -> str:
+    m = re.search(r"(?:发布|公告|公示|成交|中标)(?:时间|日期)\s*[:：]?\s*(20\d{2})[-/年.](\d{1,2})[-/月.](\d{1,2})", t)
+    if not m:
+        m = re.search(r"(20\d{2})[-/年.](\d{1,2})[-/月.](\d{1,2})", t)
+    return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}" if m else ""
+
+
+def 找省份(t: str, url: str, 标题: str) -> str:
+    for p in 省份表:
+        if p in 标题:
+            return p
+    host = re.sub(r"^https?://", "", url).split("/")[0].lower()
+    for k, v in 域名省份.items():
+        if k in host:
+            return v
+    头 = t[:2000]
+    计 = {p: 头.count(p) for p in 省份表 if p in 头}
+    return max(计, key=计.get) if 计 else ""
+
+
+def 归类(文本: str, 规则) -> str:
+    for 名, 式 in 规则:
+        if re.search(式, 文本):
+            return 名
+    return ""
+
+
+def 取中标价(t: str) -> list[dict]:
+    """先找明确的中标/成交金额；没有则在"第一中标候选人"段里找投标报价。"""
+    r = [x for x in 抽金额(t, {"中标价": 中标词}) if x["限价元"] is not None and "/" not in x["单位"]]
+    if r:
+        for x in r:
+            x["口径"] = "中标/成交金额"
+        return r
+    m = re.search(r"第一(?:中标|成交)?候选人|排名第一|第一名", t)
+    if m:
+        止 = re.search(r"第二(?:中标|成交)?候选人|排名第二|第二名", t[m.end():])
+        段 = t[m.start(): m.end() + (止.start() if 止 else 400)]
+        r = [x for x in 抽金额(段, {"中标价": 候选报价词 + 中标词}) if x["限价元"] is not None and "/" not in x["单位"]]
+        for x in r:
+            x["口径"] = "第一候选人报价"
+        return r[:1] if len({x["标段"] for x in r}) <= 1 else r
+    return []
+
+
+def 配对(限价: list[dict], 中标: list[dict]):
+    """返回 [(限价项, 中标项)] 与跳过原因。"""
+    总价 = [x for x in 限价 if x["限价元"] is not None and x["类型"] != "单价限价"]
+    if not 总价:
+        return [], "无限价金额（未公布/详见文件/仅单价）"
+    if not 中标:
+        return [], "无中标价金额（可能为费率/下浮率报价或附件）"
+    段限 = {}
+    for x in 总价:
+        段限.setdefault(x["标段"], []).append(x)
+    段中 = {}
+    for x in 中标:
+        段中.setdefault(x["标段"], []).append(x)
+    对 = []
+    if len(段限) == 1 and len(段中) == 1:
+        a = list(段限.values())[0]
+        b = list(段中.values())[0]
+        if len(b) != 1:
+            return [], "单标段出现多个不同中标价，无法确定"
+        # 含税/不含税并列时，优先用与中标价同口径的，其次用含税/未说明
+        a = sorted(a, key=lambda x: (x["含税"] is False,))
+        return [(a[0], b[0])], ""
+    for 段, b in 段中.items():
+        if 段 in 段限 and len(b) == 1:
+            对.append((段限[段][0], b[0]))
+    return 对, ("" if 对 else "多标段无法按标段配对")
+
+
+def 解析一篇(url: str, t: str, 标题: str = "") -> tuple[list[dict], dict]:
+    t = 规整(t)
+    标题 = 标题 or t.split("\n", 1)[0][:80]
+    明细 = {"url": url, "标题": 抹单位(标题)}
+    限价 = 抽限价(t)
+    中标 = 取中标价(t)
+    明细["限价候选"] = [{k: (抹单位(v) if k == "片段" else v) for k, v in x.items()} for x in 限价]
+    明细["中标价候选"] = [{"标段": x["标段"], "金额": x["限价元"], "片段": 抹单位(x["片段"])} for x in 中标]
+    对, 原因 = 配对(限价, 中标)
+    if not 对:
+        明细["跳过原因"] = 原因
+        return [], 明细
+    公共 = {
+        "公告URL": url,
+        "日期": 找日期(t),
+        "省份": 找省份(t, url, 标题),
+        "项目类型": 归类(标题, 类型规则) or 归类(t[:600], 类型规则) or "其他",
+        "评标办法": 归类(t, 评标规则) or "未写明",
+        "来源站点": re.sub(r"^https?://", "", url).split("/")[0],
+    }
+    样本 = []
+    for a, b in 对:
+        限, 中 = a["限价元"], b["限价元"]
+        率 = 1 - 中 / 限
+        质检 = "ok"
+        if 率 < 0 or 率 > 0.6:
+            质检 = "异常:下浮率超出[0,60%]，疑单位或口径错"
+        if a["存疑"] or b.get("存疑"):
+            质检 = "存疑:" + ";".join(a["存疑"] + b.get("存疑", []))
+        样本.append(dict(公共, **{
+            "限价": round(限, 2), "中标价": round(中, 2), "下浮率": round(率, 4), "标段": a["标段"] or "",
+            "限价口径": a["类型"], "中标价口径": b.get("口径", ""), "税口径": {True: "含税", False: "不含税", None: "未说明"}[a["含税"]],
+            "金额档": 金额档(限), "质检": 质检,
+        }))
+    明细["样本数"] = len(样本)
+    return 样本, 明细
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--缓存", required=True, type=Path, help="抓取.py 的缓存目录")
+    ap.add_argument("--链接", type=Path, help="候选链接 jsonl（取 title 做标题）")
+    ap.add_argument("--输出", required=True, type=Path)
+    a = ap.parse_args()
+    标题 = {d["url"]: d.get("title", "") for d in 读jsonl(a.链接)} if a.链接 else {}
+    a.输出.mkdir(parents=True, exist_ok=True)
+    全部, 计 = [], {}
+    已见 = set()
+    with open(a.输出 / "解析明细.jsonl", "w", encoding="utf-8") as 明细f:
+        for url, 记录 in 读索引(a.缓存).items():
+            if 记录["状态"] != "ok":
+                计["未抓到:" + 记录["状态"]] = 计.get("未抓到:" + 记录["状态"], 0) + 1
+                continue
+            t = 读正文(a.缓存, url) or ""
+            样本, 明细 = 解析一篇(url, t, 标题.get(url, ""))
+            明细f.write(json.dumps(明细, ensure_ascii=False) + "\n")
+            k = 明细.get("跳过原因") or "出样本"
+            计[k] = 计.get(k, 0) + 1
+            for s in 样本:
+                键 = (s["公告URL"], s["标段"])
+                if 键 not in 已见:
+                    已见.add(键)
+                    全部.append(s)
+    with open(a.输出 / "下浮率样本.csv", "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=列名)
+        w.writeheader()
+        w.writerows(全部)
+    计["样本总数"] = len(全部)
+    计["质检ok样本"] = sum(1 for s in 全部 if s["质检"] == "ok")
+    print(json.dumps(计, ensure_ascii=False, indent=1))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 统计分布.py ===
+```python
+"""下浮率分布：按 评标办法 × 项目类型 × 金额档 分组给 P25/P50/P75 与样本数（仅标准库）。
+
+    python3 统计分布.py --样本 本地产出/C2/下浮率样本.csv --输出 本地产出/C2/下浮率分布.csv [--含存疑]
+默认只用 质检=ok 的样本。除三维交叉外，还输出每个单维度和"全部"的边际分组（维度值写"(全部)"），
+样本不足 5 条的格子在 备注 里标"样本不足"，不要拿来直接定价。
+分位数用线性插值（与 numpy 默认、Excel PERCENTILE.INC 一致）。
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import itertools
+from pathlib import Path
+
+维度 = ["评标办法", "项目类型", "金额档"]
+全 = "(全部)"
+
+
+def 分位(xs: list[float], q: float) -> float:
+    xs = sorted(xs)
+    if len(xs) == 1:
+        return xs[0]
+    pos = (len(xs) - 1) * q
+    lo = int(pos)
+    hi = min(lo + 1, len(xs) - 1)
+    return xs[lo] + (xs[hi] - xs[lo]) * (pos - lo)
+
+
+def 统计(样本: list[dict]) -> list[dict]:
+    组: dict[tuple, list[float]] = {}
+    for s in 样本:
+        r = float(s["下浮率"])
+        for 掩码 in itertools.product([0, 1], repeat=len(维度)):
+            键 = tuple(s[d] if m else 全 for d, m in zip(维度, 掩码))
+            组.setdefault(键, []).append(r)
+    输出 = []
+    for 键, xs in 组.items():
+        n = len(xs)
+        输出.append({
+            **dict(zip(维度, 键)),
+            "样本数": n,
+            "P25": round(分位(xs, 0.25), 4),
+            "P50": round(分位(xs, 0.50), 4),
+            "P75": round(分位(xs, 0.75), 4),
+            "均值": round(sum(xs) / n, 4),
+            "备注": "样本不足(<5)，仅供参考" if n < 5 else "",
+        })
+    输出.sort(key=lambda r: (sum(r[d] == 全 for d in 维度) * -1, r["评标办法"], r["项目类型"], r["金额档"]))
+    return 输出
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--样本", required=True, type=Path)
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--含存疑", action="store_true", help="把 质检=存疑 的样本也算进去（异常样本始终排除）")
+    a = ap.parse_args()
+    with open(a.样本, encoding="utf-8-sig") as f:
+        样本 = [r for r in csv.DictReader(f) if r["质检"] == "ok" or (a.含存疑 and r["质检"].startswith("存疑"))]
+    结果 = 统计(样本)
+    with open(a.输出, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=维度 + ["样本数", "P25", "P50", "P75", "均值", "备注"])
+        w.writeheader()
+        w.writerows(结果)
+    print(f"纳入样本 {len(样本)} 条，输出分组 {len(结果)} 个 → {a.输出}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 抽限价.py ===
+```python
+"""招标公告限价抽取器（仅 Python 3 标准库，离线可跑）。
+
+主入口：
+    抽限价(原文: str) -> list[dict]
+每个 dict：
+    标段     str|None   标段/包号，统一成阿拉伯数字字符串（"1"、"2"、"A"）；无标段为 None
+    限价元   float|None 统一成"元"；"详见招标文件"类为 None
+    含税     True/False/None   原文说明含税/不含税；未说明为 None
+    类型     "最高限价" | "预算(代限价)" | "单价限价" | "详见文件"
+    单位     "元" 或 "元/吨" 等（单价时）
+    依据     命中的关键词
+    片段     原文中该金额附近的文字（便于人工核对）
+    存疑     list[str]  例如 ["无单位,按元计"]
+
+规则：公告里只要出现"最高限价/控制价/拦标价"等，就只返回这类；
+一个都没有时，才用"预算金额/采购预算"代替，类型标"预算(代限价)"。
+通用函数 抽金额(原文, 关键词表) 也给 C2 用来抽中标价。
+"""
+from __future__ import annotations
+
+import re
+import unicodedata
+
+# ---------------------------------------------------------------- 关键词
+限价词 = ["最高投标限价", "最高限价", "招标控制价", "投标控制价", "采购控制价", "控制价", "拦标价", "最高报价", "最高投标价", "限价", "上限价", "封顶价"]
+预算词 = ["采购预算金额", "项目预算金额", "采购预算", "预算金额", "项目预算", "预算价", "预算", "估算金额", "估算价"]
+单价词 = ["单价最高限价", "最高单价", "综合单价", "单价限价", "单价"]
+# 干扰金额：出现在它们后面的金额一律不是限价
+干扰词 = ["投标保证金", "履约保证金", "保证金", "注册资本", "注册资金", "业绩", "合同金额", "服务费", "代理费", "文件售价", "标书费", "售价", "资产总额", "净资产", "营业收入", "中标价", "中标金额", "成交金额", "投标报价", "报价", "罚款", "违约金", "赔偿", "工程款", "保险"]
+详见式 = r"(?:详见|见)(?:招标|采购|谈判|磋商|询价|比选|竞争性)?(?:文件|附件|公告附件|清单)|另行(?:公布|通知|发布)|开标(?:前|时)(?:公布|宣读)|不(?:予)?公开|暂不公布|以.{0,6}为准"
+
+标段名 = r"(?:标段|标包|包件|分包|子包|包号|批次|包|标)"
+_中数 = "一二三四五六七八九十"
+_罗马式 = r"(?:VIII|VII|VI|IV|IX|III|II|I|V|X)"
+标段式 = re.compile(
+    r"(?:第\s*([%s\d]{1,3}|%s|[A-Za-z])\s*%s)"  # 第一标段 / 第1包
+    r"|(?:(?<![%s\dA-Za-z])([%s\d]{1,3}|%s|[A-Za-z])\s*(?:号)?%s(?![件]?[的内外]))"  # 一标段 / 1包 / A包 / II标段
+    r"|(?:%s\s*[:：]?\s*(0?\d{1,2}|[%s]{1,3}|%s(?![A-Za-z])|[A-Za-z](?![A-Za-z]))(?![\d\.万元]))"  # 标段一 / 包1 / 包号：01
+    % (_中数, _罗马式, 标段名, _中数, _中数, _罗马式, 标段名, 标段名, _中数, _罗马式)
+)
+_罗马 = {"Ⅰ": "1", "Ⅱ": "2", "Ⅲ": "3", "Ⅳ": "4", "Ⅴ": "5", "Ⅵ": "6", "Ⅶ": "7", "Ⅷ": "8", "Ⅸ": "9", "Ⅹ": "10"}
+
+# ---------------------------------------------------------------- 数字
+_大写数 = {"零": 0, "〇": 0, "○": 0, "壹": 1, "一": 1, "贰": 2, "貳": 2, "二": 2, "两": 2, "叁": 3, "參": 3, "三": 3, "肆": 4, "四": 4,
+          "伍": 5, "五": 5, "陆": 6, "陸": 6, "六": 6, "柒": 7, "七": 7, "捌": 8, "八": 8, "玖": 9, "九": 9}
+_小位 = {"拾": 10, "十": 10, "佰": 100, "百": 100, "仟": 1000, "千": 1000}
+_大位 = {"万": 10 ** 4, "萬": 10 ** 4, "亿": 10 ** 8, "億": 10 ** 8}
+_大写字 = "".join(_大写数) + "".join(_小位) + "".join(_大位)
+大写式 = re.compile(r"[%s]{2,}(?:元|圆)(?:[%s]角)?(?:[%s]分)?(?:整|正)?" % (_大写字, "".join(_大写数), "".join(_大写数)))
+# 阿拉伯数字：1,234,567.89 / 1234567.89 / 120.5，后接可选单位
+数字式 = re.compile(r"(?<![\d.A-Za-z_])[¥￥]?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(亿元|万元|千元|百万元|元|万|亿)?(\s*/\s*[一-龥a-zA-Z²³]{1,4})?")
+
+
+def 中文数(s: str) -> int:
+    """'壹佰贰拾万' → 1200000；'十二' → 12。"""
+    总, 节, 位数 = 0, 0, 0
+    for ch in s:
+        if ch in _大写数:
+            位数 = _大写数[ch]
+        elif ch in _小位:
+            节 += (位数 or 1) * _小位[ch]
+            位数 = 0
+        elif ch in _大位:
+            节 += 位数
+            总 = (总 + 节) * _大位[ch] if _大位[ch] > 10 ** 4 else 总 + 节 * _大位[ch]
+            节, 位数 = 0, 0
+    return 总 + 节 + 位数
+
+
+def 大写转数(s: str) -> float:
+    s = s.rstrip("整正")
+    m = re.match(r"(.*?)(?:元|圆)(?:(.)角)?(?:(.)分)?$", s)
+    if not m:
+        return float(中文数(s))
+    值 = float(中文数(m.group(1)))
+    if m.group(2):
+        值 += _大写数.get(m.group(2), 0) / 10
+    if m.group(3):
+        值 += _大写数.get(m.group(3), 0) / 100
+    return 值
+
+
+def 规整(文本: str) -> str:
+    """全角转半角、统一符号，保留原有长度无关性（后续用规整后的文本定位）。"""
+    t = unicodedata.normalize("NFKC", 文本)
+    t = t.replace("，", ",").replace("：", ":").replace("（", "(").replace("）", ")")
+    # 千分位里的中文逗号已转半角；去掉数字内部空格 "1 200 000"
+    t = re.sub(r"(?<=\d) (?=\d{3}\b)", "", t)
+    return t
+
+
+_单位倍数 = {"元": 1, "千元": 1e3, "万元": 1e4, "万": 1e4, "百万元": 1e6, "亿元": 1e8, "亿": 1e8}
+
+
+def _标段规整(tok: str) -> str:
+    tok = tok.strip()
+    if tok in _罗马:
+        return _罗马[tok]
+    if re.fullmatch(_罗马式, tok):
+        return str({"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}[tok])
+    if tok.isdigit():
+        return str(int(tok))
+    if all(c in _大写数 or c in "十" for c in tok):
+        return str(中文数(tok))
+    return tok.upper()
+
+
+def _找标段(t: str, pos: int, 回看: int = 120) -> str | None:
+    起 = max(0, pos - 回看)
+    最近 = None
+    for m in 标段式.finditer(t, 起, pos):
+        tok = m.group(1) or m.group(2) or m.group(3)
+        if tok:
+            最近 = _标段规整(tok)
+    return 最近
+
+
+_税式 = re.compile(r"不含税|不含增值税|未含税|税前|除税|含税|含增值税|含\d{1,2}%\s*(?:增值税|税)|含\d{1,2}%税率|包含.{0,6}税")
+
+
+def _判税(t: str, 窗起: int, 起: int, 止: int) -> bool | None:
+    """税口径：①关键词及其与金额之间（含关键词前 6 字）②金额后紧跟的括号或到下一个逗号为止 ③关键词前 15 字。"""
+    def 判(m):
+        return not re.match(r"不含|未含|税前|除税", m.group())
+
+    前 = list(_税式.finditer(t, max(0, 窗起 - 6), 起))
+    if 前:
+        return 判(前[-1])
+    后文 = t[止: 止 + 30]
+    k = re.match(r"\s*(?:元|万元)?\s*\(([^)]{0,28})\)", 后文)
+    后段 = k.group(0) if k else re.split(r"[,;。\n]", 后文, maxsplit=1)[0]
+    m = _税式.search(后段)
+    if m:
+        return 判(m)
+    前 = list(_税式.finditer(t, max(0, 窗起 - 15), 起))
+    if 前:
+        return 判(前[-1])
+    # ④ 同一句剩余部分若不再出现别的金额，句内的"为含税价/含6%增值税"也算
+    句 = re.split(r"[。\n]", t[止: 止 + 60], maxsplit=1)[0]
+    if not re.search(r"\d[\d,.]*\s*(?:亿元|万元|元)|" + 大写式.pattern, 句):
+        m = _税式.search(句)
+        if m:
+            return 判(m)
+    return None
+
+
+def _表头单位(t: str, 左: int, 右: int) -> float | None:
+    段 = t[左:右]
+    m = re.search(r"(?:单位\s*:?\s*|\(|\[)\s*(万元|元|亿元|千元)\s*[\)\]]?", 段)
+    return _单位倍数[m.group(1)] if m else None
+
+
+def _所有关键词(词表组: dict[str, list[str]]):
+    项 = []
+    for 类, 词表 in 词表组.items():
+        for w in 词表:
+            项.append((w, 类))
+    项.sort(key=lambda x: -len(x[0]))  # 长词优先
+    return re.compile("|".join(re.escape(w) for w, _ in 项)), {w: 类 for w, 类 in 项}
+
+
+def _金额列表(t: str):
+    """找出所有金额：(起, 止, 值元或None, 单位后缀, 是大写, 原单位)"""
+    结果 = []
+    for m in 大写式.finditer(t):
+        结果.append([m.start(), m.end(), 大写转数(m.group()), "", True, "元"])
+    for m in 数字式.finditer(t):
+        数, 单位, 斜杠 = m.group(1), m.group(2), m.group(3)
+        # 排除日期、电话、编号、百分比、年份
+        尾 = t[m.end(): m.end() + 2]
+        if 尾.startswith(("%", "％", "年", "月", "日", "天", "个", "人", "号", "-", "吨", "台", "套", "米", "㎡", "项", "次", "家", "名", "小时", "期")) and not 单位:
+            continue
+        前 = t[max(0, m.start() - 1): m.start()]
+        if 前 in ("-", "/", ".", "第") or (前.isalpha() and 前.isascii()):
+            continue
+        原 = 数.replace(",", "")
+        if not 单位 and not 斜杠 and "," not in 数 and "." not in 数 and len(原) >= 11:
+            continue  # 很可能是电话/编号
+        值 = float(原)
+        结果.append([m.start(), m.end(), 值, (斜杠 or "").replace(" ", ""), False, 单位 or ""])
+    结果.sort(key=lambda x: x[0])
+    return 结果
+
+
+def 抽金额(原文: str, 目标: dict[str, list[str]], 窗口: int = 60) -> list[dict]:
+    """通用金额抽取。目标 = {"类型名": [关键词...]}；干扰词会自动加入以挡住误配。
+
+    每个金额归属于它前方最近的关键词（窗口内、不跨句号/换行）。
+    """
+    t = 规整(原文)
+    组 = dict(目标)
+    组["_干扰"] = [w for w in 干扰词 if not any(w in ws for ws in 目标.values())]
+    词式, 词类 = _所有关键词(组)
+    词位 = [(m.start(), m.end(), 词类[m.group()], m.group()) for m in 词式.finditer(t)]
+    金额 = _金额列表(t)
+    输出: list[dict] = []
+    已用大写 = []
+
+    for 起, 止, 值, 斜杠, 是大写, 单位 in 金额:
+        # 最近的前置关键词
+        前词 = None
+        for w in reversed(词位):
+            if w[1] <= 起:
+                if 起 - w[1] <= 窗口 and not re.search(r"[。\n]", t[w[1]:起]):
+                    前词 = w
+                break
+        if not 前词 or 前词[2] == "_干扰":
+            continue
+        # 前词与金额之间若夹着另一个金额且中间有标点分隔，仍允许（多标段 "限价:一标段100万;二标段80万"）
+        存疑 = []
+        if not 是大写:
+            倍 = _单位倍数.get(单位) if 单位 else _表头单位(t, 前词[0], 起 + 1) or _表头单位(t, 前词[1], 前词[1] + 12)
+            if 倍 is None:
+                后 = t[止: 止 + 3]
+                if 后.startswith("元"):
+                    倍 = 1
+                else:
+                    倍 = 1
+                    存疑.append("无单位,按元计")
+            值元 = round(值 * 倍, 2)
+        else:
+            值元 = round(值, 2)
+        类型 = 前词[2]
+        单位名 = "元"
+        if 斜杠:
+            类型 = "单价限价" if 类型 in ("最高限价", "单价限价") else 类型
+            单位名 = "元" + 斜杠 if not 单位 or 单位 == "元" else 单位 + 斜杠
+        输出.append({
+            "标段": _找标段(t, 起),
+            "限价元": 值元,
+            "含税": _判税(t, 前词[0], 起, 止),
+            "类型": 类型,
+            "单位": 单位名,
+            "依据": 前词[3],
+            "片段": t[max(0, 前词[0] - 10): min(len(t), 止 + 15)],
+            "存疑": 存疑,
+            "_pos": 起,
+            "_大写": 是大写,
+        })
+        if 是大写:
+            已用大写.append(len(输出) - 1)
+
+    # 详见文件：关键词后紧跟"详见招标文件"之类
+    for w in 词位:
+        if w[2] in ("_干扰",):
+            continue
+        后 = t[w[1]: w[1] + 25]
+        if re.match(r"\s*(?:为|是|:)?\s*(?:将)?(?:在|于)?\s*(?:" + 详见式 + ")", 后):
+            输出.append({"标段": _找标段(t, w[0]), "限价元": None, "含税": None, "类型": "详见文件", "单位": "", "依据": w[3],
+                       "片段": t[max(0, w[0] - 10): w[1] + 25], "存疑": [], "_pos": w[0], "_大写": False, "_源类": w[2]})
+
+    输出 += _表格(t, 目标)
+    return _去重(输出)
+
+
+def _表格(t: str, 目标: dict[str, list[str]]) -> list[dict]:
+    """识别 `| a | b |` 行格式的表格（网页文本.py 输出）。"""
+    行们 = t.split("\n")
+    结果 = []
+    偏移 = 0
+    位置 = []
+    for 行 in 行们:
+        位置.append(偏移)
+        偏移 += len(行) + 1
+    i = 0
+    while i < len(行们):
+        行 = 行们[i].strip()
+        if not (行.startswith("|") and 行.endswith("|")):
+            i += 1
+            continue
+        头 = [c.strip() for c in 行.strip("|").split("|")]
+        列, 类 = None, None
+        for 类名, 词表 in 目标.items():
+            for j, c in enumerate(头):
+                if any(w in c for w in 词表) and not any(g in c for g in ("保证金",)):
+                    列, 类 = j, 类名
+                    break
+            if 列 is not None:
+                break
+        if 列 is None:
+            i += 1
+            continue
+        头单位 = re.search(r"(万元|亿元|千元|元)", 头[列])
+        倍 = _单位倍数[头单位.group(1)] if 头单位 else None
+        头税 = None
+        if re.search(r"不含税|不含增值税", 头[列]):
+            头税 = False
+        elif re.search(r"含税|含增值税", 头[列]):
+            头税 = True
+        段列 = next((j for j, c in enumerate(头) if re.search(r"标段|包号|标包|分包|包件|包名|序号|批次", c)), None)
+        j = i + 1
+        while j < len(行们) and 行们[j].strip().startswith("|"):
+            格 = [c.strip() for c in 行们[j].strip().strip("|").split("|")]
+            if len(格) == len(头) and 列 < len(格):
+                c = 规整(格[列])
+                m = 大写式.search(c)
+                if m:
+                    值 = 大写转数(m.group())
+                else:
+                    n = re.search(r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(亿元|万元|千元|元|万)?", c)
+                    值 = None
+                    if n:
+                        值 = float(n.group(1).replace(",", "")) * (_单位倍数[n.group(2)] if n.group(2) else (倍 or 1))
+                段 = None
+                if 段列 is not None:
+                    s = _找标段(格[段列] + " ", len(格[段列]) + 1) if 标段式.search(格[段列]) else None
+                    if s is None and re.fullmatch(r"0?\d{1,2}|[A-Z]", 格[段列].strip()):
+                        s = _标段规整(格[段列].strip())
+                    段 = s
+                if 值 is not None:
+                    结果.append({"标段": 段, "限价元": round(值, 2), "含税": 头税 if 头税 is not None else _判税(t, 位置[j], 位置[j], 位置[j] + len(行们[j])),
+                               "类型": 类, "单位": "元", "依据": "表格:" + 头[列], "片段": 行们[j][:200],
+                               "存疑": [] if (头单位 or (n and n.group(2)) or m) else ["表格无单位,按元计"], "_pos": 位置[j], "_大写": bool(m)})
+                elif re.search(详见式, c):
+                    结果.append({"标段": 段, "限价元": None, "含税": None, "类型": "详见文件", "单位": "", "依据": "表格:" + 头[列],
+                               "片段": 行们[j][:200], "存疑": [], "_pos": 位置[j], "_大写": False, "_源类": 类})
+            j += 1
+        i = j
+    return 结果
+
+
+def _去重(项: list[dict]) -> list[dict]:
+    """同一标段、同值、同税口径只留一条；大写与阿拉伯并写（值相同、相距近）合并。"""
+    项 = sorted(项, key=lambda x: x["_pos"])
+    留 = []
+    for x in 项:
+        重复 = False
+        for y in 留:
+            if x["类型"] == "详见文件" and y["类型"] == "详见文件" and x["标段"] == y["标段"]:
+                重复 = True
+                break
+            if x["类型"] == y["类型"] and x["限价元"] is not None and y["限价元"] is not None and abs(x["限价元"] - y["限价元"]) < 0.005:
+                同段 = x["标段"] == y["标段"] or x["标段"] is None or y["标段"] is None
+                同税 = x["含税"] == y["含税"] or x["含税"] is None or y["含税"] is None
+                if 同段 and 同税:
+                    y["标段"] = y["标段"] or x["标段"]
+                    y["含税"] = y["含税"] if y["含税"] is not None else x["含税"]
+                    重复 = True
+                    break
+        if not 重复:
+            留.append(x)
+    return 留
+
+
+def 抽限价(原文: str) -> list[dict]:
+    """返回公告的限价列表（见模块说明）。"""
+    全部 = 抽金额(原文, {"最高限价": 限价词, "预算(代限价)": 预算词, "单价限价": 单价词})
+    # 某标段已有真实金额，就不再保留它的"详见文件"
+    有值段 = {x["标段"] for x in 全部 if x["限价元"] is not None and x["类型"] != "预算(代限价)"}
+    限价 = [x for x in 全部 if x["类型"] in ("最高限价", "单价限价") or (x["类型"] == "详见文件" and x.get("_源类") in ("最高限价", "单价限价"))]
+    限价 = [x for x in 限价 if not (x["类型"] == "详见文件" and x["标段"] in 有值段)]
+    if not any(x["限价元"] is not None for x in 限价):
+        预算 = [x for x in 全部 if x["类型"] == "预算(代限价)"]
+        if 预算:
+            限价 = [x for x in 限价 if x["类型"] == "详见文件"] + 预算
+        # 只有预算的"详见文件"也返回
+        if not 限价:
+            限价 = [dict(x, 类型="详见文件") for x in 全部 if x["类型"] == "详见文件"]
+    # 若同时有总价限价，单价限价也保留（题目要求区分单价与总价）
+    for x in 限价:
+        x.pop("_pos", None)
+        x.pop("_大写", None)
+        x.pop("_源类", None)
+    return 限价
+
+
+if __name__ == "__main__":
+    import json
+    import sys
+
+    文本 = sys.stdin.read()
+    print(json.dumps(抽限价(文本), ensure_ascii=False, indent=1))
+```
+
+=== 文件: 公共/抓取.py ===
+```python
+"""礼貌抓取器（仅标准库）：限速、超时、字节上限、本地缓存、断点续跑、访问障碍识别。
+
+用法：
+    python3 抓取.py --输入 链接.jsonl --缓存 本地产出/原文 [--间隔 3] [--上限 0]
+输入每行一个 JSON，至少含 "url"。结果写到 <缓存>/索引.jsonl（每 URL 一行，追加写，已抓过的跳过）。
+访问障碍（登录/验证码/JS 挑战/403 等）会如实记为 状态，绝不当作"没有公告"。
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+最大字节 = 5 * 1024 * 1024
+
+# 反爬/访问障碍特征：键为状态名，值为特征正则（在前 20KB 原始 HTML 中找）
+障碍特征 = {
+    "反爬-瑞数": r"\$_ts\s*=|FSSBBIl1UgzbN7N|_\$[a-z]{2}\(",
+    "反爬-加速乐": r"__jsl_clearance|document\.cookie\s*=.*?__jsl",
+    "反爬-阿里云WAF": r"acw_sc__v2|aliyun_waf|_waf_bd8ce2ce37",
+    "验证码": r"验证码|captcha|geetest|滑块|slider-?verify|nc_1_wrapper|安全验证|人机验证",
+    "需登录": r"请先登录|用户登录|登录后查看|请登录|login\.html|/login\b|sso/login",
+}
+
+
+def 键(url: str) -> str:
+    return hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+
+
+def 识别障碍(http状态: int, 原始: str, 正文: str, 最终url: str) -> str:
+    if http状态 in (412, 521):
+        return "反爬-JS挑战(HTTP%d)" % http状态
+    if http状态 == 403:
+        return "拒绝访问(403,可能需国内IP)"
+    if http状态 >= 400:
+        return "HTTP%d" % http状态
+    头 = 原始[:20000]
+    for 名, 式 in 障碍特征.items():
+        if 名 == "需登录":
+            continue
+        if re.search(式, 头, re.I):
+            # 页面只有很少正文 + 命中特征才判为被挡；正文丰富说明只是页面上有个"验证码"字样
+            if len(正文) < 400:
+                return 名
+    if re.search(障碍特征["需登录"], 最终url, re.I) or (len(正文) < 400 and re.search(障碍特征["需登录"], 头, re.I)):
+        return "需登录"
+    if len(正文) < 150 and 原始.count("<script") >= 3:
+        return "JS渲染(静态无正文)"
+    return "ok"
+
+
+def 抓一个(url: str, 超时: int = 20) -> dict:
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"})
+    try:
+        with urllib.request.urlopen(req, timeout=超时) as r:
+            数据 = r.read(最大字节 + 1)
+            return {"http": r.status, "最终url": r.geturl(), "ct": r.headers.get("Content-Type", ""), "数据": 数据[:最大字节]}
+    except urllib.error.HTTPError as e:
+        try:
+            数据 = e.read(200000)
+        except Exception:
+            数据 = b""
+        return {"http": e.code, "最终url": url, "ct": e.headers.get("Content-Type", "") if e.headers else "", "数据": 数据}
+    except Exception as e:  # DNS/超时/TLS 等
+        return {"http": 0, "最终url": url, "ct": "", "数据": b"", "错误": f"{type(e).__name__}: {e}"[:200]}
+
+
+def 读索引(缓存: Path) -> dict:
+    已有 = {}
+    f = 缓存 / "索引.jsonl"
+    if f.exists():
+        for 行 in f.read_text(encoding="utf-8").splitlines():
+            try:
+                d = json.loads(行)
+                已有[d["url"]] = d
+            except Exception:
+                continue
+    return 已有
+
+
+def 读正文(缓存: Path, url: str) -> str | None:
+    p = 缓存 / (键(url) + ".txt")
+    return p.read_text(encoding="utf-8") if p.exists() else None
+
+
+def 批量抓取(链接: list[dict], 缓存: Path, 间隔: float = 3.0, 上限: int = 0, 重试失败: bool = False) -> dict:
+    缓存.mkdir(parents=True, exist_ok=True)
+    已有 = 读索引(缓存)
+    计数 = {"新抓": 0, "跳过": 0}
+    with open(缓存 / "索引.jsonl", "a", encoding="utf-8") as idx:
+        for 条 in 链接:
+            url = 条["url"]
+            旧 = 已有.get(url)
+            if 旧 and (旧["状态"] == "ok" or not 重试失败):
+                计数["跳过"] += 1
+                continue
+            if 上限 and 计数["新抓"] >= 上限:
+                break
+            if 附件型(url):
+                记录 = {"url": url, "状态": "附件(PDF/DOC,需人工或另行解析)", "http": None, "字数": 0, "时间": time.strftime("%Y-%m-%d %H:%M:%S")}
+            else:
+                r = 抓一个(url)
+                原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+                正文 = 转文本(原始) if 原始 else ""
+                状态 = 识别障碍(r["http"], 原始, 正文, r["最终url"]) if r["http"] else "连接失败:" + r.get("错误", "")
+                if 原始:
+                    (缓存 / (键(url) + ".html")).write_text(原始, encoding="utf-8")
+                    (缓存 / (键(url) + ".txt")).write_text(正文, encoding="utf-8")
+                记录 = {"url": url, "状态": 状态, "http": r["http"], "最终url": r["最终url"], "字数": len(正文), "时间": time.strftime("%Y-%m-%d %H:%M:%S")}
+            idx.write(json.dumps(记录, ensure_ascii=False) + "\n")
+            idx.flush()  # 流式落盘：被杀进程也只丢当前一条
+            计数["新抓"] += 1
+            计数[记录["状态"]] = 计数.get(记录["状态"], 0) + 1
+            print(f"[{计数['新抓']}] {记录['状态']} {url}", flush=True)
+            time.sleep(间隔)
+    return 计数
+
+
+def 附件型(url: str) -> bool:
+    return bool(re.search(r"\.(pdf|docx?|xlsx?|zip|rar)(\?|$)", url, re.I))
+
+
+def 读jsonl(路径: Path) -> list[dict]:
+    return [json.loads(x) for x in 路径.read_text(encoding="utf-8").splitlines() if x.strip()]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--输入", required=True, type=Path)
+    ap.add_argument("--缓存", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0, help="每次请求间隔秒数（默认 3，别调太小）")
+    ap.add_argument("--上限", type=int, default=0, help="本轮最多新抓多少条，0=不限")
+    ap.add_argument("--重试失败", action="store_true", help="对之前非 ok 的 URL 再试一次")
+    a = ap.parse_args()
+    计数 = 批量抓取(读jsonl(a.输入), a.缓存, a.间隔, a.上限, a.重试失败)
+    print(json.dumps(计数, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+=== 文件: 公共/网页文本.py ===
+```python
+"""HTML → 纯文本（仅标准库）。
+
+表格按行输出为 `| 单元格 | 单元格 |`，供 抽限价.py 的表格模式识别；
+<br>/<p>/<div>/<li> 变换行；script/style 丢弃。
+"""
+from __future__ import annotations
+
+import html
+import re
+from html.parser import HTMLParser
+
+_BLOCK = {"p", "div", "br", "li", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "ul", "ol", "table", "tbody", "thead"}
+_SKIP = {"script", "style", "noscript", "template"}
+
+
+class _Conv(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.out: list[str] = []
+        self.skip = 0
+        self.row: list[str] | None = None
+        self.cell: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in _SKIP:
+            self.skip += 1
+        elif tag == "tr":
+            self.row = []
+        elif tag in ("td", "th"):
+            self.cell = []
+        elif tag in _BLOCK and self.cell is None:
+            self.out.append("\n")
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in _SKIP:
+            self.skip = max(0, self.skip - 1)
+        elif tag in ("td", "th"):
+            if self.cell is not None and self.row is not None:
+                self.row.append(re.sub(r"\s+", " ", "".join(self.cell)).strip())
+            self.cell = None
+        elif tag == "tr":
+            if self.row:
+                self.out.append("\n| " + " | ".join(self.row) + " |\n")
+            self.row = None
+        elif tag in _BLOCK and self.cell is None:
+            self.out.append("\n")
+
+    def handle_data(self, data):
+        if self.skip:
+            return
+        if self.cell is not None:
+            self.cell.append(data)
+        else:
+            self.out.append(data)
+
+
+def 转文本(源: str) -> str:
+    """HTML 或纯文本 → 规整后的纯文本（多空行压成一行）。"""
+    if "<" not in 源:
+        return 源
+    c = _Conv()
+    try:
+        c.feed(源)
+        c.close()
+    except Exception:  # 残缺 HTML 退化为粗暴去标签
+        return html.unescape(re.sub(r"<[^>]+>", "\n", 源))
+    文本 = "".join(c.out).replace("\xa0", " ").replace("　", " ")
+    行 = [re.sub(r"[ \t]+", " ", x).strip() for x in 文本.split("\n")]
+    return "\n".join(x for x in 行 if x)
+
+
+def 解码(字节: bytes, content_type: str = "") -> str:
+    """按 Content-Type → <meta charset> → utf-8 → gb18030 顺序解码。"""
+    候选: list[str] = []
+    m = re.search(r"charset=([\w-]+)", content_type or "", re.I)
+    if m:
+        候选.append(m.group(1))
+    m = re.search(rb"<meta[^>]+charset=[\"']?([\w-]+)", 字节[:4096], re.I)
+    if m:
+        候选.append(m.group(1).decode("ascii", "ignore"))
+    候选 += ["utf-8", "gb18030"]
+    for enc in 候选:
+        enc = enc.lower()
+        if enc in ("gb2312", "gbk"):
+            enc = "gb18030"
+        try:
+            return 字节.decode(enc)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return 字节.decode("utf-8", "replace")
+```
+
+=== 文件: 公共/列表抽链接.py ===
+```python
+"""从任意公告列表页抽取候选公告链接（仅标准库），追加到候选链接 jsonl（按 url 去重）。
+
+    # C2：抽中标/成交结果里的维修类
+    python3 列表抽链接.py --列表页 "https://站点/jyxx/zbjg/index_{页}.html" --页 1-20 \
+        --必含 "中标|成交|候选人|结果" --且含 "检修|维修|大修|维保|修复|安装|改造|技改|探伤|检测" \
+        --输出 ../C2/候选链接.jsonl
+    # C3：抽招标公告（任意行业，后续由 生成待标注.py 挑难例）
+    python3 列表抽链接.py --列表页 "https://站点/list?page={页}" --页 1-10 --必含 "招标|采购|比选|询价" --排除 "结果|中标|成交" --输出 ../C3/候选链接.jsonl
+--列表页 里的 {页} 会被 --页 范围逐个替换；不含 {页} 就只抓这一页。也可用 --列表文件 每行一个列表页 URL。
+只能处理"静态 HTML 列表"；遇到 JS 渲染/反爬，会打印抓取状态，别当成"没有公告"。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import time
+import urllib.parse
+from html.parser import HTMLParser
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from 抓取 import 抓一个, 识别障碍  # noqa: E402
+from 网页文本 import 解码, 转文本  # noqa: E402
+
+
+class _A(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._href = None
+        self._buf: list[str] = []
+        self._title = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() == "a":
+            a = dict(attrs)
+            self._href = a.get("href")
+            self._title = a.get("title") or ""
+            self._buf = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            txt = re.sub(r"\s+", " ", "".join(self._buf)).strip()
+            self.links.append((self._href, self._title if len(self._title) > len(txt) else txt))
+            self._href = None
+
+
+def 抽链接(html: str, 基址: str, 必含: str, 且含: str = "", 排除: str = "") -> list[dict]:
+    p = _A()
+    try:
+        p.feed(html)
+    except Exception:
+        pass
+    出, 见 = [], set()
+    for href, 标题 in p.links:
+        if not href or href.startswith(("javascript:", "#", "mailto:")) or len(标题) < 6:
+            continue
+        if not re.search(必含, 标题) or (且含 and not re.search(且含, 标题)) or (排除 and re.search(排除, 标题)):
+            continue
+        url = urllib.parse.urljoin(基址, href)
+        if url in 见:
+            continue
+        见.add(url)
+        出.append({"url": url, "title": 标题, "site": urllib.parse.urlparse(url).netloc, "来源列表页": 基址})
+    return 出
+
+
+def 展开页(模板: str, 页: str) -> list[str]:
+    if "{页}" not in 模板:
+        return [模板]
+    a, _, b = 页.partition("-")
+    return [模板.replace("{页}", str(i)) for i in range(int(a), int(b or a) + 1)]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--列表页", action="append", default=[])
+    ap.add_argument("--列表文件", type=Path)
+    ap.add_argument("--页", default="1")
+    ap.add_argument("--必含", required=True)
+    ap.add_argument("--且含", default="")
+    ap.add_argument("--排除", default="")
+    ap.add_argument("--输出", required=True, type=Path)
+    ap.add_argument("--间隔", type=float, default=3.0)
+    a = ap.parse_args()
+    模板们 = list(a.列表页) + ([x.strip() for x in a.列表文件.read_text(encoding="utf-8").splitlines() if x.strip()] if a.列表文件 else [])
+    已有 = set()
+    if a.输出.exists():
+        已有 = {json.loads(x)["url"] for x in a.输出.read_text(encoding="utf-8").splitlines() if x.strip()}
+    新增 = 0
+    with open(a.输出, "a", encoding="utf-8") as f:
+        for 模板 in 模板们:
+            for url in 展开页(模板, a.页):
+                r = 抓一个(url)
+                原始 = 解码(r["数据"], r["ct"]) if r["数据"] else ""
+                状态 = 识别障碍(r["http"], 原始, 转文本(原始) if 原始 else "", r["最终url"]) if r["http"] else "连接失败"
+                n = 0
+                if 状态 == "ok":
+                    for d in 抽链接(原始, r["最终url"], a.必含, a.且含, a.排除):
+                        if d["url"] not in 已有:
+                            已有.add(d["url"])
+                            f.write(json.dumps(d, ensure_ascii=False) + "\n")
+                            n += 1
+                    f.flush()
+                新增 += n
+                print(f"{状态}\t+{n}\t{url}", flush=True)
+                time.sleep(a.间隔)
+    print(f"新增 {新增} 条 → {a.输出}（累计 {len(已有)}）")
+
+
+if __name__ == "__main__":
+    main()
+```
