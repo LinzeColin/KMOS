@@ -46,6 +46,10 @@ CATEGORIES = {
     "设备保温": r"保温",
 }
 _CAT_RE = {k: re.compile(v) for k, v in CATEGORIES.items()}
+# 类别内排除词（2026-09 云端样例中实测的噪声）："风机"大量命中风电机组。
+EXCLUDE = {"风机检修": re.compile(r"风电|风力发电|风电机组")}
+# 服务类判定：标题/正文不含这些词的，多为备件/设备采购，不计入维修标量。
+SERVICE = re.compile(r"维修|检修|维保|维护|保养|修理|修复|改造|安装|施工|砌筑|外协|外委|加工|治理|运维|大修")
 
 _AMOUNT = re.compile(r"(\d+(?:\.\d+)?)\s*(万元|万|元)")
 # 金额分档边界（元）
@@ -54,7 +58,12 @@ BANDS = [(0, 100_000, "<10万"), (100_000, 500_000, "10-50万"), (500_000, 2_000
 
 
 def classify(text):
-    return [k for k, rx in _CAT_RE.items() if rx.search(text or "")]
+    """返回命中的类别；非服务类（备件/设备采购）返回 []。"""
+    text = text or ""
+    if not SERVICE.search(text):
+        return []
+    return [k for k, rx in _CAT_RE.items()
+            if rx.search(text) and not (k in EXCLUDE and EXCLUDE[k].search(text))]
 
 
 def parse_amount(text):
@@ -144,6 +153,8 @@ class _Tests(unittest.TestCase):
         self.assertIn("风机检修", classify("风机及电机检修框架采购"))
         self.assertIn("电机维修", classify("风机及电机检修框架采购"))
         self.assertEqual(classify("办公用品采购"), [])
+        self.assertEqual(classify("2026年颚式破碎机设备采购"), [])  # 备件/设备采购不算
+        self.assertNotIn("风机检修", classify("风电场风机检修服务"))
 
     def test_amount_and_band(self):
         self.assertEqual(parse_amount("最高限价：35.6万元"), 356000.0)
