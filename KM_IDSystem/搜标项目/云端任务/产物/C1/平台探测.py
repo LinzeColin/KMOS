@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-# 依赖既可与本目录平级（仓库布局 产物/公共、产物/C3），也可在本目录内（回件切件后 C2/公共、C2/抽限价.py）
+# 依赖既可与本目录平级（标准布局 产物/公共、产物/C3），也可在本目录内（回件切件后 C2/公共、C2/抽限价.py）
 for _p in (HERE.parent / "C3", HERE.parent / "公共", HERE / "公共", HERE):
     if _p.is_dir():
         sys.path.insert(0, str(_p))
