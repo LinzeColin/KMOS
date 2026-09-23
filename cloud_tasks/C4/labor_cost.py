@@ -87,14 +87,18 @@ def summary(rows):
 
 
 def gap(rows):
-    """每省：市场中位日薪 / 定额中位日薪。任一侧缺数据 → 该省不出比值。"""
+    """每省：市场中位日薪 / 定额中位日薪。任一侧缺数据 → 该省不出比值。
+    只用「纳入比较」≠否 的行：最低工资标准、交通口径、已作废单价、统计年均等口径不可比，
+    由数据表逐行显式标注，工具不猜。"""
     quota, market = defaultdict(list), defaultdict(list)
     for r in rows:
+        if r.get("纳入比较", "是") == "否":
+            continue
         (quota if is_quota(r) else market)[r.get("省份", "")].append(r["日薪"])
     res = {}
     for prov in sorted(set(quota) | set(market)):
-        q = statistics.median(quota[prov]) if quota[prov] else None
-        m = statistics.median(market[prov]) if market[prov] else None
+        q = round(statistics.median(quota[prov]), 2) if quota[prov] else None
+        m = round(statistics.median(market[prov]), 2) if market[prov] else None
         ratio = round(m / q, 3) if q and m else None
         res[prov] = {"定额中位": q, "市场中位": m, "市场/定额": ratio}
     return res
@@ -152,6 +156,7 @@ class _Tests(unittest.TestCase):
             {"省份": "甲省", "类型": "市场招聘", "日薪": 300.0},
             {"省份": "甲省", "类型": "市场招聘", "日薪": 400.0},
             {"省份": "乙省", "类型": "市场招聘", "日薪": 300.0},
+            {"省份": "甲省", "类型": "市场劳务", "日薪": 9999.0, "纳入比较": "否"},
         ]
         g = gap(rows)
         self.assertEqual(g["甲省"]["市场/定额"], 1.75)
