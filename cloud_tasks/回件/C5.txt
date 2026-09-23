@@ -1,0 +1,386 @@
+=== 文件: README.md ===
+```
+# C5 非主业类别公开标量（2026-09-23 云端交付）
+
+**做了什么**：云端网络受限，只能用搜索引擎，打不开招标平台。在这个条件下对 12 个指定类别和 4 个补充类别做了约 63 次搜索，产出三样东西：
+- `类别标量.csv`：每类的 3 条样例链接、每工作日估计、金额档、资质要求；
+- `样例公告.csv`：55 条样例明细；
+- `tender_volume.py`：本地拿到真数据后用来计数。
+
+**关键数字**
+- **每工作日条数：数不出来**，因为云端无法进平台按日期计数。
+- 窗口 07-25 至 09-23 共 43 个工作日，搜索可见的维修服务类公告：起重 2 条（其中 1 条未复现），皮带机、钢结构、锅炉辅机、机加工各 1 条，其余 0 条。这只是下限，不能拿来排大小。
+- 金额只拿到 2 个样本：起重维修约 40 万元/年；防腐绝热约 200 万元/年。
+- 样例中确认的资质：
+  - 起重：特种设备许可，B 级或以上；
+  - 管道：GC2/GCD 及以上；
+  - 锅炉辅机：要求有 600MW 机组辅机修理业绩。
+
+**定性观察**：电厂检修类好搜到，但门槛高；起重维保和电机维修在水泥集团、省属国企平台常见；钢结构、管道、防腐的样例里建筑项目占多数。
+
+**局限**：日期和金额多来自机器摘要；3 条样例的链接只是平台首页；标「常识推断」的资质没有核实。
+
+**怎么用**：导出近 60 天的公告清单（至少有「标题或公告标题」和「日期」两列），然后运行 `python3 tender_volume.py count 清单.csv --start 2026-07-25 --end 2026-09-23`。工具会自动排除风电和备件采购，并报告跳过了多少条。
+
+## 查了没有（逐项）
+- **金额查了没有**：皮带机、钢结构、工业管道、年度维保、锅炉辅机、风机、机加工。
+- **资质原文查了没有**：皮带机、钢结构、年度维保、除尘、阀门泵、耐磨防腐、风机、机加工。
+- **窗口内维修服务类公告查了是 0**：工业管道、年度维保、除尘、阀门泵、耐磨防腐（工业类）、风机、电机，以及 4 个补充类。
+- **平台"共 X 条"计数查了没有**：只有一条存疑线索，搜索摘要称"千里马近一年皮带机相关约 450 条"，出处页面无法确认，没有采用。
+- **没查或打不开**：所有招标平台原文，全部被 EGRESS_BLOCKED 拦截。
+
+## 统计噪声（本地计数前必读，已写进工具）
+- "风机"主要命中风电机组。
+- "阀门""皮带机""除尘器""电机""破碎机"主要命中备件或设备采购。
+- "钢结构""防腐保温"大量命中建筑项目。
+- "20万吨/年"之类的产能数字不是金额。
+- 保证金、质保金也不是项目金额。
+
+## 对抗复审结论（独立子 agent，2026-09-23，只用 WebSearch，30 次）
+**抽查结果**：抽查 16 行，覆盖全部窗口内行和全部有金额或资质原文的行。
+- 窗口内 6 条中 5 条可复现。廉江水泥那条未能复现，已在表里标注。
+- 江投起重漏填了日期 2026-06-21 和金额约 40 万元，已补。
+- 泽州那条的日期更正为 09-09，并注明偏物资采购。
+- 六化建那条补上了精确链接，宁东那条补上了编号。
+- 晶昊的质保金从金额列移到备注。
+- 未发现凭空编造的数字。
+
+**复审发现 4 个工具缺陷，均已从根上修复并补了测试**：
+- 把"20万吨"当成金额；
+- 多条公告共用平台首页链接时会被误去重；
+- 列名不匹配时静默输出 0；
+- 机加工的规则漏了"委外加工"。
+
+**修复后核对**：用修复后的工具重跑 `样例公告.csv`，窗口计数与 `类别标量.csv` 一致。
+```
+
+=== 文件: 类别标量.csv ===
+```
+类别,样例URL1,样例URL2,样例URL3,每工作日估计条数,怎么数的,"窗口内搜索可见条数(2026-07-25~09-23,43个工作日)",金额档,常见资质要求(样例原文中出现),常见资质要求(常识推断-未核实),统计噪声提醒,证据等级
+皮带机/输送机维修,http://www.chnenergybidding.com.cn/bidweb/001/001002/001002003/20260723/d9bd865e-3f22-4d70-9d0e-a19cab5f71e8.html,https://www.qianlima.com/bid-598656714.html,https://www.zmzb.com/cms/channel/ywgg1fw/55133.htm,数不出来（搜索可见下限 1/43≈0.02）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,1,未查到,未查到,营业执照、安全生产类证件；煤矿场景需矿用安全要求,大量命中皮带/托辊备件采购，非维修服务,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+钢结构制作安装,https://www.sohu.com/a/1078420859_122014422,https://prinxchengshan.com/index.php/index.php?id=5815,https://bid.cncecyc.com/cms/channel/ywgg4gc/559361.htm,数不出来（搜索可见下限 1/43≈0.02）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,1,未查到,未查到,钢结构工程专业承包资质、安全生产许可证、焊工证,大量命中建筑类钢结构，需按行业过滤,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+工业管道安装,https://m.ccement.com/xm/bcon-422917325634983.html,https://eps.ctg.com.cn/cms/channel/2ywgg1/16134.htm,https://www.yfbzb.com/inviteBid/detail/20260724_616609528.html,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,特种设备生产许可证-工业管道安装 GC2/GCD 及以上；压力管道 GB2（3条样例提及，1条摘要对应存疑）,GC1 用于石化高危介质,含燃气/热网市政工程,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+设备年度维保(包干),http://gdguofeng.com.cn/nd.jsp?id=1451,http://www.dlzb.org/news/202511/14/460681.html,https://hb.qianlima.com/zbcontent-617724097.html,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,机电工程施工总承包等，按项目定,电厂运维包多为大包，规模可能超出中型企业,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+除尘器/收尘改造,https://gansu.zhaobiao.cn/bidding_v_29b37244f15b5e6f43f12296984ec630.html,https://zb.cnscee.com/tenderDetail.html/18a7c3684bd5423ab0feb112170662ea,https://zb.cnscee.com/constructionDetail.html/4421fcb7a53d445db3d40c68c1cddba0?subType=5,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到（唯一金额 165.2 万元是除尘变压器备件成交，非改造，且URL对应存疑）,未查到,环保工程专业承包资质,大量命中除尘器备件采购,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+阀门泵类检修,http://www.zgdczb.com/news/202601/21/612037.html,http://www.chnenergybidding.com.cn/bidweb/001/001002/001002003/20260212/45d67678-351f-4067-8bcf-c625d0c5e865.html,https://www.yfbzb.com/inviteBid/detail/20250221_486318079.html,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,压力管道元件相关许可、安全阀校验资质,摘要中窗口内另见3条阀门采购（非检修，未留URL，未计入）,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+起重设备维修,https://jxic.jczh.com/notice/379398,https://www.gzsun.com.cn/cgdt/001002/001002001/20260521/c41b4375-6bb4-434f-a36a-f7d18fa3194d.html,https://cg.ccteg.cn/cms/channel/ywgg2fw/66685.htm,数不出来（搜索可见下限 2/43≈0.05）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,2（其中廉江水泥1条复审未能复现）,10-50万档（仅1个样本：江投起重机械外协维修年修理费约40万元，摘要，2026-06-21）,特种设备生产许可-起重机械安装（含修理）/修理改造，B级或以上（2条样例）,起重机械作业人员证,,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+耐磨防腐,https://ebidding.whchem.com/jyxx/001001/20260722/bfe5c490-81cc-4abc-a4c9-179094f21751.html,https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260611/006770491f50a1e64804b5144bf0c637f9e2.html,https://www.zmzb.com/cms/channel/ywgg1gc/58860.htm,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,50-200万档/年（仅1个样本：万华码头防腐绝热一年约200万元，两年约400万元，摘要）,未查到,防水防腐保温工程专业承包资质、高处作业证,大量命中建筑防水防腐；耐磨多为材料采购,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+机加工外协,https://www.chnenergybidding.com.cn/bidweb/001/001002/001002003/20260831/aec952c7-c188-4868-8781-23b37d87439d.html,https://xin-steel.jczh.com/notice/291830,https://jxic.jczh.com/notice/293677,数不出来（搜索可见下限 1/43≈0.02）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,1,未查到,未查到,通常营业执照+业绩,,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+锅炉辅机检修,https://m.yfbzb.com/inviteBid/detail/20260206_575807479.html,https://www.zmzb.com/cms/channel/ywgg1fw/57852.htm,https://www.zmzb.com/cms/channel/ywgg1fw/59358.htm,数不出来（搜索可见下限 1/43≈0.02）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,1,未查到,业绩门槛：至少1份单机600MW及以上燃煤机组锅炉辅机修理合同（1条样例）,锅炉修理许可/承装（修、试）许可视范围而定,电厂业绩门槛高,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+风机检修,https://www.qianlima.com/bid-596637712.html,http://m.gdtzb.com/zb/kw-yinfengjijianxiu.html（列表页）,（第3条未能确认独立URL）,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,—,“风机”大量命中风电机组，必须排除,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+电机维修,https://ez.chinamae.com/news/1164b2366fb796415a589554241f4aab.html,https://www.jxgqcg.com/notice/102430,https://bbda.com/bidDetail/78702a02e90be547d72de644ba58825ced662f2736a885536db67ed727b61a42.html,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到项目金额（旁证：神东3年期以旧换新电磁线加工投资估算579.488万元，非电机修理服务）,低压电机维修资质（含普通电机与永磁电机）（1条样例）,承装（修、试）电力设施许可（高压/含试验时）、电工证,大量命中电机备件采购,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+[补]液压系统检修,https://hb.zhiliaobiaoxun.com/article/103267315,https://bid.ansteel.cn/zbjjxx/001001/20260714/5cfb4b32-6d16-4c02-9f42-e4548619402f.html（元件采购，非维修）,（只找到2条）,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,—,多为液压元件采购,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+[补]窑炉耐火砌筑,http://m.youcaiyun.com/PurchaseDetail.aspx?BidId=1448188,https://zb.chinalco.com.cn/zbxx/001003/001003002/20250427/97e0abba-a55f-4601-9252-7703c0c08d70.html,（只找到2条）,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,窑炉/耐火相关专业承包资质,,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+[补]破碎机维修,https://www.gcjxzhaobiao.com/news-3a7440677cc9c8f3a76f306e4b669b5d/（设备采购，非维修）,（未找到）,（未找到）,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,—,多为整机采购,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+[补]脱硫脱硝检修,http://industry.qianlima.com/industry/505976-2703（列表页，对应存疑）,（未找到）,（未找到）,数不出来（搜索可见下限 0）,数不出来：云端网络只能用搜索引擎，打不开招标平台，无法按日期筛选计数。给出的是搜索可见条数/43，只是下限；实际量可能大1-2个数量级，但无证据。真实计数用 tender_volume.py 喂平台导出清单,0,未查到,未查到,环保工程专业承包资质,,搜索结果标题+URL（一手来源，但未打开原文）；金额/资质为搜索摘要
+```
+
+=== 文件: 样例公告.csv ===
+```
+类别,公告标题,日期,URL,来源类型,是否在近60天窗口,金额原文,资质原文
+皮带机/输送机维修,焦化二厂备煤系统维护服务公开招标项目招标公告（含43条环形裙边皮带、117条聚酯阻燃耐热皮带更换修补，电机/减速机检修）,2026-07-23(URL路径),http://www.chnenergybidding.com.cn/bidweb/001/001002/001002003/20260723/d9bd865e-3f22-4d70-9d0e-a19cab5f71e8.html,官方平台(国能e招),否(早于窗口2天),未查到,未查到
+皮带机/输送机维修,唐山首钢京唐西山焦化有限责任公司检修-干熄焦皮带通廊底板更换询比采购公告,2026-05-20(摘要),https://www.qianlima.com/bid-598656714.html,聚合站,否,未查到,未查到
+皮带机/输送机维修,山西煤炭运销集团晋城泽州有限公司2026年8月皮带输送机减速器维修所需物资采购（第二次发询）,2026-09-09(摘要；第二次询价),https://www.qianlima.com/gjxx/172302_2703_4,聚合站列表页(URL对应存疑)；复审注：标题为「所需物资采购」，偏物资采购非维修服务,是,未查到,未查到
+皮带机/输送机维修,中煤华昱公司金龙输煤专线及元南支线皮带机输送系统运营服务招标（13条皮带机）,日期不明,https://www.zmzb.com/cms/channel/ywgg1fw/55133.htm,官方平台(中煤招标;URL对应存疑),日期不明,未查到,未查到
+钢结构制作安装,中国化学六化建山东分公司 山东蓝湾新材料20万吨/年丙烯酸(二期)土建安装工程—钢结构安装工程 成交公告,2026-09-03(摘要),https://bid.cncecyc.com/cms/channel/ywgg4gc/559361.htm,官方平台(中国化学;URL由复审补),是,未查到,未查到
+钢结构制作安装,太钢不锈招标：自筹资金建构筑物检测加固,日期不明,https://www.sohu.com/a/1078420859_122014422,媒体转载,日期不明,未查到,未查到
+钢结构制作安装,招标公告-浦林成山非公路轮胎项目-钢结构,日期不明,https://prinxchengshan.com/index.php/index.php?id=5815,企业官网,日期不明,未查到,未查到
+工业管道安装,2026年包钢股份压力管道项目-稀土钢炼铁厂、长材厂、煤焦化工分公司、薄板厂8项标段3公开招标公告,约2026-05底(摘要),https://nmg.qianlima.com/zbcontent-599971332.html,聚合站,否,未查到(需登录),未查到
+工业管道安装,广东粤电博贺能源有限公司#1、2机组供热改造（施工）招标公告,日期不明,https://m.ccement.com/xm/bcon-422917325634983.html,聚合站,日期不明,未查到,特种设备生产许可证，许可范围包含工业管道安装（GCD和GC2及以上）
+工业管道安装,光谷热力公司化工区湖北晟特新能源热网改造项目采购公告,日期不明,https://eps.ctg.com.cn/cms/channel/2ywgg1/16134.htm,官方平台(三峡),日期不明,未查到,压力管道GB2或GC2及以上安装改造维修许可/工业管道安装生产许可（摘要未逐条对应此URL）
+工业管道安装,丹东华润燃气2026-2029年度常规工程燃气工程施工单位采购项目,2026-07-24(URL路径),https://www.yfbzb.com/inviteBid/detail/20260724_616609528.html,聚合站,否,未查到,工业管道安装GC2级及以上
+设备年度维保(包干),湛江中粤能源有限公司2026年度#1、#2机组本体系统及附属设备常规维护招标公告,日期不明,http://gdguofeng.com.cn/nd.jsp?id=1451,代理机构官网,日期不明,未查到,未查到
+设备年度维保(包干),关于浙江乌沙山发电公司2026-2028年度3、4号机组设备设施及部分公用系统运维(标段二)项目招标公告,2025-11-14(URL路径),http://www.dlzb.org/news/202511/14/460681.html,聚合站,否,未查到,未查到
+设备年度维保(包干),河间华北石油天成燃气有限公司2026-2027年度检维修及应急抢修服务框架,日期不明,https://hb.qianlima.com/zbcontent-617724097.html,聚合站,日期不明,未查到,未查到
+设备年度维保(包干),2026年1月维检修——招标3招标公告,2026-02-05(URL路径),https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260205/00670b28628d1dc44d33992c558dff6bca32.html,官方平台(全国公共资源交易平台),否,未查到,未查到
+除尘器/收尘改造,漳县公司1#水泥窑窑头电收尘器维修采购项目,2026-05-09(摘要),https://gansu.zhaobiao.cn/bidding_v_29b37244f15b5e6f43f12296984ec630.html,聚合站,否,未查到,未查到
+除尘器/收尘改造,广东省粤电集团有限公司珠海电厂1号…（加装板式湿式电除尘器）招标公告,日期不明,https://zb.cnscee.com/tenderDetail.html/18a7c3684bd5423ab0feb112170662ea,招标平台,日期不明,未查到,未查到
+除尘器/收尘改造,除尘改造工程设备安装施工中标候选人公示,日期不明,https://zb.cnscee.com/constructionDetail.html/4421fcb7a53d445db3d40c68c1cddba0?subType=5,招标平台,日期不明,未查到,未查到
+除尘器/收尘改造,乌海包钢矿业2026年度机械备件（除尘器）框架竞价采购（响应供应商不足3家，终止）,日期不明,https://industry.qianlima.com/industry/594-18,聚合站列表页(URL对应存疑),日期不明,未查到,未查到
+阀门泵类检修,辽宁锦城石化下属盘锦浩业化工2026年装置大检修—阀门维修项目公开招标（923台工艺阀门+19台特阀）,2026-01-21(URL路径),http://www.zgdczb.com/news/202601/21/612037.html,聚合站,否,未查到,未查到
+阀门泵类检修,宁东二期2026年阀门检修技术服务公开招标项目招标公告,2026-02-12(URL路径),http://www.chnenergybidding.com.cn/bidweb/001/001002/001002003/20260212/45d67678-351f-4067-8bcf-c625d0c5e865.html,官方平台(国能e招),否,未查到,未查到
+阀门泵类检修,湖北区域机泵类设备年度维修服务竞争性谈判公告（变更）,日期不明,https://zcpt.citicenvirotech.com/,官方平台首页(中信环境),日期不明,未查到,未查到
+阀门泵类检修,工艺阀门研磨维修框架二次招标公告（计划检修311台）,2025-02-21(URL路径),https://www.yfbzb.com/inviteBid/detail/20250221_486318079.html,聚合站,否,未查到,未查到
+起重设备维修,廉江水泥-桥式起重机、电动葫芦维修保养 公开询比公告,2026-08-04(摘要),未返回独立URL,聚合站；复审重搜未能复现,是,未查到,未查到
+起重设备维修,宁夏煤业煤制油化工板块起重机械维保服务公开招标（CEZB260406975）中标候选人公示,2026-09-22(摘要),https://www.chnenergybidding.com.cn/bidweb/,官方平台首页(国能e招),是,未查到,未查到
+起重设备维修,2026年度起重机械外协维护维修承揽业务询比价采购,2026-06-21(摘要；06-29二次挂网),https://jxic.jczh.com/notice/379398,官方平台(江投集团),否,年修理费约40万元（摘要）,需提供国家颁发的起重机械（特种设备）保养、维修、改造的相关资质
+起重设备维修,广州市花都排水有限公司2026-2028年起重设备定期维护保养和年检服务,2026-05-21(URL路径),https://www.gzsun.com.cn/cgdt/001002/001002001/20260521/c41b4375-6bb4-434f-a36a-f7d18fa3194d.html,官方平台(国企),否,未查到,特种设备生产许可证：起重机械制造（含安装、修理、改造）或起重机械安装（含修理），B级或以上
+起重设备维修,【信息发布】中部陆港起重机械设备日常维检服务询价文件,2026-07-08(URL路径),https://www.qianlima.com/zb/detail/20260708_612300866.html,聚合站,否,未查到,未查到
+起重设备维修,【山西天地煤机】彩虹基地起重设备维护保养服务公开询价项目,日期不明,https://cg.ccteg.cn/cms/channel/ywgg2fw/66685.htm,官方平台(中国煤科),日期不明,未查到,未查到
+耐磨防腐,[公开招标]万华化学（福建）码头有限公司2026-2028年日常、大修、技改防腐绝热安装,2026-07-22(URL路径),https://ebidding.whchem.com/jyxx/001001/20260722/bfe5c490-81cc-4abc-a4c9-179094f21751.html,官方平台(企业),否(早于窗口3天),一年施工费用预估为200万元（摘要）,未查到
+耐磨防腐,东华科技招标：营口项目防腐保温标段等多项目成交信息公布,2026-07-14,https://finance.sina.com.cn/stock/aigc/zab/2026-07-14/doc-inihtrnn5303372.shtml,媒体转载,否,未查到,未查到
+耐磨防腐,2号机组维修脚手架、防腐保温外委项目）重新招标（二次）（青海桥头发电）,2026-06-11(URL路径),https://www.ggzy.gov.cn/information/deal/html/b/0067/0101/20260611/006770491f50a1e64804b5144bf0c637f9e2.html,官方平台,否,未查到,未查到
+耐磨防腐,葛洲坝嘉鱼公司2026年至2027年度耐磨涂料、耐磨陶瓷招标公告（材料采购）,日期不明,https://www.460.net.cn/news/show-280752.html,聚合站,日期不明,未查到,未查到
+耐磨防腐,中煤鄂尔多斯能源化工有限公司中煤远兴全厂防腐保温及脚手架…,日期不明,https://www.zmzb.com/cms/channel/ywgg1gc/58860.htm,官方平台(中煤招标),日期不明,未查到,未查到
+锅炉辅机检修,锅炉辅机设备外修服务询价公告,2026-02-06(URL路径),https://m.yfbzb.com/inviteBid/detail/20260206_575807479.html,聚合站,否,未查到,业绩：至少1份单机600MW及以上燃煤机组锅炉辅机修理合同（须含风机、空预器、磨煤机至少一种）
+锅炉辅机检修,宁夏电力宁东公司2026年锅炉炉膛检修平台治理公开招标项目招标公告（CEZB260408141）,2026-09-21(摘要),https://www.chnenergybidding.com.cn/bidweb/,官方平台首页(国能e招),是,未查到,未查到
+锅炉辅机检修,宣城电厂2026年度#1、#2机组C级检修项目招标公告（含锅炉/除尘/除灰/脱硝/脱硫）,日期不明,https://www.zmzb.com/cms/channel/ywgg1fw/57852.htm,官方平台(中煤招标),日期不明,未查到,未查到
+锅炉辅机检修,中煤昔阳能源有限责任公司安平发电厂1号机组A级检修服务（工期2026-09-01至10-18）,日期不明,https://www.zmzb.com/cms/channel/ywgg1fw/59358.htm,官方平台(中煤招标),日期不明,未查到,未查到
+风机检修,福建公司下属火电企业2026-2028年度锅炉六大风机转子组检修（石狮电厂12台）,日期不明,未能确认对应URL,聚合/官方(存疑),日期不明,未查到,未查到
+风机检修,拜城县众泰煤焦化有限公司循环风机偶合器和除尘风机偶合器检修项目采购公告,日期不明,https://www.qianlima.com/bid-596637712.html,聚合站,日期不明,未查到,未查到
+风机检修,引风机检修招标采购（列表页）,日期不明,http://m.gdtzb.com/zb/kw-yinfengjijianxiu.html,聚合站列表页,日期不明,未查到,未查到
+电机维修,2026年6月-良田水泥-2026-2027年度低压电机委外维修服务项目公开询比公告,2026-06,https://ez.chinamae.com/news/1164b2366fb796415a589554241f4aab.html,聚合站,否,未查到,低压电机维修资质（含普通电机与永磁电机）
+电机维修,2025-2026年度普通电机外协施工比询价采购公告（第二次挂网）（江西晶昊）,日期不明,https://www.jxgqcg.com/notice/102430,官方平台(江西省国企采购),日期不明,未查到,未查到；另：质量保证金2万元(非项目金额)、大修后两遍真空浸漆+预防性试验报告、24小时进场
+电机维修,2026年电动机修理年度维保2025120008采购公告,日期不明,https://bbda.com/bidDetail/78702a02e90be547d72de644ba58825ced662f2736a885536db67ed727b61a42.html,聚合站,日期不明,未查到,未查到
+电机维修,2026年神东煤炭设备维修中心电磁线加工服务项目招标公告（电机修理配套）,2026-03-17(URL路径),http://www.dlzb.org/news/202603/17/522408.html,聚合站,否,投资估算579.488万元,未查到
+机加工外协,铁路装备陕西公司2026年委外加工制作设备大修非标配件公开招标（CEZB260107486）,2026-08-31(URL路径),https://www.chnenergybidding.com.cn/bidweb/001/001002/001002003/20260831/aec952c7-c188-4868-8781-23b37d87439d.html,官方平台(国能e招),是,未查到,未查到
+机加工外协,新余新钢板材加工有限公司设备机加工备件承包（年标）招标公告（第二次）,日期不明,https://xin-steel.jczh.com/notice/291830,官方平台(新钢),日期不明,未查到,未查到
+机加工外协,江西晶昊盐化有限公司2026年度配件加工及维修承揽业务询比价采购公告,日期不明,https://jxic.jczh.com/notice/293677,官方平台(江投),日期不明,未查到,未查到
+机加工外协,普通金加工件新增（2026-11）年度采购项目招标（四川大西洋焊接材料）,日期不明,https://www.weldatlantic.com/wdoc_31087543.html,企业官网,日期不明,未查到,未查到
+[补]液压系统检修,辛集市澳森特钢集团有限公司炼钢液压泵维修采购公告（完工期2026-06-30）,2026上半年(推断),https://hb.zhiliaobiaoxun.com/article/103267315,聚合站,否,未查到,未查到
+[补]液压系统检修,2026年度其它液压元件第九批采购公告（元件采购，非维修）,2026-07-14,https://bid.ansteel.cn/zbjjxx/001001/20260714/5cfb4b32-6d16-4c02-9f42-e4548619402f.html,官方平台(鞍钢),否,未查到,未查到
+[补]窑炉耐火砌筑,金隅集团阳泉区域2026年窑炉砌筑(耐火材料)施工招标,日期不明,http://m.youcaiyun.com/PurchaseDetail.aspx?BidId=1448188,聚合站,日期不明,未查到,未查到
+[补]窑炉耐火砌筑,中铝山东新材料有限公司熟料窑、高温窑砌筑,2025-04-27(URL路径),https://zb.chinalco.com.cn/zbxx/001003/001003002/20250427/97e0abba-a55f-4601-9252-7703c0c08d70.html,官方平台(中铝),否,未查到,未查到
+[补]破碎机维修,鞍钢联众2026年颚式破碎机项目招标公告（设备采购）,2026-05-28(摘要),https://www.gcjxzhaobiao.com/news-3a7440677cc9c8f3a76f306e4b669b5d/,聚合站,否,未查到,未查到
+[补]脱硫脱硝检修,脱硝招标（列表页，摘要提到米东天山水泥窑尾烟气SCR脱硝工程流标）,日期不明,http://industry.qianlima.com/industry/505976-2703,聚合站列表页(URL对应存疑),日期不明,未查到,未查到
+```
+
+=== 文件: tender_volume.py ===
+```
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""C5 非主业类别公开标量统计工具（仅 Python 3 标准库，可离线跑）。
+
+云端环境打不开招标平台，只能拿到搜索可见的少量样例。本工具留给能上国内网的
+本地 agent：把从招标平台导出/抓到的公告清单（CSV：标题,日期,URL[,正文]）喂进来，
+自动完成 归类 → 去重 → 窗口过滤 → 除以工作日数 → 金额分档。
+
+用法：
+    python3 tender_volume.py count 公告.csv --start 2026-07-25 --end 2026-09-23 \
+        [--holidays 2026-10-01,2026-10-02] [--workdays 2026-09-20]
+    python3 tender_volume.py test
+
+说明：
+- 工作日 = 周一到周五，去掉 --holidays，加上 --workdays（调休上班日）。
+  节假日表**不写死**：法定假日安排以国务院办公厅当年通知为准，由调用方传入。
+- 一条公告可命中多个类别（如"风机及电机检修"），各类别都计 1 条。
+- 去重键：URL；URL 为空时用「标题+日期」。
+"""
+import argparse
+import csv
+import re
+import sys
+import unittest
+from collections import defaultdict
+from datetime import date, timedelta
+
+# 类别 → 关键词正则。顺序无关；按需增删。
+CATEGORIES = {
+    "皮带机/输送机维修": r"皮带机|输送机|输送带|皮带.{0,4}(维修|检修|更换)|托辊",
+    "钢结构制作安装": r"钢结构",
+    "工业管道安装": r"管道.{0,6}(安装|施工|改造)|压力管道",
+    "设备年度维保(包干)": r"年度.{0,8}(维保|维护|检修)|维保.{0,4}(包干|框架)|包干.{0,6}(维修|维护|检修)",
+    "除尘器/收尘改造": r"除尘|收尘",
+    "阀门泵类检修": r"阀门|泵.{0,6}(维修|检修|修理)|(水|油|渣浆|循环)泵",
+    "起重设备维修": r"起重|行车|桥式?吊|门式?吊|天车|电动葫芦",
+    "耐磨防腐": r"耐磨|防腐|堆焊|陶瓷贴片",
+    "机加工外协": r"机加工|机械加工|外协加工|委外加工|加工制作|零部件加工|非标配件",
+    "锅炉辅机检修": r"锅炉",
+    "风机检修": r"风机",
+    "电机维修": r"电机.{0,6}(维修|检修|修理|修复)|电动机.{0,4}(维修|检修|修理)",
+    "液压系统检修": r"液压",
+    "破碎机维修": r"破碎机",
+    "斗式提升机维修": r"斗式?提升机|斗提",
+    "耐火材料砌筑/检修": r"耐火|浇注料|窑衬|砌筑",
+    "设备保温": r"保温",
+}
+_CAT_RE = {k: re.compile(v) for k, v in CATEGORIES.items()}
+# 类别内排除词（2026-09 云端样例中实测的噪声）："风机"大量命中风电机组。
+EXCLUDE = {"风机检修": re.compile(r"风电|风力发电|风电机组")}
+# 服务类判定：标题/正文不含这些词的，多为备件/设备采购，不计入维修标量。
+SERVICE = re.compile(r"维修|检修|维保|维护|保养|修理|修复|改造|安装|施工|砌筑|外协|外委|加工|治理|运维|大修")
+
+# 只认「万元/元」：裸「万」会把「20万吨/年」当成金额（复审实测）。
+_AMOUNT = re.compile(r"(\d+(?:\.\d+)?)\s*(万元|元)")
+# 金额前 8 字内出现这些词的不是项目金额（保证金、质保金等）。
+_NOT_PROJECT = re.compile(r"保证金|质保金|押金|保函|文件费|标书费|服务费")
+# 金额分档边界（元）
+BANDS = [(0, 100_000, "<10万"), (100_000, 500_000, "10-50万"), (500_000, 2_000_000, "50-200万"),
+         (2_000_000, 10_000_000, "200-1000万"), (10_000_000, float("inf"), ">=1000万")]
+
+
+def classify(text):
+    """返回命中的类别；非服务类（备件/设备采购）返回 []。"""
+    text = text or ""
+    if not SERVICE.search(text):
+        return []
+    return [k for k, rx in _CAT_RE.items()
+            if rx.search(text) and not (k in EXCLUDE and EXCLUDE[k].search(text))]
+
+
+def parse_amount(text):
+    """返回文本里第一个项目金额（元）；没有 → None。'35.6万元' → 356000.0。
+    跳过保证金/质保金等非项目金额。"""
+    t = (text or "").replace(",", "").replace("，", "")
+    for m in _AMOUNT.finditer(t):
+        if _NOT_PROJECT.search(t[max(0, m.start() - 8):m.start()]):
+            continue
+        v = float(m.group(1))
+        return v * 10_000 if m.group(2) == "万元" else v
+    return None
+
+
+def band(amount):
+    if amount is None:
+        return "金额未披露"
+    for lo, hi, name in BANDS:
+        if lo <= amount < hi:
+            return name
+    return "金额未披露"
+
+
+def workdays(start, end, holidays=(), extra_workdays=()):
+    hol, extra = set(holidays), set(extra_workdays)
+    n, d = 0, start
+    while d <= end:
+        if (d.weekday() < 5 and d not in hol) or d in extra:
+            n += 1
+        d += timedelta(days=1)
+    return n
+
+
+def _d(s):
+    return date.fromisoformat(s.strip()[:10])
+
+
+TITLE_KEYS = ("标题", "公告标题")
+
+
+def _title(r):
+    for k in TITLE_KEYS:
+        if k in r:
+            return r[k] or ""
+    raise KeyError(f"缺少标题列（需要 {'/'.join(TITLE_KEYS)} 之一）")
+
+
+def check_columns(fieldnames):
+    """必需列缺失直接报错，不静默输出 0。"""
+    names = set(fieldnames or ())
+    if not names & set(TITLE_KEYS) or "日期" not in names:
+        raise SystemExit(f"CSV 缺少必需列：需要 {'/'.join(TITLE_KEYS)} 之一 和 日期；实际列 {sorted(names)}")
+
+
+def count(rows, start, end, holidays=(), extra_workdays=(), stats=None):
+    """rows: [{'标题'|'公告标题','日期','URL'?,'正文'?}] → {类别: {'条数','每工作日','金额档':{档:n}}}
+    stats（可选 dict）会被写入：日期无法解析 / 窗口外 / 重复 / 非服务类 各跳过多少条。
+    去重键 = URL + 标题：多条公告共用平台首页 URL 时不会被误删。"""
+    wd = workdays(start, end, holidays, extra_workdays)
+    st = {"日期无法解析": 0, "窗口外": 0, "重复": 0, "未命中类别或非服务类": 0}
+    seen, per = set(), defaultdict(lambda: {"条数": 0, "金额档": defaultdict(int)})
+    for r in rows:
+        title = _title(r)
+        try:
+            d = _d(r.get("日期", ""))
+        except ValueError:
+            st["日期无法解析"] += 1
+            continue
+        if not (start <= d <= end):
+            st["窗口外"] += 1
+            continue
+        key = ((r.get("URL") or "").strip(), title.strip())
+        if key in seen:
+            st["重复"] += 1
+            continue
+        seen.add(key)
+        text = title + " " + r.get("正文", "")
+        if not classify(text):
+            st["未命中类别或非服务类"] += 1
+        for cat in classify(text):
+            per[cat]["条数"] += 1
+            per[cat]["金额档"][band(parse_amount(text))] += 1
+    if stats is not None:
+        stats.update(st)
+    out = {}
+    for cat in CATEGORIES:
+        c = per.get(cat, {"条数": 0, "金额档": {}})
+        out[cat] = {"条数": c["条数"], "工作日": wd,
+                    "每工作日": round(c["条数"] / wd, 2) if wd else None,
+                    "金额档": dict(c["金额档"])}
+    return out
+
+
+def _cli(argv):
+    if not argv or argv[0] == "test":
+        unittest.main(argv=[sys.argv[0]], exit=True)
+    p = argparse.ArgumentParser()
+    p.add_argument("cmd")
+    p.add_argument("csv")
+    p.add_argument("--start", required=True)
+    p.add_argument("--end", required=True)
+    p.add_argument("--holidays", default="")
+    p.add_argument("--workdays", default="")
+    a = p.parse_args(argv)
+    split = lambda s: [_d(x) for x in s.split(",") if x.strip()]
+    with open(a.csv, encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        check_columns(reader.fieldnames)
+        rows = list(reader)
+    st = {}
+    res = count(rows, _d(a.start), _d(a.end), split(a.holidays), split(a.workdays), st)
+    print("# 读入 %d 行；跳过：%s" % (len(rows), "，".join(f"{k}{v}" for k, v in st.items())))
+    print("类别,窗口内条数,工作日数,每工作日条数,金额档分布")
+    for cat, r in res.items():
+        bands = ";".join(f"{k}:{v}" for k, v in sorted(r["金额档"].items()))
+        print(f"{cat},{r['条数']},{r['工作日']},{r['每工作日']},{bands}")
+
+
+class _Tests(unittest.TestCase):
+    def test_classify(self):
+        self.assertEqual(classify("某水泥公司2026年皮带机维修项目招标公告"), ["皮带机/输送机维修"])
+        self.assertIn("风机检修", classify("风机及电机检修框架采购"))
+        self.assertIn("电机维修", classify("风机及电机检修框架采购"))
+        self.assertEqual(classify("办公用品采购"), [])
+        self.assertEqual(classify("2026年颚式破碎机设备采购"), [])  # 备件/设备采购不算
+        self.assertNotIn("风机检修", classify("风电场风机检修服务"))
+
+    def test_amount_and_band(self):
+        self.assertEqual(parse_amount("最高限价：35.6万元"), 356000.0)
+        self.assertEqual(parse_amount("预算金额 1,200,000 元"), 1200000.0)
+        self.assertIsNone(parse_amount("金额见附件"))
+        self.assertIsNone(parse_amount("20万吨/年丙烯酸钢结构安装"))
+        self.assertIsNone(parse_amount("质量保证金人民币2万元"))
+        self.assertEqual(parse_amount("投标保证金1万元，最高限价30万元"), 300000.0)
+        self.assertEqual(band(356000.0), "10-50万")
+        self.assertEqual(band(None), "金额未披露")
+
+    def test_workdays(self):
+        # 2026-09-21(一) ~ 2026-09-27(日)：5 个工作日；去掉 9-25，加回 9-27 → 5
+        s, e = date(2026, 9, 21), date(2026, 9, 27)
+        self.assertEqual(workdays(s, e), 5)
+        self.assertEqual(workdays(s, e, [date(2026, 9, 25)], [date(2026, 9, 27)]), 5)
+
+    def test_count_dedupe_window(self):
+        rows = [
+            {"标题": "皮带机维修招标 限价20万元", "日期": "2026-09-22", "URL": "u1"},
+            {"标题": "皮带机维修招标 限价20万元", "日期": "2026-09-22", "URL": "u1"},  # 重复
+            {"标题": "皮带机维修", "日期": "2026-06-01", "URL": "u2"},  # 窗口外
+            {"标题": "输送机检修", "日期": "2026-09-23", "URL": "u3"},
+            {"标题": "坏日期", "日期": "不详", "URL": "u4"},
+        ]
+        r = count(rows, date(2026, 9, 21), date(2026, 9, 25))
+        c = r["皮带机/输送机维修"]
+        self.assertEqual((c["条数"], c["工作日"], c["每工作日"]), (2, 5, 0.4))
+        self.assertEqual(c["金额档"], {"10-50万": 1, "金额未披露": 1})
+
+    def test_shared_homepage_url_not_deduped(self):
+        rows = [
+            {"公告标题": "锅炉炉膛检修平台治理", "日期": "2026-09-21", "URL": "https://x.cn/bidweb/"},
+            {"公告标题": "起重机械维保服务", "日期": "2026-09-22", "URL": "https://x.cn/bidweb/"},
+            {"公告标题": "委外加工制作设备大修非标配件", "日期": "2026-09-22", "URL": "u9"},
+            {"公告标题": "皮带机维修", "日期": "2026-08(摘要)", "URL": "u8"},
+        ]
+        st = {}
+        r = count(rows, date(2026, 9, 21), date(2026, 9, 25), stats=st)
+        self.assertEqual(r["锅炉辅机检修"]["条数"], 1)
+        self.assertEqual(r["起重设备维修"]["条数"], 1)
+        self.assertEqual(r["机加工外协"]["条数"], 1)
+        self.assertEqual(st["日期无法解析"], 1)
+
+    def test_missing_columns_fail_loud(self):
+        with self.assertRaises(SystemExit):
+            check_columns(["名称", "时间"])
+
+
+if __name__ == "__main__":
+    _cli(sys.argv[1:])
+```

@@ -78,12 +78,25 @@ def is_quota(row):
     return "定额" in row.get("类型", "")
 
 
-def summary(rows):
-    """{(省份, 类型): [中位日薪, 条数]}"""
-    groups = defaultdict(list)
+def comparable(rows):
+    """去掉「纳入比较=否」的行（最低工资标准、交通口径、已作废单价、统计年均等）。"""
+    return [r for r in rows if r.get("纳入比较", "是") != "否"]
+
+
+def _median_by_trade(rows):
+    """先按工种取中位，再在工种之间取中位：同一工种多期重复发布（如广州电焊工 1–5 月）只算一票。"""
+    by_trade = defaultdict(list)
     for r in rows:
-        groups[(r.get("省份", ""), r.get("类型", ""))].append(r["日薪"])
-    return {k: [round(statistics.median(v), 2), len(v)] for k, v in sorted(groups.items())}
+        by_trade[r.get("工种", "")].append(r["日薪"])
+    return statistics.median(statistics.median(v) for v in by_trade.values())
+
+
+def summary(rows):
+    """{(省份, 类型): [中位日薪, 条数]}；只用可比行，工种先聚合。"""
+    groups = defaultdict(list)
+    for r in comparable(rows):
+        groups[(r.get("省份", ""), r.get("类型", ""))].append(r)
+    return {k: [round(_median_by_trade(v), 2), len(v)] for k, v in sorted(groups.items())}
 
 
 def gap(rows):
@@ -91,14 +104,12 @@ def gap(rows):
     只用「纳入比较」≠否 的行：最低工资标准、交通口径、已作废单价、统计年均等口径不可比，
     由数据表逐行显式标注，工具不猜。"""
     quota, market = defaultdict(list), defaultdict(list)
-    for r in rows:
-        if r.get("纳入比较", "是") == "否":
-            continue
-        (quota if is_quota(r) else market)[r.get("省份", "")].append(r["日薪"])
+    for r in comparable(rows):
+        (quota if is_quota(r) else market)[r.get("省份", "")].append(r)
     res = {}
     for prov in sorted(set(quota) | set(market)):
-        q = round(statistics.median(quota[prov]), 2) if quota[prov] else None
-        m = round(statistics.median(market[prov]), 2) if market[prov] else None
+        q = round(_median_by_trade(quota[prov]), 2) if quota[prov] else None
+        m = round(_median_by_trade(market[prov]), 2) if market[prov] else None
         ratio = round(m / q, 3) if q and m else None
         res[prov] = {"定额中位": q, "市场中位": m, "市场/定额": ratio}
     return res
@@ -152,16 +163,23 @@ class _Tests(unittest.TestCase):
 
     def test_gap_and_summary(self):
         rows = [
-            {"省份": "甲省", "类型": "定额官方", "日薪": 200.0},
-            {"省份": "甲省", "类型": "市场招聘", "日薪": 300.0},
-            {"省份": "甲省", "类型": "市场招聘", "日薪": 400.0},
-            {"省份": "乙省", "类型": "市场招聘", "日薪": 300.0},
-            {"省份": "甲省", "类型": "市场劳务", "日薪": 9999.0, "纳入比较": "否"},
+            {"省份": "甲省", "类型": "定额官方", "工种": "技工", "日薪": 200.0},
+            {"省份": "甲省", "类型": "市场招聘", "工种": "焊工", "日薪": 300.0},
+            {"省份": "甲省", "类型": "市场招聘", "工种": "钳工", "日薪": 400.0},
+            {"省份": "乙省", "类型": "市场招聘", "工种": "焊工", "日薪": 300.0},
+            {"省份": "甲省", "类型": "市场劳务", "工种": "普工", "日薪": 9999.0, "纳入比较": "否"},
         ]
         g = gap(rows)
         self.assertEqual(g["甲省"]["市场/定额"], 1.75)
         self.assertIsNone(g["乙省"]["市场/定额"])
         self.assertEqual(summary(rows)[("甲省", "市场招聘")], [350.0, 2])
+        self.assertNotIn(("甲省", "市场劳务"), summary(rows))
+
+    def test_repeated_trade_counts_once(self):
+        # 焊工重复发布 3 期不应压过钳工：工种中位 [300, 500] → 400，而非逐行中位 300
+        rows = [{"省份": "甲", "类型": "市场劳务", "工种": "焊工", "日薪": 300.0}] * 3 + \
+               [{"省份": "甲", "类型": "市场劳务", "工种": "钳工", "日薪": 500.0}]
+        self.assertEqual(summary(rows)[("甲", "市场劳务")][0], 400.0)
 
     def test_labor_cost(self):
         self.assertEqual(labor_cost(40, 450, 0.25), 22500.0)
