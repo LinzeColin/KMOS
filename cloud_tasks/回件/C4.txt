@@ -1,0 +1,299 @@
+=== 文件: README.md ===
+```
+# C4 技工人工市场价（2026-09-23 云端交付）
+
+**做了什么**：云端网络受限，只能用搜索引擎，打不开造价站和人社局的原文附件。在这个条件下收集了 7 省 2025–2026 官方人工单价和技工市场工资，整理成 `人工单价.csv`（41 行），另写了 `labor_cost.py`（统一单位、比定额和市场、算人工成本）。所有数字证据等级都是「搜索摘要-未开原文」。
+
+**关键数字**
+- 湖北定额：普工、技工、高级技工分别为 104、160、241 元/工日，2022 年起执行；2024 版改为季度指数，不再给固定单价。
+- 广州造价站 2026 年 1–4 月电焊工：290–365 元/工日（含社保，不含管理费和利润）。
+- 武汉 2026-08 集体协商最低日薪：电焊工 280 元。
+- 武汉招聘焊工：300–420 元/天。
+
+**差多少**：只有湖北两边都有数，市场中位 339 元，定额中位 160 元，约 2.1 倍。两边口径不一，只当量级参考。
+
+**怎么选**：算自己的成本用市场价，焊工和钳工先按 300–420 元/天试算，再按自家社保和管理费加附加率。定额价只用来推算甲方的招标控制价。
+
+**局限**：湖南、河南、江苏、广东省级、安徽建安口径的定额单价没查到；人社局工资价位分位数全部没查到；起重工、探伤工日薪没有。
+
+**怎么用**：`python3 labor_cost.py summary|gap 人工单价.csv`；`cost --days 40 --daily 450 --overhead 0.25`；`test`。
+
+## 查了没有（逐项）
+- 查了没有：湖南、河南、合肥、南京的建安定额单价；江西 2026 年新单价；江苏绝对单价（沿用苏建函价〔2023〕391 号，附件数值没出现在摘要里）；广东省级单价。
+- 查了没有：人社局工资价位分位数。以下文件确认存在但没拿到数字：湖北 2024 企业薪酬调查、长沙 2025、郑州 2024 年度、广州 2025、广东 2025、芜湖 2024。
+- 查了没有：起重工和司索工、探伤工的日薪；7 省内机械修理工的数据。
+- 没查、打不开：全部原文 PDF 附件（EGRESS_BLOCKED）。
+
+**建议本地补件（按优先级）**：
+1. 穗建造价〔2026〕65 号附件 2
+2. 苏建函价〔2023〕391 号附件
+3. 湖北 2024 企业薪酬调查
+4. 长沙 2025 工资价位 PDF
+5. 郑州 2024 年度工资价位
+6. 湖北各市州 2026 季度人工成本综合指数
+
+## 表字段说明
+- `纳入比较=否`：最低工资标准、交通口径、已作废单价、统计年均、指数这几类，工具计算时会自动排除。
+- `一手`：来源是官方原文或原始发布方。但本次全部只看到搜索摘要，没打开原文。
+- 标「来源条目存疑」的行：摘要没有明确说数字出自哪条结果。
+
+## 对抗复审结论（独立子 agent，2026-09-23，只用 WebSearch，30 次）
+**抽查情况**：C4 抽查 23 行。19 行确认；3 行部分确认（广州 4 月两项只在查询里写了数字时才复现，安徽施行日期应为 2025-12-01）；1 处链接错配（江西 100/117 数字对，出处是赣建价〔2020〕5 号，但表里的链接是废止它的 2026 年文件）。统计局 80739 的口径应为"规模以上企业分岗位"。未发现凭空编造的数字。
+
+**已修**：
+- 数据：安徽日期；80739 口径；江西链接改为注明"仅作线索"；广州 4、5 月降一档证据等级。
+- 工具：`summary` 改为也排除不可比行；同一工种多期重复发布只计一票，防止广州电焊工 5 期数据重复计权。都补了测试。
+
+**没修，也修不了**：口径不一致导致 2.1 倍只能当量级参考，这是数据本身的局限。
+```
+
+=== 文件: 人工单价.csv ===
+```
+省份,地区级别,类型,工种,单位,价格,纳入比较,口径,发布日期,来源URL,来源类型,一手二手,证据等级,原文摘录
+湖北,省级,定额官方,普工(2018版定额),元/工日,104,是,未说明；2024版定额起改为人工费单列+季度指数,2022-01-01起执行,https://zjt.hubei.gov.cn/zfxxgk/zc/qtzdgkwj/202201/t20220104_3950134.shtml,官方,一手,搜索摘要-未开原文,普工104元/工日
+湖北,省级,定额官方,技工(2018版定额),元/工日,160,是,未说明,2022-01-01起执行,https://zjt.hubei.gov.cn/zfxxgk/zc/qtzdgkwj/202201/t20220104_3950134.shtml,官方,一手,搜索摘要-未开原文,技工160元/工日
+湖北,省级,定额官方,高级技工(2018版定额),元/工日,241,是,未说明,2022-01-01起执行,https://zjt.hubei.gov.cn/zfxxgk/zc/qtzdgkwj/202201/t20220104_3950134.shtml,官方,一手,搜索摘要-未开原文,高级技工241元/工日
+江西,省级,定额官方,建筑/安装/市政综合工日(2017版定额),元/工日,100,否,数字出处为赣建价〔2020〕5号（原文URL未查到）；本URL是2026-03-01起施行、废止该文的新实施意见，仅作线索；已被取代,2020-12-20起执行,https://zjt.jiangxi.gov.cn/jxszfhcxjst/wjtz/pc/content/content_2006185954536067072.html,官方,一手,搜索摘要-未开原文,建筑、安装、市政工程定额综合工日单价调整为100元/工日
+江西,省级,定额官方,装饰综合工日(2017版定额),元/工日,117,否,数字出处为赣建价〔2020〕5号（原文URL未查到）；本URL是2026-03-01起施行、废止该文的新实施意见，仅作线索；已被取代,2020-12-20起执行,https://zjt.jiangxi.gov.cn/jxszfhcxjst/wjtz/pc/content/content_2006185954536067072.html,官方,一手,搜索摘要-未开原文,装饰工程定额综合工日单价调整为117元/工日
+江苏,省级,定额官方,人工价格指数(各设区市),指数,1.00,否,环比指数(基期2025下半年=1)；绝对单价沿用苏建函价〔2023〕391号，数值未查到,2026上半年(苏建函价〔2026〕27号),https://jsszfhcxjst.jiangsu.gov.cn/art/2026/2/27/art_49384_11733341.html,官方,一手,搜索摘要-未开原文,2026年上半年全省各设区市建设工程人工价格指数均为1.00
+安徽,省级,定额官方,公路工程人工工日单价(交通口径非建安),元/工日,132.62,否,由105.56调至132.62；交通口径,2025-12-01起施行（皖交建函〔2025〕285号；人民网2025-09-11报道）,http://ah.people.com.cn/n2/2025/0911/c358428-41347979.html,非官方,二手,搜索摘要-未开原文,标准由105.56元/工日调整为132.62元/工日
+广东,市级(广州),市场劳务官方,电焊工,元/工日,290-360,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）,2026-01(穗建造价〔2026〕14号),https://zfcj.gz.gov.cn/attachment/7/7974/7974845/10692163.pdf,官方,一手,搜索摘要-未开原文,2026年1月：290-360
+广东,市级(广州),市场劳务官方,电焊工,元/工日,290-360,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）,2026-02(穗建造价〔2026〕26号),https://zfcj.gz.gov.cn/attachment/7/7988/7988730/10727246.pdf,官方,一手,搜索摘要-未开原文,2026年2月：290-360
+广东,市级(广州),市场劳务官方,电焊工,元/工日,290-365,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）,2026-03(穗建造价〔2026〕41号),https://zfcj.gz.gov.cn/attachment/8/8007/8007381/10776680.pdf,官方,一手,搜索摘要-未开原文,2026年3月：290-365
+广东,市级(广州),市场劳务官方,电焊工,元/工日,295-365,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）,2026-04(穗建造价〔2026〕49号),https://zfcj.gz.gov.cn/attachment/8/8023/8023199/10814430.pdf,官方,一手,搜索摘要-未开原文（复审仅在查询含数字时复现，低一档）,2026年4月：295-365
+广东,市级(广州),市场劳务官方,管工,元/工日,280-345,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）,2026-04(穗建造价〔2026〕49号),https://zfcj.gz.gov.cn/attachment/8/8023/8023199/10814430.pdf,官方,一手,搜索摘要-未开原文（复审仅在查询含数字时复现，低一档）,管工工资价格范围（元/工日）：2026年4月：280-345
+广东,市级(广州),市场劳务官方,电焊工,元/工日,290-360,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）；非官方镜像，月份归属存疑,2026-05(穗建造价〔2026〕58号),https://www.gzsznjz.com/uploadfiles/2026/06/20260616223127777.pdf,非官方(转载官方),二手,搜索摘要-未开原文（非官方镜像，月份归属存疑，低一档）,电焊工：290-360元
+广东,市级(广州),市场劳务官方,电工,元/工日,280-335,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）；非官方镜像,2026-05,https://www.gzsznjz.com/uploadfiles/2026/06/20260616223127777.pdf,非官方(转载官方),二手,搜索摘要-未开原文（非官方镜像，月份归属存疑，低一档）,电工：280-335元
+广东,市级(广州),市场劳务官方,架子工,元/工日,290-370,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）；非官方镜像,2026-05,https://www.gzsznjz.com/uploadfiles/2026/06/20260616223127777.pdf,非官方(转载官方),二手,搜索摘要-未开原文（非官方镜像，月份归属存疑，低一档）,架子工（脚手架工）：290-370元
+广东,市级(广州),市场劳务官方,普工,元/工日,220-260,是,含工资性收入/社保/公积金/工会经费/教育经费/福利费；不含管理费/利润/税金；8小时=1工日（据穗建造价〔2026〕65号摘要）；非官方镜像,2026-05,https://www.gzsznjz.com/uploadfiles/2026/06/20260616223127777.pdf,非官方(转载官方),二手,搜索摘要-未开原文（非官方镜像，月份归属存疑，低一档）,普工：220-260元
+湖北,市级(武汉),市场劳务,电焊工(集体协商最低日工资),元/天,280,否,最低标准不是均价；8小时,2026-08-27,https://news.qq.com/rain/a/20260829A089GT00,非官方,二手,搜索摘要-未开原文,电焊工最低日薪为280元（8小时工作时长）
+湖北,市级(武汉),市场劳务,普工(集体协商最低日工资),元/天,189,否,最低标准,2026-08-27,https://news.qq.com/rain/a/20260828A0BEWS00,非官方,二手,搜索摘要-未开原文,普工每天不得少于189元
+湖北,市级(武汉),市场劳务,建筑业月最低工资,元/月,2880,否,最低标准；2023年为2507,2026-08,https://news.qq.com/rain/a/20260831A05JV000,非官方,二手,搜索摘要-未开原文,行业最低工资标准上调至2880元
+湖北,市级(武汉),市场招聘,焊工(机械厂),元/天,300-420,是,8小时；来源条目存疑,2026,https://m.qushigong.com/zhaogong/hb/z13752310.html,非官方,二手,搜索摘要-未开原文,武汉机械厂招焊工的日工资为300-420元/天（8个小时）
+湖北,市级(武汉),市场招聘,焊工(汽配厂),元/天,350,是,包吃住,2026前后,https://m.qushigong.com/zhaogong/hb/z13752310.html,非官方,二手,搜索摘要-未开原文,350元/天包吃住汉南汽配厂招聘焊工
+湖北,市级(武汉),市场招聘,电焊工,元/月,7500-9000,是,来源条目存疑,2026,https://www.zhaopin.com/zhaopin/a533df4d34ca421e8de5b3c38e02e491/,非官方,二手,搜索摘要-未开原文,武汉地区电焊工的月工资待遇大约在7500-9000元/月
+湖北,市级(武汉),市场招聘,焊工(1-3年经验),元/月,6011,是,商业薪资报告,2025,https://docs.ihr360.com/salary-report/830990,非官方,二手,搜索摘要-未开原文,1-3年经验…月薪6011元
+湖北,市级(武汉),市场招聘,焊工(3-5年经验),元/月,6640,是,商业薪资报告,2025,https://docs.ihr360.com/salary-report/830990,非官方,二手,搜索摘要-未开原文,3-5年…6640元
+湖北,市级(武汉),市场招聘,焊工(10年以上经验),元/月,7372,是,商业薪资报告,2025,https://docs.ihr360.com/salary-report/830990,非官方,二手,搜索摘要-未开原文,10年以上…7372元
+湖北,市级(武汉),市场招聘,数控车床工,元/月,6000-8000,是,3-5年经验；来源条目存疑,2025-2026,https://m.58.com/wh/zpjixie/49921281663513x.shtml,非官方,二手,搜索摘要-未开原文,数控车床岗位薪资范围为6000-8000元
+湖南,省级,市场招聘,无损检测员(探伤),元/月,6000-15000,是,69.8%岗位区间；1-3年经验9.0K；2025较2024降11%,2025,https://www.jobui.com/salary/hunan-wusunjiance/,非官方,二手,搜索摘要-未开原文,69.8%岗位拿6-15K/月
+湖南,市级(长沙),市场招聘,焊工(工程机械企业),元/月,9000-10000,是,单条招聘；来源条目存疑,2026,https://www.liepin.com/zpyahuhanhangong/,非官方,二手,搜索摘要-未开原文,月薪9-10k元
+湖南,市级(长沙),市场招聘,焊工/电工(人社局企业岗位需求表),元/月,6000-8000,是,单企业报价,2025Q1,https://file.m12333.cn/upfile/download/028b0b47-f016-2bcc-ef53-e2b39e8b6141.pdf,非官方(转载人社局),二手,搜索摘要-未开原文,焊工和电工的薪资待遇均为6000-8000元
+湖南,市级(长沙),市场招聘,数控立车工,元/月,8000-9000,是,税前；上6休1；来源条目存疑,2025-2026,https://www.zhaopin.com/zhaopin/6863b6b597ed406cb7549ccfb33ab68b/,非官方,二手,搜索摘要-未开原文,税前8000-9000元
+江西,市级(南昌),市场招聘,焊工(招聘标题),元/月,10000,是,数字出处为赣建价〔2020〕5号（原文URL未查到）；本URL是2026-03-01起施行、废止该文的新实施意见，仅作线索；已被取代,2026,https://www.zhaopin.com/jobdetail/CC267046780J40645383806.htm,非官方,二手,搜索摘要-未开原文,急聘焊工-月入10000
+安徽,市级(合肥),市场招聘,钢结构焊工(招聘标题),元/月,10000,是,包住；单条招聘,2025-12-01起施行（皖交建函〔2025〕285号；人民网2025-09-11报道）,https://www.zhaopin.com/jobdetail/CC619072720J40832999116.htm,非官方,二手,搜索摘要-未开原文,急招焊工 月入10000（包住）
+河南,市级(郑州),市场招聘,焊工年薪P50,元/年,67728,是,商业报告；来源条目存疑,2025,https://docs.ihr360.com/salary-report/723766,非官方,二手,搜索摘要-未开原文,50%的焊工年薪低于67728元
+河南,市级(郑州),市场招聘,焊工年薪P75,元/年,83055,是,商业报告；来源条目存疑,2025,https://docs.ihr360.com/salary-report/723766,非官方,二手,搜索摘要-未开原文,75%低于83055元
+全国,全国,市场招聘,焊工,元/月,6000-10000,是,职友集60.5%岗位区间,2025-2026,https://www.jobui.com/salary/quanguo-hangong/,非官方,二手,搜索摘要-未开原文,60.5%的岗位拿6-10K/月
+全国,全国,市场招聘,钳工技师,元/月,6000-10000,是,职友集59%岗位区间,2025-2026,https://www.jobui.com/salary/quanguo-qiangongjishi/,非官方,二手,搜索摘要-未开原文,59%的岗位月薪在6-10K
+全国,全国,市场招聘,机修钳工,元/月,7000-10000,是,来源条目存疑,未说明,https://baike.baidu.com/item/%E6%9C%BA%E4%BF%AE%E9%92%B3%E5%B7%A5/5474993,非官方,二手,搜索摘要-未开原文,机修钳工的工资一般在7000-10000元之间
+全国,全国,市场招聘,探伤工,元/月,6000-10000,是,64.1%岗位区间；来源条目存疑,2025,https://www.jobui.com/gangwei/tanshanggong/,非官方,二手,搜索摘要-未开原文,64.1%的岗位拿6-10K/月
+全国,未说明,市场招聘,二保焊工,元/天,400-450,是,地区不明；来源条目存疑,2026,https://www.job5156.com/index/zhaopin_zwhangong/,非官方,二手,搜索摘要-未开原文,二保焊工400-450元/天
+全国,全国,市场劳务,吊车司机(二三线城市),元/天,700-800,否,驾驶员口径，非起重/司索工,2025,https://m.sohu.com/a/865189786_120136258/,非官方,二手,搜索摘要-未开原文,吊车司机日薪能稳定在700-800元
+全国,全国,统计参照,生产制造及有关人员年平均工资,元/年,80739,否,国家统计局 规模以上企业就业人员分岗位 年平均工资（非城镇单位口径）,2025年数据(2026-05发布),https://finance.sina.com.cn/wm/2026-05-16/doc-inhxzzur2844802.shtml,非官方(转载统计局),二手,搜索摘要-未开原文,生产制造及有关人员年平均工资为80739元
+```
+
+=== 文件: labor_cost.py ===
+```
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""C4 人工单价工具（仅 Python 3 标准库，可离线跑）。
+
+用途：读 `人工单价.csv`，把不同单位的价格统一成「元/日」，按省×工种汇总，
+比较定额价与市场价的差距，并按「人天 × 日薪 × (1+附加率)」正着算人工成本。
+
+用法：
+    python3 labor_cost.py summary 人工单价.csv            # 按省×类型汇总日薪
+    python3 labor_cost.py gap 人工单价.csv                # 定额 vs 市场 比值
+    python3 labor_cost.py cost --days 40 --daily 450 --overhead 0.25
+    python3 labor_cost.py test                            # 跑自带测试
+
+单位换算约定（写死在这里，改口径就改这里）：
+    元/工日、元/天、元/日 → 原值
+    元/小时 → ×8
+    元/月   → ÷21.75（国家规定月计薪天数）
+    元/年   → ÷(21.75×12)
+区间价「300-400」取中点；无法解析的价格跳过并计数，不猜。
+"""
+import csv
+import re
+import statistics
+import sys
+import unittest
+from collections import defaultdict
+
+MONTH_PAY_DAYS = 21.75
+HOURS_PER_DAY = 8
+
+UNIT_FACTORS = [
+    (re.compile(r"工日|/天|/日|每天|日薪"), 1.0),
+    (re.compile(r"小时|/时|时薪"), float(HOURS_PER_DAY)),
+    (re.compile(r"月"), 1.0 / MONTH_PAY_DAYS),
+    (re.compile(r"年"), 1.0 / (MONTH_PAY_DAYS * 12)),
+]
+
+_NUM = re.compile(r"\d+(?:\.\d+)?")
+
+
+def parse_price(text):
+    """'350' → 350.0；'300-400' / '300～400' → 350.0；解析不了 → None。"""
+    if text is None:
+        return None
+    nums = [float(x) for x in _NUM.findall(str(text).replace(",", "").replace("，", ""))]
+    if not nums:
+        return None
+    if len(nums) >= 2 and re.search(r"[-~～—至到]", str(text)):
+        return (nums[0] + nums[1]) / 2
+    return nums[0]
+
+
+def to_daily(price, unit):
+    """按单位把价格换成元/日；单位不认识 → None。"""
+    if price is None or not unit:
+        return None
+    for pat, factor in UNIT_FACTORS:
+        if pat.search(unit):
+            return round(price * factor, 2)
+    return None
+
+
+def load_rows(path):
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.DictReader(f))
+    out, skipped = [], 0
+    for r in rows:
+        daily = to_daily(parse_price(r.get("价格")), r.get("单位", ""))
+        if daily is None:
+            skipped += 1
+            continue
+        r["日薪"] = daily
+        out.append(r)
+    return out, skipped
+
+
+def is_quota(row):
+    return "定额" in row.get("类型", "")
+
+
+def comparable(rows):
+    """去掉「纳入比较=否」的行（最低工资标准、交通口径、已作废单价、统计年均等）。"""
+    return [r for r in rows if r.get("纳入比较", "是") != "否"]
+
+
+def _median_by_trade(rows):
+    """先按工种取中位，再在工种之间取中位：同一工种多期重复发布（如广州电焊工 1–5 月）只算一票。"""
+    by_trade = defaultdict(list)
+    for r in rows:
+        by_trade[r.get("工种", "")].append(r["日薪"])
+    return statistics.median(statistics.median(v) for v in by_trade.values())
+
+
+def summary(rows):
+    """{(省份, 类型): [中位日薪, 条数]}；只用可比行，工种先聚合。"""
+    groups = defaultdict(list)
+    for r in comparable(rows):
+        groups[(r.get("省份", ""), r.get("类型", ""))].append(r)
+    return {k: [round(_median_by_trade(v), 2), len(v)] for k, v in sorted(groups.items())}
+
+
+def gap(rows):
+    """每省：市场中位日薪 / 定额中位日薪。任一侧缺数据 → 该省不出比值。
+    只用「纳入比较」≠否 的行：最低工资标准、交通口径、已作废单价、统计年均等口径不可比，
+    由数据表逐行显式标注，工具不猜。"""
+    quota, market = defaultdict(list), defaultdict(list)
+    for r in comparable(rows):
+        (quota if is_quota(r) else market)[r.get("省份", "")].append(r)
+    res = {}
+    for prov in sorted(set(quota) | set(market)):
+        q = round(_median_by_trade(quota[prov]), 2) if quota[prov] else None
+        m = round(_median_by_trade(market[prov]), 2) if market[prov] else None
+        ratio = round(m / q, 3) if q and m else None
+        res[prov] = {"定额中位": q, "市场中位": m, "市场/定额": ratio}
+    return res
+
+
+def labor_cost(days, daily, overhead=0.0):
+    """人天 × 日薪 × (1+附加率)。附加率 = 社保/管理费/利润等，调用方按口径给。"""
+    if days < 0 or daily < 0 or overhead < 0:
+        raise ValueError("人天、日薪、附加率都不能为负")
+    return round(days * daily * (1 + overhead), 2)
+
+
+def _cli(argv):
+    if not argv or argv[0] == "test":
+        unittest.main(argv=[sys.argv[0]], exit=True)
+    cmd = argv[0]
+    if cmd == "cost":
+        import argparse
+        p = argparse.ArgumentParser()
+        p.add_argument("--days", type=float, required=True)
+        p.add_argument("--daily", type=float, required=True)
+        p.add_argument("--overhead", type=float, default=0.0)
+        a = p.parse_args(argv[1:])
+        print(labor_cost(a.days, a.daily, a.overhead))
+        return
+    rows, skipped = load_rows(argv[1])
+    print(f"# 有效 {len(rows)} 行，价格/单位无法解析跳过 {skipped} 行")
+    if cmd == "summary":
+        for (prov, typ), (med, n) in summary(rows).items():
+            print(f"{prov},{typ},中位日薪={med},n={n}")
+    elif cmd == "gap":
+        for prov, d in gap(rows).items():
+            print(f"{prov},定额中位={d['定额中位']},市场中位={d['市场中位']},市场/定额={d['市场/定额']}")
+    else:
+        sys.exit(f"未知命令 {cmd}")
+
+
+class _Tests(unittest.TestCase):
+    def test_parse_price(self):
+        self.assertEqual(parse_price("350"), 350.0)
+        self.assertEqual(parse_price("300-400"), 350.0)
+        self.assertEqual(parse_price("6,500"), 6500.0)
+        self.assertEqual(parse_price("300～400元"), 350.0)
+        self.assertIsNone(parse_price("未查到"))
+
+    def test_to_daily(self):
+        self.assertEqual(to_daily(350, "元/工日"), 350)
+        self.assertEqual(to_daily(50, "元/小时"), 400)
+        self.assertEqual(to_daily(6525, "元/月"), 300)
+        self.assertIsNone(to_daily(100, "吨"))
+
+    def test_gap_and_summary(self):
+        rows = [
+            {"省份": "甲省", "类型": "定额官方", "工种": "技工", "日薪": 200.0},
+            {"省份": "甲省", "类型": "市场招聘", "工种": "焊工", "日薪": 300.0},
+            {"省份": "甲省", "类型": "市场招聘", "工种": "钳工", "日薪": 400.0},
+            {"省份": "乙省", "类型": "市场招聘", "工种": "焊工", "日薪": 300.0},
+            {"省份": "甲省", "类型": "市场劳务", "工种": "普工", "日薪": 9999.0, "纳入比较": "否"},
+        ]
+        g = gap(rows)
+        self.assertEqual(g["甲省"]["市场/定额"], 1.75)
+        self.assertIsNone(g["乙省"]["市场/定额"])
+        self.assertEqual(summary(rows)[("甲省", "市场招聘")], [350.0, 2])
+        self.assertNotIn(("甲省", "市场劳务"), summary(rows))
+
+    def test_repeated_trade_counts_once(self):
+        # 焊工重复发布 3 期不应压过钳工：工种中位 [300, 500] → 400，而非逐行中位 300
+        rows = [{"省份": "甲", "类型": "市场劳务", "工种": "焊工", "日薪": 300.0}] * 3 + \
+               [{"省份": "甲", "类型": "市场劳务", "工种": "钳工", "日薪": 500.0}]
+        self.assertEqual(summary(rows)[("甲", "市场劳务")][0], 400.0)
+
+    def test_labor_cost(self):
+        self.assertEqual(labor_cost(40, 450, 0.25), 22500.0)
+        with self.assertRaises(ValueError):
+            labor_cost(-1, 100)
+
+    def test_load_rows(self):
+        import os, tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8") as f:
+            f.write("省份,类型,单位,价格\n甲省,定额官方,元/工日,120\n甲省,市场招聘,元/月,未查到\n")
+        try:
+            rows, skipped = load_rows(f.name)
+            self.assertEqual((len(rows), skipped), (1, 1))
+        finally:
+            os.unlink(f.name)
+
+
+if __name__ == "__main__":
+    _cli(sys.argv[1:])
+```
