@@ -11,11 +11,11 @@
 ## 出片
 
 **接手先读 [HANDOFF.md](HANDOFF.md)**：环境版本、踩坑记录、工作流、决策理由都在那里。
-成片与全部中间物（逐帧图、分轨、字体/底板/依赖离线包）在 GitHub Release `KMVideo-claude-pop-v1`。
+成片与全部中间物（分轨、字体/底板/依赖离线包、审片图）在交付包 `KM_claude_pop_bundle.tar`（拼接见 HANDOFF §7）；逐帧图从母版拆。
 
 ```bash
-KMVideo/claude_pop/fetch_release.sh video      # 只取成片（校验 sha256）
-KMVideo/claude_pop/fetch_release.sh build      # 取回全部中间物，之后改字幕/配乐只需局部重渲
+SRC=<交付包文件夹> KMVideo/claude_pop/fetch_release.sh video   # 只取成片（校验 sha256）
+SRC=<交付包文件夹> KMVideo/claude_pop/fetch_release.sh build   # 取回全部中间物，之后改字幕/配乐只需局部重渲
 CHROME_PATH=/path/to/chromium KMVideo/claude_pop/build.sh      # 出片（有显卡加 GL= 走硬件渲染）
 KMVideo/claude_pop/verify.sh out/KM_claude_pop.mp4             # 体检：规格/帧数/响度/真峰值/卡点
 ```
@@ -44,7 +44,7 @@ node render.mjs --soft-gl --page=../KMVideo/claude_pop/index.html --sheet=16.1,2
 | `src/film.js` | 一镜到底的镜头路径与全部表演 |
 | `music.py` | 原创配乐 + 59 个卡通音效（尤克里里、口哨主旋律、钢片琴、大号、铜管、鼓组；numpy 合成） |
 | `build.sh` / `verify.sh` | 一键出片 / 成片体检 |
-| `fetch_release.sh` | 从 Release 下载并校验全部产物 |
+| `fetch_release.sh` | 从交付包文件夹（或 Release）取回并校验全部产物 |
 | `tools/invalidate.sh` | 删掉某段时间的旧帧，只重渲这一段 |
 | `tools/mix_report.py` | 混音体检表（分段响度、分轨电平、音效 vs 音乐） |
 | `HANDOFF.md` | 交接手册 |
