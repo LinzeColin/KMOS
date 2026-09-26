@@ -10,12 +10,19 @@
 
 ## 出片
 
+**接手先读 [HANDOFF.md](HANDOFF.md)**：环境版本、踩坑记录、工作流、决策理由都在那里。
+成片与全部中间物（逐帧图、分轨、字体/底板/依赖离线包）在 GitHub Release `KMVideo-claude-pop-v1`。
+
 ```bash
-CHROME_PATH=/path/to/chromium KMVideo/claude_pop/build.sh out.mp4
+KMVideo/claude_pop/fetch_release.sh video      # 只取成片（校验 sha256）
+KMVideo/claude_pop/fetch_release.sh build      # 取回全部中间物，之后改字幕/配乐只需局部重渲
+CHROME_PATH=/path/to/chromium KMVideo/claude_pop/build.sh      # 出片（有显卡加 GL= 走硬件渲染）
+KMVideo/claude_pop/verify.sh out/KM_claude_pop.mp4             # 体检：规格/帧数/响度/真峰值/卡点
 ```
 
-步骤：下载并校验字体（`fonts/SOURCES.txt`）→ `npm ci`（ClaudeAnimationBase）→ 预渲染 4 块水彩天空底板 → 合成配乐 →
-逐帧渲染（可断点续跑，`WORKERS` 控制并行页数）→ ffmpeg 合成。无 GPU 的云主机约 40–60 分钟。
+`build.sh` 步骤：校验字体（`fonts/SOURCES.txt`）→ `npm ci`（ClaudeAnimationBase）→ 预渲染 4 块水彩天空底板 → 合成配乐 →
+逐帧渲染（可断点续跑，已有的帧跳过，`WORKERS` 控制并行页数）→ ffmpeg 出母版 / 平台版 / 分享版 / 封面 → `verify.sh`。
+无 GPU 的 4 核云主机实测 5–11 秒/帧，全片约 1.5–3 小时；帧已齐全时只剩配乐 + 编码。
 
 检查某几个时刻（改完动画必做，先看再渲染全片）：
 
@@ -36,7 +43,11 @@ node render.mjs --soft-gl --page=../KMVideo/claude_pop/index.html --sheet=16.1,2
 | `src/plates.js` | 4 块水彩天空底板（灰 / 金 / 蓝 / 噩梦紫） |
 | `src/film.js` | 一镜到底的镜头路径与全部表演 |
 | `music.py` | 原创配乐 + 59 个卡通音效（尤克里里、口哨主旋律、钢片琴、大号、铜管、鼓组；numpy 合成） |
-| `build.sh` | 一键出片 |
+| `build.sh` / `verify.sh` | 一键出片 / 成片体检 |
+| `fetch_release.sh` | 从 Release 下载并校验全部产物 |
+| `tools/invalidate.sh` | 删掉某段时间的旧帧，只重渲这一段 |
+| `tools/mix_report.py` | 混音体检表（分段响度、分轨电平、音效 vs 音乐） |
+| `HANDOFF.md` | 交接手册 |
 
 引擎是仓库里的 [`ClaudeAnimationBase`](../../ClaudeAnimationBase)（p5.js + p5.brush）。本片给它加了几项向后兼容的开关：
 `PROJECT.w/h`（竖屏）、`PROJECT.fastFill`（无 GPU 时把角色的水彩填充换成平涂，大面积水彩改走预渲染底板）、
