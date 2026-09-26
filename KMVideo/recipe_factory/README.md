@@ -64,7 +64,7 @@ Blender 工作间现有 3 部成片（N03 / N04 / N06）用配方语言登记在
 
 ## 5. 部署（全部在本机与 SMB，不连接 GitHub）
 
-1. 解压，按 `AGENT_PROMPTS.md §0` 派一个部署 agent：填 `workspace.yaml`，建 SMB 目录，装依赖，验证引擎，登记 Blender 工作间成片
+1. 解压，把 `LOCAL_AGENT_PROMPT.md` 整段发给本地 agent：它按 `LOCAL_SETUP.md` 装环境、填 `workspace.yaml`、同步 SMB、验证出片链路
 2. 每条车道派一个车道 agent（`§1`），把 `{LANE}` 换成车道 ID
 3. 派一个质检调度 agent（`§2`）
 4. Owner 只做两件事：人眼验收（给 `score`）、决定发布
@@ -104,6 +104,8 @@ python3 engines/capture.py 成片.mp4 接触表.png --sheet 20       # 任意成
 | `factory.py` | 抽样、演化、闸门、状态 |
 | `GATES.md` | 固定层、四要素、七维 |
 | `AGENT_PROMPTS.md` | 部署 / 车道 / 质检调度 / 单片提示词 |
+| `LOCAL_SETUP.md` / `setup_local.sh` | 本机部署手册（环境、出片命令、云端踩坑表）与一键环境检查 |
+| `LOCAL_AGENT_PROMPT.md` | 发给本地部署 agent 的 prompt |
 | `engines/` | 通用采集器与各引擎模板 |
 | `recipes/` | R001、INK-002 两部成片的配方，5 条车道首份配方，EXT 登记的 3 部 Blender 成片 |
 | `refs/` | 《故事型广告 S1 创作基准》《KMDY 共同底座》原文 |
