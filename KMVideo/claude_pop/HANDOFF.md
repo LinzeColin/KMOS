@@ -19,7 +19,7 @@ KMVideo/claude_pop/fetch_release.sh video
 
 # B. 要改字幕 / 配乐 / 片尾文案：先拿回全部中间物（逐帧图 1104 张、字体、底板、依赖），再按需重渲
 KMVideo/claude_pop/fetch_release.sh build
-#   改配乐（music.py / cues.js 的 sfx）：不用重渲任何帧，直接跑 build.sh，几分钟出片
+#   改配乐（music.py / cues.js 的 sfx）：不用重渲任何帧，直接跑 build.sh（帧齐全时实测 6 分 52 秒出四件成品）
 #   改某段画面（src/*.js 或 cues.js 字幕）：先删掉那段的旧帧，再跑 build.sh，只补删掉的帧
 KMVideo/claude_pop/tools/invalidate.sh 20.5 24          # 删 20.5–24 秒的帧（帧号 = round(秒×24)）
 CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" GL= KMVideo/claude_pop/build.sh

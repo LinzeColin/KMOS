@@ -22,7 +22,7 @@ KMVideo/claude_pop/verify.sh out/KM_claude_pop.mp4             # 体检：规格
 
 `build.sh` 步骤：校验字体（`fonts/SOURCES.txt`）→ `npm ci`（ClaudeAnimationBase）→ 预渲染 4 块水彩天空底板 → 合成配乐 →
 逐帧渲染（可断点续跑，已有的帧跳过，`WORKERS` 控制并行页数）→ ffmpeg 出母版 / 平台版 / 分享版 / 封面 → `verify.sh`。
-无 GPU 的 4 核云主机实测 5–11 秒/帧，全片约 1.5–3 小时；帧已齐全时只剩配乐 + 编码。
+无 GPU 的 4 核云主机实测 5–11 秒/帧，全片约 1.5–3 小时；帧已齐全时只剩配乐 + 编码（实测 6 分 52 秒）。
 
 检查某几个时刻（改完动画必做，先看再渲染全片）：
 
