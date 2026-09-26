@@ -14,7 +14,8 @@
 //   Standalone loops (LOOPS in the page): add --loop=<name> to any of the above (times are then loop times), or
 //     node render.mjs --loop=emotions --png --out=out/loop_emotions                          one cycle as PNGs (for GIFs)
 //   Music: --audio=assets/song.mp3 (or PROJECT.audio) is muxed into --clip and --encode. Other flags: --fps=24,
-//   --chrome=<path to Chrome/Chromium>, --page=<another studio page>, --flat (watercolour fills painted as flat washes;
+//   --chrome=<path to Chrome/Chromium>, --page=<another studio page>, --density=<0..1> (paint at a lower
+//   resolution and scale up; lettering stays sharp; 0.667 halves the cost), --flat (watercolour fills painted as flat washes;
 //   on by default with --soft-gl, where a fill costs tens of seconds per 1080p frame and a flat wash about 3).
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
@@ -71,7 +72,7 @@ async function openPage(tag = '') {
   const page = await browser.newPage();
   page.on('console', m => { if (['error', 'warn'].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
   page.on('pageerror', e => console.log(`[page error${tag}]`, e.message));
-  await page.goto(pathToFileURL(resolve(args.page || 'studio.html')).href + '?render' + (args.flat || args['soft-gl'] ? '&flat' : ''), { waitUntil: 'networkidle0' });
+  await page.goto(pathToFileURL(resolve(args.page || 'studio.html')).href + '?render' + (args.flat || args['soft-gl'] ? '&flat' : '') + (args.density ? '&density=' + args.density : ''), { waitUntil: 'networkidle0' });
   await page.waitForFunction('window.ready === true', { timeout: 60000 });
   if (args.loop) {
     const ok = await page.evaluate(name => { if (!LOOPS[name]) return false; window.LOOP = LOOPS[name]; return true; }, args.loop);

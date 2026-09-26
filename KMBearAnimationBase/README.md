@@ -12,7 +12,7 @@
 npm install
 node render.mjs --sheet=1,3,5 --soft-gl --out=out/check.jpg     # 无显卡机器：软件渲染 + 平涂（1080p 每帧约 3 秒）
 node render.mjs --clip --out=out/demo.mp4                         # 有显卡机器：原版水彩
-node render.mjs --clip --soft-gl --out=out/demo.mp4               # 无显卡机器出片
+node render.mjs --clip --soft-gl --density=0.6667 --out=out/demo.mp4   # 无显卡机器出片：画面按 2/3 分辨率绘制再放大，字幕保持清晰，耗时减半
 ```
 浏览器找不到时加 `--chrome=<路径>` 或设 `CHROME_PATH`。`studio.html` 用 Chrome 打开可拖动时间轴。
 
@@ -54,6 +54,7 @@ clawd(1250, 900, 18, { ...feel('happy', t), flip: true });   // 同台
 | 项 | 本套件 |
 |---|---|
 | 角色 | 开明小熊（`src/kmbear.js`）+ Clawd |
+| 分辨率 | `--density=0.6667`：笔触按 2/3 分辨率绘制后放大到 1080p，字幕与 Logo 仍按原分辨率合成；无显卡时每帧约 1.7 秒 |
 | 平涂模式 | `--flat` / `--soft-gl` 自动启用：水彩填充改成等效平涂，无显卡机器 1080p 每帧约 3 秒（水彩填充时 40 秒以上）；接触表打印的 ms/frame 只算下发绘制指令，真实耗时在读回画面时 |
 | 字体 | 本地字体，离线可用：Permanent Marker（Apache 2.0）、得意黑 Smiley Sans（OFL，中文） |
 | 中文字 | `letter(txt, x, y, size, col, { font: '64px Smiley' })` |

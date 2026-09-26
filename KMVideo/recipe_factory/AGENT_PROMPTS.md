@@ -54,7 +54,7 @@
 长片（45 秒以上，或 duration 为 s45/s60）按 ClaudeVideo（PDoomVideo）的做法分章：
 先写全片 STORYBOARD.md（一个贯穿的场景或道具、每章一次递进、首尾呼应），再写一份给子 agent 的章节简报，
 每章一个文件、一个子 agent 并行绘制，最后自己统一检查接缝处的转场。
-INK 车道用 KMBearAnimationBase：开明小熊 kmbear() 与 Clawd clawd() 同台，无显卡机器加 --soft-gl（平涂，1080p 约 3 秒/帧，62 秒片约 80 分钟）。
+INK 车道用 KMBearAnimationBase：开明小熊 kmbear() 与 Clawd clawd() 同台，无显卡机器加 --soft-gl（平涂）与 --density=0.6667（2/3 分辨率绘制），1080p 约 1.7 秒/帧，62 秒片约 45 分钟。
 
 闸门拒绝时（factory.py 报「找不到满足闸门的配方」）：说明车道的组合空间在收窄。
 这时做一次衍变：给本车道提议一个新的因子取值（新画风子类、新叙事母型或新惊喜机制），
