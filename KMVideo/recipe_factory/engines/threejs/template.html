@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- three.js 引擎模板：renderAt(t) 纯函数 + 相机/物体全部由 t 计算。复制本文件到 productions/<RID>/ 后改场景。 -->
+<style>html,body{margin:0;background:#0f2a21}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three.module.js"}}</script>
+</head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script type="module">
+import * as THREE from 'three';
+const BRAND = {green: 0x1e4638, cream: 0xf4efe3, gold: 0xc9a24a, deep: 0x0f2a21};
+window.DURATION = 6;
+const cv = document.getElementById('c');
+const R = new THREE.WebGLRenderer({canvas: cv, antialias: true, preserveDrawingBuffer: true});
+R.setSize(1080, 1920, false);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(BRAND.deep);
+const cam = new THREE.PerspectiveCamera(35, 1080 / 1920, 0.1, 200);
+scene.add(new THREE.HemisphereLight(BRAND.cream, BRAND.deep, 1.2));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(6, 10, 8); scene.add(key);
+
+// 示例物体：回转窑筒体 + 两道轮带（X 光模式：外壳半透明，看见内部）
+const kiln = new THREE.Group(); scene.add(kiln);
+const shell = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 9, 48, 1, true),
+  new THREE.MeshStandardMaterial({color: BRAND.cream, metalness: .6, roughness: .35, side: THREE.DoubleSide, transparent: true}));
+shell.rotation.z = Math.PI / 2; kiln.add(shell);
+const lining = new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, 8.8, 32), new THREE.MeshStandardMaterial({color: 0xb5542c, roughness: .9}));
+lining.rotation.z = Math.PI / 2; kiln.add(lining);
+for (const x of [-2.6, 2.6]) {
+  const tyre = new THREE.Mesh(new THREE.TorusGeometry(1.22, .2, 16, 64), new THREE.MeshStandardMaterial({color: BRAND.gold, metalness: .9, roughness: .25}));
+  tyre.rotation.y = Math.PI / 2; tyre.position.x = x; kiln.add(tyre);
+}
+const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+
+window.renderAt = (t) => {
+  const k = ease(clamp(t / DURATION));
+  const ang = -0.6 + k * 2.2;                                   // 环绕镜头
+  const rad = 22 - k * 8;
+  cam.position.set(Math.sin(ang) * rad, 3 + k * 2, Math.cos(ang) * rad);
+  cam.lookAt(0, 0, 0);
+  kiln.rotation.x = t * 0.8;                                    // 窑体自转
+  shell.material.opacity = 1 - 0.8 * clamp((t - 2) / 1.5);      // 2–3.5s 进入 X 光
+  R.render(scene, cam);
+};
+window.ready = Promise.resolve(true);
+</script></body></html>

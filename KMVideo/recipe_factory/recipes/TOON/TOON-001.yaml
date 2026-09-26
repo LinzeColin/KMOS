@@ -1,0 +1,31 @@
+id: TOON-001
+lane: TOON
+parent: null
+title: ''
+status: draft
+score: null
+factors:
+  value_core: expression
+  narrative: letter
+  twist: rule_break
+  protagonist: part
+  audience_role: operator
+  medium: chalkboard
+  business: conveyor
+  emotion_arc: tension_release
+  industry: equip_mfg
+  hook: result_first
+  camera: pov
+  music: guofeng
+  voice: dialogue
+  duration: s45
+  text_policy: minimal_text
+  palette: gold_night
+  transition: brush_wipe
+  cta: series_next
+brief: ''
+facts: []
+storyboard: ''
+output: ''
+qc: ''
+metrics: {}

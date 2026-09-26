@@ -1,13 +1,19 @@
 id: R001
+lane: TOON
+parent: null
 title: 窑宝的烦恼（30 秒单镜头卡点动画）
 status: shipped
+score: null
 factors:
   value_core: surprise
   narrative: rescue_reversal
+  twist: physical_demo
   protagonist: machine
+  audience_role: plant_boss
   medium: flat_vector
   business: brand_overview
   emotion_arc: anxiety_relief
+  industry: cement
   hook: anomaly
   camera: oner
   music: electro_pop
@@ -19,7 +25,9 @@ factors:
   cta: search_handle
 brief: 回转窑轮带磨损→老板焦虑→开明上门现场修复五工位蒙太奇→咖啡测试彩蛋→服务版图→片尾。
 facts:
-  - 近万家企业、30 多个省、18 个国家；齿轮/轮带在线修复 —— 官网简介 whkm.cn/about（搜索摘要，待核）
+  - 近万家企业、30 多个省、18 个国家；齿轮/轮带在线修复 —— 官网简介 whkm.cn/about（搜索摘要，待核原件）
   - 轮带、托轮、筒体、调窑；测量→加工→复检 —— KMDatabase/data/KMVideo/素材登记表_public.md
 storyboard: KMVideo/promo_30s/README.md#时间轴
 output: KMVideo/promo_30s（render.html / music.py / render.py）；成片 v2 已去右上角水印
+qc: 旧片先于 GATES.md 完成，用色为深蓝橙黄，数字待核原件；作为 TOON 车道种子，不作为合规样板
+metrics: {}

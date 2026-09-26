@@ -1,14 +1,14 @@
 """把 render.html 逐帧渲染成 PNG 流并交给 ffmpeg 编码，最后混入 music.py 生成的 BGM。
 
+浏览器：环境变量 CHROME_PATH；未设置时用 Playwright 自带 Chromium。
 用法：python3 render.py OUT.mp4 [--frames 0,90,300] [--fps 30]
 --frames 只导出指定帧为 PNG（目视检查用）。
 """
-import argparse, base64, pathlib, subprocess, sys, time
+import argparse, base64, os, pathlib, subprocess, sys, time
 from playwright.sync_api import sync_playwright
 import imageio_ffmpeg
 
 HERE = pathlib.Path(__file__).resolve().parent
-CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 DUR = 30.0
 
 def main():
@@ -20,7 +20,8 @@ def main():
     a = ap.parse_args()
     out = pathlib.Path(a.out)
     with sync_playwright() as p:
-        b = p.chromium.launch(executable_path=CHROME, args=["--allow-file-access-from-files"])
+        kw = {"executable_path": os.environ["CHROME_PATH"]} if os.environ.get("CHROME_PATH") else {}
+        b = p.chromium.launch(args=["--allow-file-access-from-files"], **kw)
         pg = b.new_page(viewport={"width": 1080, "height": 1920})
         pg.goto((HERE / "render.html").as_uri())
         pg.evaluate("window.ready")

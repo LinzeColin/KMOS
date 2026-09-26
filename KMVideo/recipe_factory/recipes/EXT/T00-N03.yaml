@@ -1,0 +1,27 @@
+id: T00-N03
+lane: EXT
+parent: null
+title: 新件短了一截，开明做现场适配
+status: rejected
+score: 15
+mapped_by: KMDY-RF 按 KMDY 登记表的标题、STY、形态推断 L0；L1/L2 为占位值，只供闸门避让
+source: /Volumes/share/03_资料库/KMDouyin/KMDY/登记/事件.jsonl
+factors:
+  value_core: gain
+  narrative: project_progress
+  twist: info_gap
+  protagonist: none
+  audience_role: maint_engineer
+  medium: blender_mix
+  business: chem_piping
+  emotion_arc: anxiety_relief
+  industry: generic
+  hook: counter_intuitive_q
+  camera: montage
+  music: percussion
+  voice: none
+  duration: s30
+  text_policy: subtitle_bar
+  palette: green_lead
+  transition: match_cut
+  cta: comment_q

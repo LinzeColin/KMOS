@@ -1,0 +1,31 @@
+id: TYPE-001
+lane: TYPE
+parent: null
+title: ''
+status: draft
+score: null
+factors:
+  value_core: gain
+  narrative: object_monologue
+  twist: flow_only
+  protagonist: expert_vo
+  audience_role: operator
+  medium: kinetic_type
+  business: inspection
+  emotion_arc: nostalgia_pride
+  industry: steel
+  hook: anomaly
+  camera: macro
+  music: none_foley
+  voice: gibberish
+  duration: s60
+  text_policy: zh_kinetic
+  palette: cream_lead
+  transition: iris
+  cta: search_handle
+brief: ''
+facts: []
+storyboard: ''
+output: ''
+qc: ''
+metrics: {}

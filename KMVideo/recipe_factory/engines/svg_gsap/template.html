@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- SVG + GSAP 引擎模板：时间线 paused，renderAt(t) = tl.seek(t)。适合蓝图线稿、排版动效、数据可视化。 -->
+<style>html,body{margin:0;background:#1e4638}svg{display:block}
+text{font-family:'Noto Sans SC','PingFang SC',sans-serif;font-weight:900}</style>
+<script src="../vendor/gsap.min.js"></script>
+</head><body>
+<svg id="s" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0H0V40" fill="none" stroke="#f4efe3" stroke-opacity=".12"/></pattern></defs>
+  <rect width="1080" height="1920" fill="url(#grid)"/>
+  <circle id="tyre" cx="540" cy="900" r="300" fill="none" stroke="#f4efe3" stroke-width="6"/>
+  <circle id="ideal" cx="540" cy="900" r="300" fill="none" stroke="#c9a24a" stroke-width="4" stroke-dasharray="14 10"/>
+  <line id="dim" x1="240" y1="1300" x2="840" y2="1300" stroke="#c9a24a" stroke-width="4"/>
+  <text id="lab" x="540" y="1380" fill="#c9a24a" font-size="56" text-anchor="middle">Ø 标注动画</text>
+  <text id="title" x="540" y="420" fill="#f4efe3" font-size="92" text-anchor="middle">看起来是圆的</text>
+</svg>
+<script>
+window.DURATION = 6;
+const len = 2 * Math.PI * 300;
+gsap.set(['#tyre', '#ideal'], {strokeDasharray: len, strokeDashoffset: len});
+const tl = gsap.timeline({paused: true});
+tl.to('#tyre', {strokeDashoffset: 0, duration: 1.5, ease: 'power2.inOut'})
+  .from('#title', {y: 380, opacity: 0, duration: .6, ease: 'back.out(2)'}, 0.3)
+  .to('#tyre', {attr: {r: 300}, scaleX: 1.04, transformOrigin: '540px 900px', duration: .8}, 2)
+  .set('#ideal', {strokeDasharray: '14 10', strokeDashoffset: 0}, 2.2)
+  .from('#ideal', {opacity: 0, duration: .4}, 2.2)
+  .from('#dim', {scaleX: 0, transformOrigin: '540px 1300px', duration: .6}, 3)
+  .from('#lab', {opacity: 0, y: 1420, duration: .4}, 3.4)
+  .to('#title', {text: '', opacity: 0, duration: .3}, 4.6)
+  .call(() => { document.getElementById('title').textContent = '差在哪？'; }, null, 4.9)
+  .to('#title', {opacity: 1, fill: '#c9a24a', duration: .3}, 4.9);
+tl.duration(DURATION);
+window.renderAt = (t) => { tl.seek(t, false); };
+window.ready = document.fonts.ready.then(() => true);
+</script></body></html>

@@ -1,0 +1,31 @@
+id: VOX-001
+lane: VOX
+parent: null
+title: ''
+status: draft
+score: null
+factors:
+  value_core: surprise
+  narrative: time_lapse_life
+  twist: analogy
+  protagonist: toon_cast
+  audience_role: newcomer
+  medium: neon_cyber
+  business: env_equip
+  emotion_arc: awe
+  industry: mining
+  hook: direct_address
+  camera: montage
+  music: guofeng
+  voice: dialogue
+  duration: s60
+  text_policy: subtitle_bar
+  palette: mono_gold
+  transition: match_cut
+  cta: search_handle
+brief: ''
+facts: []
+storyboard: ''
+output: ''
+qc: ''
+metrics: {}
