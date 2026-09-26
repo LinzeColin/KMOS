@@ -1,0 +1,207 @@
+# 视频配方因子库：一部短视频 = 每个因子各取一个值。
+# layer 决定改动它会让片子变多少：
+#   L0 根本因素：换一个值，整部片子就是另一部片子（去同质化靠它们）
+#   L1 结构因素：片子还是那部，但观感、节奏、传播方式明显不同
+#   L2 表层因素：同一部片子的皮肤，只用于同配方微调与 A/B
+# weight 用于 diversity.py 计算两份配方的距离。
+# requires 标注该值依赖的外部条件（素材 / 配音 / GPU），sampler 只在条件满足时选它。
+
+factors:
+
+  # ───────────── L0 根本因素 ─────────────
+  - id: value_core
+    name: 价值主打（精选计划四要素中占 C 位的一项）
+    layer: L0
+    weight: 3
+    note: 四项都要做到及格，这里选"最强的一项"。片子的开头钩子和结尾回报都围绕它设计。
+    values:
+      - {id: gain,       label: 获得感, note: 看完学会一个判断/方法/冷知识，深入浅出}
+      - {id: surprise,   label: 惊喜感, note: 选题或表现形式让人眼前一亮，与众不同}
+      - {id: expression, label: 表达力, note: 画面/剪辑/声音的完成度本身就是看点，印象深刻}
+      - {id: empathy,    label: 感染力, note: 真实体验与真诚情感，引发共鸣}
+
+  - id: narrative
+    name: 叙事母型
+    layer: L0
+    weight: 3
+    values:
+      - {id: rescue_reversal, label: 困境—救星—反转, note: R001 用的就是它}
+      - {id: mystery,         label: 悬疑解谜, note: 先给异常现象，逐层揭开原因}
+      - {id: before_after,    label: 反差对比, note: 修前修后/拆运 vs 现场，分屏或同机位对照}
+      - {id: mockumentary,    label: 伪纪录片/采访, note: 一本正经地拍一件很小的事}
+      - {id: pov_challenge,   label: 第一人称挑战, note: 我要在 X 小时内让这台窑重新转起来}
+      - {id: object_monologue,label: 物件独白, note: 一个零件讲它的一生 / 一天}
+      - {id: countdown_list,  label: 清单揭秘, note: 3 个你不知道的…，每条一个认知更新}
+      - {id: experiment,      label: 实验测试, note: 硬核测试或离谱测试（咖啡测试、硬币立住）}
+      - {id: mentor,          label: 师徒传承, note: 老师傅带新人，技术在对话里自然讲清}
+      - {id: time_lapse_life, label: 时间压缩, note: 一天 / 十年 / 一台设备的寿命压进 30 秒}
+      - {id: misunderstanding,label: 误会喜剧, note: 观众以为是 A，揭晓其实是 B}
+      - {id: letter,          label: 书信/告白, note: 客户写给设备、设备写给工人}
+      - {id: process_asmr,    label: 纯过程快感, note: 无剧情，靠工艺过程本身的解压感}
+
+  - id: protagonist
+    name: 视角与主角
+    layer: L0
+    weight: 2
+    values:
+      - {id: machine,   label: 拟人设备（窑宝等）}
+      - {id: client,    label: 客户/厂长/老板}
+      - {id: craftsman, label: 一线技术工人}
+      - {id: apprentice,label: 学徒/新人}
+      - {id: part,      label: 一个零件（齿、轴、焊珠）}
+      - {id: child,     label: 孩子/外行旁观者}
+      - {id: expert_vo, label: 专家旁白（不露脸）}
+      - {id: none,      label: 无人物，只有过程}
+
+  - id: medium
+    name: 媒介与画风（决定渲染引擎）
+    layer: L0
+    weight: 3
+    note: engine 字段就是制作 agent 要用的技术栈，见 README「引擎表」
+    values:
+      - {id: flat_vector,   label: 扁平矢量卡通, engine: canvas2d, note: R001 / KMVideo/promo_30s}
+      - {id: watercolor,    label: 手绘水彩线条抖动, engine: p5brush, note: ClaudeAnimationBase}
+      - {id: lowpoly_3d,    label: 低多边形 3D, engine: threejs}
+      - {id: realistic_3d,  label: 写实工业 3D（金属 PBR）, engine: threejs, requires: [gpu_or_patience]}
+      - {id: blueprint,     label: 工程蓝图线稿, engine: svg_gsap, note: 白线蓝底，尺寸标注动画}
+      - {id: xray_cutaway,  label: X 光/剖视, engine: threejs, note: 看穿设备内部}
+      - {id: chalkboard,    label: 黑板粉笔科普, engine: canvas2d}
+      - {id: pixel,         label: 像素游戏风, engine: canvas2d, note: 可做成「闯关修设备」}
+      - {id: papercut,      label: 剪纸拼贴定格感, engine: canvas2d}
+      - {id: ink_guochao,   label: 国潮水墨, engine: p5brush}
+      - {id: neon_cyber,    label: 赛博霓虹, engine: threejs}
+      - {id: kinetic_type,  label: 纯文字排版动效, engine: svg_gsap}
+      - {id: dataviz,       label: 数据可视化叙事, engine: svg_gsap}
+      - {id: footage_mograph,label: 实拍素材 + 动态包装, engine: ffmpeg_footage, requires: [footage]}
+      - {id: math_explainer,label: 3Blue1Brown 式几何讲解, engine: manim}
+
+  - id: business
+    name: 业务入口（技术服务 = 产品）
+    layer: L0
+    weight: 2
+    note: 只用有文档支持的业务名（宣传册/官网/素材登记表），具体数字需项目资料支持
+    values:
+      - {id: tyre,       label: 轮带在线车削修复}
+      - {id: roller,     label: 托轮修复}
+      - {id: girth_gear, label: 大齿圈/齿轮修复}
+      - {id: welding,    label: 焊接修复}
+      - {id: portable_machining, label: 现场便携式车、磨、铣、镗}
+      - {id: shaft_hole, label: 轴孔类修复}
+      - {id: offline_machining, label: 离线机加工}
+      - {id: kiln_inspection,   label: 回转窑检测}
+      - {id: kiln_alignment,    label: 调窑找正}
+      - {id: install_overhaul,  label: 安装检修与维修保驾}
+      - {id: relocation_lifting,label: 设备移位与吊装}
+      - {id: brand_overview,    label: 公司整体形象（多业务串联）}
+
+  - id: emotion_arc
+    name: 情绪弧
+    layer: L0
+    weight: 2
+    values:
+      - {id: anxiety_relief,   label: 焦虑 → 释然}
+      - {id: curiosity_aha,    label: 好奇 → 顿悟}
+      - {id: doubt_respect,    label: 怀疑 → 佩服}
+      - {id: laugh_warm,       label: 好笑 → 温暖}
+      - {id: tension_release,  label: 紧张 → 爽}
+      - {id: calm_satisfaction,label: 平静 → 满足（解压）}
+      - {id: nostalgia_pride,  label: 怀旧 → 自豪}
+
+  # ───────────── L1 结构因素 ─────────────
+  - id: hook
+    name: 开头 2 秒钩子
+    layer: L1
+    weight: 1.5
+    values:
+      - {id: anomaly,      label: 异常现象（设备在哭/在响）}
+      - {id: result_first, label: 结果先行（先给爽点再倒叙）}
+      - {id: counter_intuitive_q, label: 反常识提问}
+      - {id: sound_spectacle, label: 声音奇观（火花/金属声）}
+      - {id: countdown,    label: 倒计时/赌约}
+      - {id: direct_address, label: 直视镜头对观众说话}
+
+  - id: camera
+    name: 镜头语言
+    layer: L1
+    weight: 1.5
+    values:
+      - {id: oner,      label: 一镜到底（嵌套缩放/甩镜衔接）}
+      - {id: montage,   label: 快切蒙太奇}
+      - {id: split,     label: 分屏对照}
+      - {id: locked,    label: 固定机位}
+      - {id: pov,       label: 第一人称 POV}
+      - {id: macro,     label: 微距/显微推进}
+      - {id: orbit,     label: 环绕（3D 引擎专用）}
+
+  - id: music
+    name: 音乐风格
+    layer: L1
+    weight: 1.5
+    values:
+      - {id: electro_pop, label: 电子流行 120BPM, note: R001}
+      - {id: percussion,  label: 工业打击乐（用金属声做鼓）}
+      - {id: guofeng,     label: 国风电子}
+      - {id: lofi,        label: lo-fi 慢节奏}
+      - {id: orchestral,  label: 史诗管弦}
+      - {id: chiptune,    label: 8-bit 芯片音乐}
+      - {id: none_foley,  label: 无音乐，只有拟音/ASMR}
+
+  - id: voice
+    name: 人声策略
+    layer: L1
+    weight: 1
+    values:
+      - {id: none,       label: 无人声，全靠字幕和拟音, note: R001}
+      - {id: tts_vo,     label: TTS 旁白, requires: [tts]}
+      - {id: dialogue,   label: 角色对白（TTS 多音色）, requires: [tts]}
+      - {id: gibberish,  label: 无意义角色音（咿呀声，像动画片）}
+
+  - id: duration
+    name: 时长
+    layer: L1
+    weight: 1
+    values:
+      - {id: s15, label: 15 秒}
+      - {id: s30, label: 30 秒}
+      - {id: s45, label: 45 秒}
+      - {id: s60, label: 60 秒}
+
+  - id: text_policy
+    name: 字幕策略
+    layer: L1
+    weight: 1
+    values:
+      - {id: bilingual_kinetic, label: 中英双语大字卡点, note: R001}
+      - {id: zh_kinetic,        label: 中文大字卡点}
+      - {id: no_text,           label: 无字（ClaudeAnimationBase 默认规则）}
+      - {id: subtitle_bar,      label: 底部常规字幕条}
+
+  # ───────────── L2 表层因素 ─────────────
+  - id: palette
+    name: 色彩世界
+    layer: L2
+    weight: 0.5
+    values:
+      - {id: navy_orange, label: 深蓝 + 橙黄, note: R001}
+      - {id: cream_ink,   label: 米白 + 墨黑}
+      - {id: steel_teal,  label: 钢灰 + 青绿}
+      - {id: warm_sunset, label: 暖夕阳}
+      - {id: mono_red,    label: 黑白 + 一点红}
+  - id: transition
+    name: 转场主招
+    layer: L2
+    weight: 0.5
+    values:
+      - {id: whip, label: 甩镜}
+      - {id: zoom_through, label: 穿越缩放}
+      - {id: match_cut, label: 形状匹配剪辑}
+      - {id: brush_wipe, label: 笔刷擦除}
+      - {id: iris, label: 光圈}
+  - id: cta
+    name: 结尾引导
+    layer: L2
+    weight: 0.5
+    values:
+      - {id: search_handle, label: 抖音搜索账号}
+      - {id: comment_q,     label: 评论区提问}
+      - {id: series_next,   label: 预告下一集}

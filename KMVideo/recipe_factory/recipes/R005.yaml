@@ -1,0 +1,23 @@
+id: R005
+title: ''
+status: draft
+factors:
+  value_core: surprise
+  narrative: countdown_list
+  protagonist: client
+  medium: math_explainer
+  business: tyre
+  emotion_arc: laugh_warm
+  hook: sound_spectacle
+  camera: pov
+  music: lofi
+  voice: gibberish
+  duration: s30
+  text_policy: subtitle_bar
+  palette: navy_orange
+  transition: iris
+  cta: series_next
+brief: ''
+facts: []
+storyboard: ''
+output: ''
