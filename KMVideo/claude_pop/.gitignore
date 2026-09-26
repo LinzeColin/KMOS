@@ -1,0 +1,7 @@
+# 字体（OFL，构建时下载）、水彩底板与成片都是派生物，不入仓
+fonts/*
+!fonts/SOURCES.txt
+assets/plates/
+out/
+*.mp4
+*.wav

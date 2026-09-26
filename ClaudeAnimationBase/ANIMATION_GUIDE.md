@@ -215,7 +215,7 @@ node render.mjs --encode --out=out/video.mp4                    # … then encod
 
 | file | what's in it |
 |---|---|
-| `src/config.js` | `PROJECT = { duration, bpm, offset, audio? }` |
+| `src/config.js` | `PROJECT = { duration, bpm, offset, audio?, w?, h?, fastFill?, fonts? }`: `w`/`h` set the canvas (default 1920×1080; e.g. 1080×1920 for vertical platforms), `fastFill` swaps watercolour fills for flat washes when there's no GPU, `fonts` lists extra fonts to load before the first frame |
 | `src/core.js` | canvas, palette, timing and motion helpers, `paint()`, camera, full-frame effects, `glow()`, lettering, paper, render hooks |
 | `src/clawd.js` | Clawd: views, emotions, eyes, mouths, hats, emotes, moves |
 | `src/timeline.js` | `shots()`, `LOOPS`, `brushWipe()` |
@@ -223,6 +223,14 @@ node render.mjs --encode --out=out/video.mp4                    # … then encod
 | `src/scenes/demo.js` | an 11-second example. **Don't copy it** (see the end of this guide) |
 | `studio.html` | open it in Chrome to scrub the video (`?t=2.5` jumps to a time, `?loop=emotions` shows a loop) |
 | `render.mjs` | headless renderer: sheets, strips, crops, stills, PNG loops, MP4 |
+
+### Without a GPU
+
+Watercolour `fill`s cost seconds each in software WebGL. Set `PROJECT.fastFill: true` to paint them as flat washes, and pre-render
+big watercolour areas (skies, walls) once as plates: a `LOOPS.plate_x` loop that sets `FAST_FILL = false`, rendered with
+`--loop=plate_x --stills=0`, then loaded in `window.prepare` (awaited before the first frame) and drawn with `image()`.
+[KMVideo/claude_pop](../KMVideo/claude_pop) does this. The first frame that uses a new brush also compiles shaders, so it can
+take tens of seconds; later frames don't.
 
 ### Frames are pure functions of time
 
@@ -300,7 +308,8 @@ node render.mjs --encode --out=out/video.mp4                    # … then encod
   - `iris(cx, cy, r, colour)` and `irisShape(pts, colour)`: shaped reveals.
   - `flash(k, colour)`: a full-frame flash.
 - **Lettering** (only if you must, see "No text"):
-  - `letter(txt, x, y, size, colour, {pop, rot, alpha, screen})`
+  - `letter(txt, x, y, size, colour, {pop, rot, alpha, screen, font})`
+  - `letterFn(c => { ... })`: custom 2D-canvas lettering in screen space (a caption bar, a counter)
   - `sfx(txt, x, y, size, colour, age)`
   - Both are composited at `flushLetters()`, after the shot. If a wipe or iris must cover them, call it yourself first.
 

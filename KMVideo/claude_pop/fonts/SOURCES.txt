@@ -1,0 +1,6 @@
+# 字体全部为 SIL Open Font License（可商用、可嵌入视频）。build.sh 按此表下载并校验 sha256。
+# 文件名  sha256  来源
+ZCOOLKuaiLe-Regular.ttf  812a6fc1fe54b6d73a419245c32dfeba8aa33104d5be90d1cf6af082007cb71d  https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zcoolkuaile/ZCOOLKuaiLe-Regular.ttf
+PermanentMarker-Regular.ttf  28f82c8a7943cb8e9d599f8554da1d4fc75dbcf69b9885ad6c0611d20c6946c5  https://cdn.jsdelivr.net/gh/google/fonts@main/apache/permanentmarker/PermanentMarker-Regular.ttf
+Fredoka.ttf  2ba02e68b152868aef9ba28e24b3648c7d457fe6f25c761f2c2c53fb61a73fc8  https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/fredoka/Fredoka%5Bwdth,wght%5D.ttf
+SmileySans-Oblique.ttf.woff2  731f22973349404b15a88a99ef3b5dd4104c0965c23b7e485c1f11e84fea99e2  https://github.com/atelier-anchor/smiley-sans/releases/download/v2.0.1/smiley-sans-v2.0.1.zip#SmileySans-Oblique.ttf.woff2

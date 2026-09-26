@@ -1,6 +1,7 @@
 // core.js: constants, helpers, paper, paint wrapper, compositing and render hooks.
 // Length and rhythm come from PROJECT in config.js.
-const W = 1920, H = 1080;
+// Canvas size: 1920×1080 unless PROJECT sets w/h (e.g. 1080×1920 for vertical short-video platforms).
+const W = PROJECT.w || 1920, H = PROJECT.h || 1080;
 const BPM = PROJECT.bpm, BEAT = 60 / BPM, OFF = PROJECT.offset || 0, BOIL = 12, DUR = PROJECT.duration;
 const TAU = Math.PI * 2;
 const PAL = {
@@ -183,7 +184,15 @@ function centred(pts, draw) {
   push(); translate(cx, cy); draw(pts.map(([x, y]) => [x - cx, y - cy])); pop();
 }
 function paint(pts, o = {}) { centred(pts, (P) => paintAt(P, o)); }
+// FAST_FILL (PROJECT.fastFill): watercolour fills cost seconds each without a GPU, so swap them for flat washes. A fill
+// under a wash is dropped; a fill on its own becomes a translucent wash. Pre-render real fills into plates if needed.
+let FAST_FILL = !!PROJECT.fastFill;
 function paintAt(pts, o) {
+  if (FAST_FILL && o.fill) {
+    o = { ...o };
+    if (!o.wash) { o.wash = o.fill; o.washOp = (o.fillOp ?? 170) * .6; }
+    delete o.fill;
+  }
   if (o.wash || o.fill || o.hatch) {
     if (o.wash) brush.wash(o.wash, o.washOp ?? 255); else brush.noWash();
     if (o.fill) { brush.fill(o.fill, o.fillOp ?? 170); brush.fillBleed(o.bleed ?? .1); brush.fillTexture(o.tex ?? .4, o.border ?? .35); } else brush.noFill();
@@ -208,6 +217,8 @@ function letter(txt, x, y, size, color, o = {}) {
   if (CAM && !o.screen) { [x, y] = toScreen(x, y); size *= CAM.zoom; o = { ...o, rot: (o.rot || 0) + CAM.rot }; if (o.font) o.font = o.font.replace(/(\d+(\.\d+)?)px/, (m, v) => (v * CAM.zoom) + 'px'); }
   LETTERS.push({ txt, x, y, size, color, ...o });
 }
+// Custom lettering drawn with the 2D canvas API in screen space, e.g. a caption bar: letterFn(c => { ... }).
+function letterFn(fn) { LETTERS.push({ fn }); }
 // Comic sound effect: pops in at age 0, wobbles, fades by `life` seconds.
 function sfx(txt, x, y, size, color, age, o = {}) {
   const life = o.life ?? 1.2; if (age < 0 || age > life) return;
@@ -215,6 +226,7 @@ function sfx(txt, x, y, size, color, age, o = {}) {
 }
 function drawLetters(c) {
   for (const L of LETTERS) {
+    if (L.fn) { c.save(); L.fn(c); c.restore(); continue; }   // custom 2D lettering (see letterFn)
     const k = L.pop != null ? backOut(L.pop) : 1; if (k <= .01) continue;
     c.save(); c.translate(L.x, L.y); c.rotate(L.rot || 0); c.scale(k, k); c.globalAlpha = L.alpha ?? 1;
     c.font = L.font || `${L.size}px "Permanent Marker", "Comic Sans MS", cursive`;
@@ -278,6 +290,8 @@ async function setup() {
   paperG = makePaper(); grainC = makeGrain(); glowTex = makeGlowTex(); letG = createGraphics(W, H); letG.pixelDensity(1);
   outC = document.getElementById('out'); outX = outC.getContext('2d');
   await document.fonts.load('100px "Permanent Marker"');
+  for (const f of PROJECT.fonts || []) await document.fonts.load(f);   // extra fonts the video letters with
+  if (window.prepare) await window.prepare();                          // optional async setup (e.g. loading plates)
   window.ready = true;
   if (!location.search.includes('render')) devUI();
 }
