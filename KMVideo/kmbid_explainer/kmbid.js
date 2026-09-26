@@ -286,7 +286,8 @@
     const drop = seg(lt, .2, 1.1), cr = lerp(1200, 60, easeOut(seg(lt, 0, .6)));
     const hs = [170, 250, 350, 470];
     hs.forEach((h, i) => bar(560 + i * 260, 930, h, i, seg(lt, 1.3 + i * .9, 2.0 + i * .9)));
-    if (lt > 4.7) { boilSeed('trend'); inkLine(hs.map((h, i) => [560 + i * 260, 930 - h - 150]).slice(0, 1 + Math.floor(clamp(seg(lt, 4.7, 5.6)) * 3.99)), 1.4, C.goldDk, 'ink', .3); }
+    const trend = hs.map((h, i) => [560 + i * 260, 930 - h - 150]).slice(0, 1 + Math.floor(clamp(seg(lt, 4.7, 5.6)) * 3.99));
+    if (trend.length > 1) { boilSeed('trend'); inkLine(trend, 1.4, C.goldDk, 'ink', .3); }
     if (lt < 1.4) coin(960, lerp(560, 890, easeIn(drop)) - 80 * Math.abs(Math.sin(seg(lt, 1.1, 1.4) * Math.PI)), cr, lt * 6, 'bigcoin');
     const party = lt > 5.3;
     [[1500, 18, 1], [1680, 24, 0], [1840, 18, 2]].forEach(([x, u, s]) => {
