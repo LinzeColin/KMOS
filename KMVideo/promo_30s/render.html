@@ -1,0 +1,757 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Smiley;src:url(fonts/SmileySans-Oblique.ttf)}
+@font-face{font-family:NotoBlack;src:url(fonts/NotoSansSC-Black.otf)}
+html,body{margin:0;background:#000}
+canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// 30 秒单镜头动画：120 BPM，一拍 0.5s。时间轴与 music.py 共用同一套秒数。
+const W = 1080, H = 1920, BEAT = 0.5;
+const C = {navy:'#0B1B3F', navy2:'#13295C', orange:'#FF6A13', yellow:'#FFD23F', cyan:'#22D3EE',
+  red:'#FF3B4E', green:'#2EE59D', white:'#FFFFFF', steel:'#9FB3CF', dark:'#070F24', skin:'#F6C9A2'};
+const main = document.getElementById('c'), ctx = main.getContext('2d');
+const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+const off2 = mk(), acc = mk(), tmp = mk();
+
+// ---------- 数学 ----------
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const eIO = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const eOut = k => 1 - Math.pow(1 - k, 3);
+const eExpo = k => k >= 1 ? 1 : 1 - Math.pow(2, -10 * k);
+const eBack = k => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+const hash = n => { const s = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); };
+const TAU = Math.PI * 2;
+// 鼓点脉冲：有鼓的段落里，每拍起点为 1，随后衰减
+const GROOVE = [[4, 7.875], [8, 20], [23, 27.875], [28, 29.5]];
+function pulse(t, dec = 9) {
+  if (!GROOVE.some(([a, b]) => t >= a && t < b)) return 0;
+  return Math.exp(-(t % BEAT) * dec);
+}
+// 出现/消失的弹性缩放
+function pop(t, t0, t1 = 1e9, dur = .28) {
+  if (t < t0 || t > t1 + .18) return 0;
+  const a = eBack(clamp((t - t0) / dur));
+  const b = t > t1 ? 1 - eOut(seg(t, t1, t1 + .18)) : 1;
+  return a * b;
+}
+
+// ---------- 绘图工具 ----------
+function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+function txt(c, s, x, y, o = {}) {
+  const size = o.size || 100, sc = o.sc === undefined ? 1 : o.sc;
+  if (sc <= 0.001) return;
+  c.save(); c.translate(x, y); c.rotate(o.rot || 0); c.scale(sc, sc);
+  c.globalAlpha *= o.alpha === undefined ? 1 : o.alpha;
+  c.font = `${o.weight || ''} ${size}px ${o.font || 'Smiley'}`;
+  c.textAlign = o.align || 'center'; c.textBaseline = 'middle';
+  if (o.box) {
+    const m = c.measureText(s), pw = o.box.pad || size * .28, w = m.width + pw * 2, h = size * 1.25;
+    const bx = o.align === 'left' ? -pw : o.align === 'right' ? -m.width - pw : -w / 2;
+    c.save(); c.rotate(o.box.rot || 0); c.fillStyle = o.box.fill;
+    if (o.box.shadow) { c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowOffsetY = 10; c.shadowBlur = 0; }
+    rr(c, bx, -h / 2, w, h, o.box.r === undefined ? 18 : o.box.r); c.fill(); c.restore();
+  }
+  if (o.stroke) { c.lineJoin = 'round'; c.lineWidth = o.sw || size * .16; c.strokeStyle = o.stroke; c.strokeText(s, 0, 0); }
+  if (o.shadow) { c.shadowColor = o.shadow; c.shadowOffsetY = size * .07; c.shadowBlur = 0; }
+  c.fillStyle = o.fill || C.white; c.fillText(s, 0, 0);
+  c.restore();
+}
+// 主字幕：中文大字 + 英文小字，按拍弹出
+function caption(c, t, t0, t1, zh, en, y, o = {}) {
+  const k = pop(t, t0, t1);
+  if (k <= 0) return;
+  const p = 1 + pulse(t) * .05;
+  txt(c, zh, W / 2 + (o.dx || 0), y, Object.assign({size: o.size || 118, sc: k * p, stroke: C.dark, sw: 22, shadow: 'rgba(0,0,0,.4)', fill: o.fill || C.white, rot: o.rot || 0, box: o.box}, o.zh || {}));
+  if (en) txt(c, en, W / 2 + (o.dx || 0), y + (o.size || 118) * .78 + (o.box ? 18 : 0), {size: 44, sc: k, fill: o.enFill || C.yellow, stroke: C.dark, sw: 10, rot: o.rot || 0});
+}
+function cam(c, cx, cy, z = 1, rot = 0) { c.translate(W / 2, H / 2); c.scale(z, z); c.rotate(rot); c.translate(-cx, -cy); }
+// 无状态粒子：出生时刻可由序号算出，任意帧可独立重算
+function sparks(c, x, y, t, t0, t1, o = {}) {
+  const rate = o.rate || 90, life = o.life || .5, seed = o.seed || 1;
+  const n0 = Math.max(0, Math.floor((t - life - t0) * rate)), n1 = Math.floor((Math.min(t, t1) - t0) * rate);
+  c.save(); c.lineCap = 'round';
+  for (let i = n0; i <= n1; i++) {
+    const b = t0 + i / rate, age = t - b;
+    if (age < 0 || age > life) continue;
+    const r1 = hash(seed * 131 + i), r2 = hash(seed * 71 + i * 3.1), r3 = hash(seed * 17 + i * 7.7);
+    const ang = (o.dir || 0) + (r1 - .5) * (o.spread || 1.4), v = (o.speed || 900) * (.45 + r2);
+    const vx = Math.cos(ang) * v, vy = Math.sin(ang) * v, g = o.g === undefined ? 1600 : o.g;
+    const px = x + vx * age, py = y + vy * age + .5 * g * age * age;
+    const tvx = vx, tvy = vy + g * age, f = 1 - age / life;
+    c.globalAlpha = f;
+    c.strokeStyle = r3 > .5 ? (o.c1 || '#FFE9A8') : (o.c2 || C.orange);
+    c.lineWidth = (o.w || 5) * (.6 + r3);
+    c.beginPath(); c.moveTo(px, py); c.lineTo(px - tvx * .035, py - tvy * .035); c.stroke();
+  }
+  c.restore();
+}
+function glow(c, x, y, r, col, a = 1) {
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.save(); c.globalAlpha *= a; c.globalCompositeOperation = 'lighter'; c.fillStyle = g;
+  c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
+}
+function burst(c, x, y, t, t0, col = C.yellow, n = 12, R = 220) {
+  const k = seg(t, t0, t0 + .35); if (k <= 0 || k >= 1) return;
+  c.save(); c.strokeStyle = col; c.lineCap = 'round'; c.lineWidth = 14 * (1 - k); c.globalAlpha = 1 - k * .6;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * TAU + .2, r0 = R * (.35 + eOut(k) * .6), r1 = R * (.55 + eOut(k) * .75);
+    c.beginPath(); c.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); c.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1); c.stroke();
+  }
+  c.restore();
+}
+function bubble(c, x, y, w, h, tailX, tailY, k, fill = C.white) {
+  if (k <= 0) return;
+  c.save(); c.translate(tailX, tailY); c.scale(k, k); c.translate(-tailX, -tailY);
+  c.fillStyle = fill; c.strokeStyle = C.dark; c.lineWidth = 10;
+  const ey = tailY < y ? y - h / 2 : y + h / 2, inset = tailY < y ? 6 : -6;
+  c.beginPath(); c.moveTo(x - 40, ey); c.lineTo(tailX, tailY); c.lineTo(x + 30, ey); c.stroke();
+  rr(c, x - w / 2, y - h / 2, w, h, 40); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(x - 40, ey + inset); c.lineTo(tailX, tailY); c.lineTo(x + 30, ey + inset); c.closePath(); c.fill();
+  c.restore();
+}
+
+// ---------- 角色与设备 ----------
+// 窑宝的脸：mood = sad | happy | wink | shock
+function face(c, x, y, s, mood, t, o = {}) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  const blink = (Math.sin(t * 2.3) > .985) ? .15 : 1;
+  const eye = (ex, wink) => {
+    if (wink) { c.strokeStyle = C.dark; c.lineWidth = 12; c.lineCap = 'round'; c.beginPath(); c.arc(ex, 8, 26, Math.PI * 1.15, Math.PI * 1.85); c.stroke(); return; }
+    c.fillStyle = C.white; c.beginPath(); c.ellipse(ex, 0, 34, 40 * blink, 0, 0, TAU); c.fill();
+    c.fillStyle = C.dark; c.beginPath(); c.ellipse(ex + (o.look || 0) * 8, 6, 17, 20 * blink, 0, 0, TAU); c.fill();
+    c.fillStyle = C.white; c.beginPath(); c.arc(ex + 6, -2, 6, 0, TAU); c.fill();
+  };
+  eye(-62, false); eye(62, mood === 'wink');
+  c.strokeStyle = C.dark; c.lineWidth = 11; c.lineCap = 'round';
+  if (mood === 'sad' || mood === 'shock') {
+    c.beginPath(); c.moveTo(-95, -44); c.lineTo(-40, -62); c.moveTo(95, -44); c.lineTo(40, -62); c.stroke();
+  }
+  if (mood === 'sad') { c.beginPath(); c.arc(0, 92, 36, Math.PI * 1.15, Math.PI * 1.85); c.stroke(); }
+  else if (mood === 'shock') { c.fillStyle = C.dark; c.beginPath(); c.ellipse(0, 72, 22, 30, 0, 0, TAU); c.fill(); }
+  else {
+    c.fillStyle = '#7A1830'; c.beginPath(); c.arc(0, 46, 44, 0.1, Math.PI - .1); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#FF7A95'; c.beginPath(); c.ellipse(0, 74, 20, 10, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,90,120,.55)'; c.beginPath(); c.ellipse(-100, 38, 22, 13, 0, 0, TAU); c.ellipse(100, 38, 22, 13, 0, 0, TAU); c.fill();
+  }
+  if (o.tear) {
+    const ty = 30 + (o.tear % 1) * 160;
+    c.fillStyle = C.cyan; c.globalAlpha = 1 - (o.tear % 1);
+    c.beginPath(); c.moveTo(-70, ty - 22); c.quadraticCurveTo(-52, ty, -70, ty + 12); c.quadraticCurveTo(-88, ty, -70, ty - 22); c.fill();
+  }
+  c.restore();
+}
+function steelGrad(c, y0, y1, a = '#2A364D', b = '#AFC2DB', d = '#1D2638') {
+  const g = c.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, d); g.addColorStop(.28, b); g.addColorStop(.55, a); g.addColorStop(1, d); return g;
+}
+// 回转窑侧视：筒体 + 轮带 + 托轮；segDy 用于调窑段
+function kiln(c, t, o) {
+  const {x, y, len, r} = o, spin = o.spin || 0, tyres = o.tyres || [-.22, .3];
+  const seg3 = o.segDy || [0, 0, 0];
+  c.save();
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x, y + r * 1.9, len * .52, r * .22, 0, 0, TAU); c.fill();
+  // 托轮
+  tyres.forEach((f, i) => {
+    const tx = x + f * len, ry = y + r * 1.16 + r * .44 + seg3[1] * 0;
+    [-1, 1].forEach(sd => {
+      const rx = tx + sd * r * .55, rad = r * .44;
+      c.fillStyle = steelGrad(c, ry - rad, ry + rad, '#3B4760', '#C7D5E8');
+      c.beginPath(); c.arc(rx, ry, rad, 0, TAU); c.fill();
+      c.strokeStyle = C.dark; c.lineWidth = 6; c.stroke();
+      c.strokeStyle = 'rgba(7,15,36,.6)'; c.lineWidth = 8;
+      for (let k = 0; k < 3; k++) { const a = spin * 2.2 + k * TAU / 3; c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx + Math.cos(a) * rad * .8, ry + Math.sin(a) * rad * .8); c.stroke(); }
+      c.fillStyle = C.orange; c.beginPath(); c.arc(rx, ry, rad * .2, 0, TAU); c.fill();
+    });
+  });
+  // 筒体三段
+  for (let s = 0; s < 3; s++) {
+    const sx = x - len / 2 + s * len / 3, sy = y + seg3[s];
+    c.fillStyle = steelGrad(c, sy - r, sy + r, '#8C3B1F', '#F28A4B', '#3E1A10');
+    c.fillRect(sx - 1, sy - r, len / 3 + 2, 2 * r);
+    // 纵向焊缝随转动上下滚动
+    c.strokeStyle = 'rgba(40,12,5,.55)'; c.lineWidth = 5;
+    for (let j = 0; j < 10; j++) {
+      const th = j / 10 * TAU + spin, cz = Math.cos(th);
+      if (cz <= 0) continue;
+      const yy = sy - r * Math.sin(th);
+      c.globalAlpha = cz; c.beginPath(); c.moveTo(sx, yy); c.lineTo(sx + len / 3, yy); c.stroke();
+    }
+    c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(40,12,5,.7)'; c.lineWidth = 6;
+    c.beginPath(); c.moveTo(sx, sy - r); c.lineTo(sx, sy + r); c.stroke();
+  }
+  // 轮带
+  tyres.forEach((f, i) => {
+    const tx = x + f * len, tw = r * .5, th = r * 1.16, sy = y + seg3[i === 0 ? 0 : 2];
+    c.fillStyle = steelGrad(c, sy - th, sy + th);
+    rr(c, tx - tw / 2, sy - th, tw, th * 2, 12); c.fill();
+    c.strokeStyle = C.dark; c.lineWidth = 7; c.stroke();
+    if (o.worn && i === 0) {
+      const w = o.worn;
+      glow(c, tx, sy, th * 1.1, 'rgba(255,59,78,.8)', w * (.6 + .4 * Math.sin(t * 12)));
+      c.fillStyle = `rgba(150,30,20,${.9 * w})`;
+      for (let k = 0; k < 9; k++) {
+        const yy = sy - th * .8 + k * th * .2 + Math.sin(k * 7 + spin * 3) * 8, ww = tw * (.3 + hash(k) * .6);
+        c.beginPath(); c.ellipse(tx + (hash(k + 9) - .5) * tw * .4, yy, ww / 2, 10, 0, 0, TAU); c.fill();
+      }
+    }
+    // 金属高光条
+    c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(tx - tw / 2 + 8, sy - th * .72, tw - 16, 10);
+  });
+  if (o.mood) face(c, x + (o.faceX || 0) * len, y + (o.faceDy || 0), r / 190 * (o.faceS || 1), o.mood, t, o.faceO || {});
+  c.restore();
+}
+function truck(c, t, x, y, o = {}) {
+  c.save(); c.translate(x, y + (o.bounce || 0)); c.rotate(o.tilt || 0);
+  const wr = o.wheel || 0;
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(60, 175, 470, 30, 0, 0, TAU); c.fill();
+  // 车厢（车头朝左）
+  c.fillStyle = C.white; rr(c, -150, -210, 620, 330, 26); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 10; c.stroke();
+  c.fillStyle = C.orange; c.fillRect(-150, 50, 620, 44);
+  txt(c, '开明高新', 160, -110, {size: 118, font: 'NotoBlack', fill: C.navy});
+  txt(c, '大型设备 在线修复', 160, 0, {size: 50, font: 'NotoBlack', fill: C.orange});
+  // 车头
+  c.fillStyle = C.navy2; c.beginPath(); c.moveTo(-160, -150); c.lineTo(-330, -150); c.lineTo(-420, -30); c.lineTo(-430, 120); c.lineTo(-160, 120); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#9BE7FF'; c.beginPath(); c.moveTo(-195, -120); c.lineTo(-320, -120); c.lineTo(-385, -35); c.lineTo(-195, -35); c.closePath(); c.fill();
+  c.fillStyle = C.yellow; c.beginPath(); c.arc(-420, 60, 20, 0, TAU); c.fill();
+  if (o.lights) glow(c, -440, 60, 160, 'rgba(255,230,120,.9)', o.lights);
+  [-300, 40, 330].forEach(wx => {
+    c.fillStyle = '#1B1F2A'; c.beginPath(); c.arc(wx, 130, 64, 0, TAU); c.fill();
+    c.fillStyle = '#B9C4D6'; c.beginPath(); c.arc(wx, 130, 30, 0, TAU); c.fill();
+    c.strokeStyle = '#1B1F2A'; c.lineWidth = 8;
+    for (let k = 0; k < 4; k++) { const a = wr + k * Math.PI / 2; c.beginPath(); c.moveTo(wx, 130); c.lineTo(wx + Math.cos(a) * 28, 130 + Math.sin(a) * 28); c.stroke(); }
+  });
+  c.restore();
+}
+function boss(c, t, x, y, o = {}) {
+  c.save(); c.translate(x, y);
+  // 身体
+  c.fillStyle = '#2F6FEB'; rr(c, -170, 110, 340, 420, 80); c.fill();
+  c.fillStyle = C.white; c.beginPath(); c.moveTo(-60, 110); c.lineTo(0, 200); c.lineTo(60, 110); c.fill();
+  c.fillStyle = C.red; c.beginPath(); c.moveTo(-18, 130); c.lineTo(18, 130); c.lineTo(26, 300); c.lineTo(0, 330); c.lineTo(-26, 300); c.fill();
+  // 头
+  c.fillStyle = C.skin; c.beginPath(); c.arc(0, 0, 140, 0, TAU); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 9; c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-50, -90, 36, 16, -.5, 0, TAU); c.fill(); // 光头反光
+  const m = o.mood || 'worry';
+  c.fillStyle = C.dark;
+  const eo = o.eyes || 1;
+  c.beginPath(); c.ellipse(-50, -5, 15, 22 * eo, 0, 0, TAU); c.ellipse(50, -5, 15, 22 * eo, 0, 0, TAU); c.fill();
+  c.strokeStyle = C.dark; c.lineWidth = 10; c.lineCap = 'round';
+  if (m === 'worry') { c.beginPath(); c.moveTo(-85, -45); c.lineTo(-25, -60); c.moveTo(85, -45); c.lineTo(25, -60); c.stroke();
+    c.beginPath(); c.moveTo(-45, 70); c.quadraticCurveTo(0, 40 + Math.sin(t * 20) * 6, 45, 70); c.stroke(); }
+  else if (m === 'shock') { c.fillStyle = C.dark; c.beginPath(); c.ellipse(0, 70, 30, 42, 0, 0, TAU); c.fill(); }
+  else { c.beginPath(); c.arc(0, 40, 50, .15, Math.PI - .15); c.stroke();
+    c.fillStyle = 'rgba(255,90,120,.5)'; c.beginPath(); c.ellipse(-90, 35, 22, 12, 0, 0, TAU); c.ellipse(90, 35, 22, 12, 0, 0, TAU); c.fill(); }
+  // 汗
+  if (o.sweat) for (let i = 0; i < 3; i++) {
+    const k = (t * 1.6 + i / 3) % 1, sx = [120, -130, 100][i], sy = -60 + k * 130;
+    c.globalAlpha = (1 - k) * o.sweat; c.fillStyle = C.cyan;
+    c.beginPath(); c.moveTo(sx, sy - 26); c.quadraticCurveTo(sx + 18, sy, sx, sy + 12); c.quadraticCurveTo(sx - 18, sy, sx, sy - 26); c.fill();
+  }
+  c.globalAlpha = 1;
+  // 安全帽（可以弹飞）
+  const hp = o.hatUp || 0;
+  c.save(); c.translate(0, -95 - hp); c.rotate(o.hatRot || 0);
+  c.fillStyle = C.yellow; c.beginPath(); c.arc(0, 0, 150, Math.PI, 0); c.closePath(); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 9; c.stroke();
+  c.fillStyle = C.yellow; rr(c, -175, -8, 350, 30, 14); c.fill(); c.stroke();
+  txt(c, 'BOSS', 0, -60, {size: 54, fill: C.dark, font: 'Smiley'});
+  c.restore();
+  c.restore();
+}
+function kmEmblem(c, x, y, s, rot = 0) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.save(); c.rotate(rot);
+  c.fillStyle = C.orange; c.beginPath();
+  const n = 16;
+  for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * TAU, R = i % 2 ? 150 : 178; c.lineTo(Math.cos(a) * R, Math.sin(a) * R); }
+  c.closePath(); c.fill();
+  c.restore();
+  c.fillStyle = C.navy; c.beginPath(); c.arc(0, 0, 128, 0, TAU); c.fill();
+  c.strokeStyle = C.yellow; c.lineWidth = 8; c.beginPath(); c.arc(0, 0, 112, 0, TAU); c.stroke();
+  txt(c, 'KM', 0, 8, {size: 132, fill: C.white, font: 'Smiley'});
+  c.restore();
+}
+
+// ---------- S1：窑宝的烦恼 → 老板办公室 → 来电（0–8s）----------
+const PS = {x: -300, y: 2400 + 60, w: 216, h: 384}; // 手机屏在 S1 世界中的位置（9:16）
+function factoryBG(c, t, px) {
+  const g = c.createLinearGradient(0, -1200, 0, 1200); g.addColorStop(0, '#0E1F48'); g.addColorStop(1, '#050B1C');
+  c.fillStyle = g; c.fillRect(-3000, -1400, 6000, 2800);
+  c.strokeStyle = 'rgba(120,150,210,.18)'; c.lineWidth = 16;
+  for (let i = -8; i <= 8; i++) { const xx = i * 320 + px * .3; c.beginPath(); c.moveTo(xx, -1200); c.lineTo(xx + 160, -700); c.lineTo(xx + 320, -1200); c.stroke(); }
+  for (let i = -5; i <= 5; i++) {
+    const lx = i * 420 + px * .5, fl = .75 + .25 * Math.sin(t * 9 + i * 3);
+    c.fillStyle = '#1A2A55'; c.fillRect(lx - 4, -1200, 8, 380);
+    c.fillStyle = '#FFE7A6'; rr(c, lx - 60, -830, 120, 30, 10); c.fill();
+    glow(c, lx, -800, 420, 'rgba(255,220,140,.35)', fl);
+  }
+  c.fillStyle = '#0A1433'; c.fillRect(-3000, 560, 6000, 900);
+  c.fillStyle = C.yellow;
+  for (let i = -40; i < 40; i++) { c.save(); c.translate(i * 90, 560); c.transform(1, 0, -.6, 1, 0, 0); c.fillRect(0, 0, 45, 34); c.restore(); }
+}
+function drawS1(c, t) {
+  c.save(); c.fillStyle = C.dark; c.fillRect(0, 0, W, H);
+  // 相机：推近 → 甩镜下摇到办公室 → 冲进手机屏
+  const whip = eIO(seg(t, 3.6, 4.15));
+  let cx = lerp(0, 0, whip), cy = lerp(60, 2400, whip), z = lerp(1 + .12 * seg(t, 0, 3.6), 1, whip);
+  let rot = Math.sin(whip * Math.PI) * .08;
+  const shake = (a, t0) => { const k = seg(t, t0, t0 + .3); return k > 0 && k < 1 ? Math.sin(k * 60) * (1 - k) * a : 0; };
+  cx += shake(18, .6) + shake(18, 1.6) + shake(24, 7.0);
+  const zi = eIO(seg(t, 7.25, 8.0));
+  if (zi > 0) {
+    const zEnd = W / PS.w;
+    const zz = Math.exp(lerp(Math.log(z), Math.log(zEnd), zi));
+    cx = lerp(cx, PS.x + PS.w / 2, zi); cy = lerp(cy, PS.y + PS.h / 2, zi); z = zz; rot = lerp(rot, 0, zi);
+  }
+  c.save(); cam(c, cx, cy, z, rot);
+  // 窑场
+  if (t < 4.3) {
+    factoryBG(c, t, 0);
+    const wob = Math.sin(t * 7) * 6;
+    kiln(c, t, {x: 60, y: 180 + wob, len: 1900, r: 200, spin: t * 1.2, worn: 1, mood: 'sad', faceX: .08, faceDy: -20, faceO: {tear: t > 2.0 ? (t - 2.0) * 1.3 : 0}});
+    [[.6, -300, 150], [1.6, 420, 110]].forEach(([t0, x0, y0]) => {
+      const k = pop(t, t0, t0 + .7); if (k > 0) txt(c, '嘎吱~', x0 - 60, y0 - 310, {size: 96, sc: k, rot: -.15, fill: C.yellow, stroke: C.dark, sw: 16});
+    });
+  }
+  // 办公室
+  if (t > 3.7) {
+    c.save(); c.translate(0, 2400);
+    c.fillStyle = '#F4E3C3'; c.fillRect(-1600, -1300, 3200, 2600);
+    c.fillStyle = '#E8CFA5'; for (let i = -10; i < 10; i++) c.fillRect(i * 160, -1300, 70, 2600);
+    // 窗户：钱往外飞
+    c.fillStyle = '#8FD3FF'; rr(c, 150, -700, 380, 460, 20); c.fill(); c.strokeStyle = '#6B4A2B'; c.lineWidth = 20; c.stroke();
+    c.beginPath(); c.moveTo(340, -700); c.lineTo(340, -240); c.moveTo(150, -470); c.lineTo(530, -470); c.stroke();
+    // 日历
+    const day = Math.floor(lerp(1, 60, eIO(seg(t, 5.5, 6.9))));
+    c.fillStyle = C.white; rr(c, -520, -330, 290, 330, 20); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 8; c.stroke();
+    c.fillStyle = C.red; rr(c, -520, -330, 290, 80, [20, 20, 0, 0]); c.fill();
+    txt(c, '停机', -375, -290, {size: 50, font: 'NotoBlack'});
+    txt(c, '第' + day + '天', -375, -130, {size: 84, font: 'NotoBlack', fill: C.dark});
+    if (t > 5.5 && t < 6.9) for (let i = 0; i < 4; i++) {
+      const k = (t * 6 + i / 4) % 1;
+      c.save(); c.translate(-375 + k * 420, -170 - k * 300 + k * k * 400); c.rotate(k * 5 + i);
+      c.fillStyle = 'rgba(255,255,255,.95)'; c.fillRect(-90, -100, 180, 200); c.strokeStyle = '#ccc'; c.lineWidth = 4; c.strokeRect(-90, -100, 180, 200); c.restore();
+    }
+    // 桌子
+    c.fillStyle = '#6B4A2B'; c.fillRect(-900, 280, 1800, 60); c.fillStyle = '#5A3C22'; c.fillRect(-900, 340, 1800, 700);
+    const hatK = seg(t, 6.25, 6.9);
+    boss(c, t, 160, -40, {sweat: 1, mood: t > 6.25 && t < 7.4 ? 'shock' : 'worry', eyes: t > 7.0 ? 1.3 : 1,
+      hatUp: Math.sin(hatK * Math.PI) * 420, hatRot: hatK * TAU * 1.5});
+    // 硬币飞出窗外
+    if (t > 4.2) for (let i = 0; i < 26; i++) {
+      const b = 4.2 + i * .1, age = t - b; if (age < 0 || age > 1.1) continue;
+      const x0 = 60 + hash(i) * 200, y0 = 120;
+      const px = x0 + age * (380 + hash(i + 5) * 200), py = y0 - age * 1100 + age * age * 520;
+      c.save(); c.translate(px, py); c.scale(Math.cos(age * 9 + i), 1);
+      c.fillStyle = C.yellow; c.beginPath(); c.arc(0, 0, 38, 0, TAU); c.fill(); c.strokeStyle = '#C98A00'; c.lineWidth = 7; c.stroke();
+      txt(c, '¥', 0, 3, {size: 46, fill: '#C98A00', font: 'NotoBlack'}); c.restore();
+    }
+    // 手机支架
+    c.translate(0, -2400);
+    const ring = t > 7.0 ? Math.sin(t * 70) * 6 * (1 - seg(t, 7.3, 7.6)) : 0;
+    c.save(); c.translate(PS.x + PS.w / 2 + ring, PS.y + PS.h / 2); c.rotate(ring * .004);
+    c.fillStyle = '#20242E'; rr(c, -PS.w / 2 - 16, -PS.h / 2 - 30, PS.w + 32, PS.h + 60, 34); c.fill();
+    c.fillStyle = '#444'; c.fillRect(-40, PS.h / 2 + 30, 80, 120);
+    c.restore();
+    if (t >= 7.0) c.drawImage(off2, PS.x + ring, PS.y, PS.w, PS.h);
+    else { c.fillStyle = '#10131a'; c.fillRect(PS.x, PS.y, PS.w, PS.h); }
+    if (t > 7.0 && t < 7.4) [0, 1, 2].forEach(i => {
+      const k = ((t - 7.0) * 3 + i / 3) % 1;
+      c.strokeStyle = `rgba(255,210,63,${1 - k})`; c.lineWidth = 10; c.beginPath(); c.arc(PS.x + PS.w / 2, PS.y + PS.h / 2, 230 + k * 160, -.9, .9); c.stroke();
+      c.beginPath(); c.arc(PS.x + PS.w / 2, PS.y + PS.h / 2, 230 + k * 160, Math.PI - .9, Math.PI + .9); c.stroke();
+    });
+    c.restore();
+  }
+  c.restore();
+  // 屏幕字幕（随镜头层之外）
+  const hide = 1 - seg(t, 7.25, 7.5);
+  c.globalAlpha = hide;
+  caption(c, t, .15, 1.75, '这台回转窑…', 'This rotary kiln…', 330);
+  caption(c, t, .9, 3.5, '今天不太对劲', "…isn't feeling great", 560, {size: 96, fill: C.yellow});
+  if (t > 2.0 && t < 3.7) {
+    const k = pop(t, 2.0, 3.45);
+    bubble(c, 540, 1420, 820, 230, 600, 1200, k);
+    if (k > 0) { txt(c, '哎哟…轮带磨秃了', 540, 1400, {size: 80, font: 'NotoBlack', fill: C.dark, sc: k});
+      txt(c, 'Ouch… my tyre is worn out!', 540, 1480, {size: 38, fill: C.orange, sc: k}); }
+  }
+  caption(c, t, 4.25, 5.4, '停产一天', 'One day of downtime…', 330, {fill: C.yellow});
+  caption(c, t, 4.75, 5.4, '钱哗哗地流', '…money flies out the window', 560, {size: 96});
+  caption(c, t, 5.5, 6.95, '拆下来运回厂修？', 'Ship it back to the factory?', 330, {size: 100});
+  caption(c, t, 6.0, 6.95, '一等几十天！', 'Wait for weeks!', 560, {size: 110, fill: C.red});
+  caption(c, t, 7.0, 7.6, '叮铃铃！', 'Ring ring!', 330, {size: 140, fill: C.yellow, rot: -.06});
+  c.globalAlpha = 1;
+  c.restore();
+}
+
+// ---------- S2：开明来了 → 现场修复蒙太奇 → 咖啡测试（7–25s）----------
+const ST = [ // 工位：x 坐标与主镜头时间
+  {x: -1500, t: 9.9}, {x: -3000, t: 10.0}, {x: -4500, t: 12.0}, {x: -6000, t: 14.0}, {x: -7500, t: 16.0}, {x: -9000, t: 18.0}, {x: -10500, t: 20.0}];
+function s2cam(t) {
+  // 8–9.2 停在 logo 墙；9.2–9.9 跟车；此后每站甩镜
+  let x = 0;
+  if (t < 9.1) x = 0;
+  else if (t < 9.95) { const tx = truckX(t); x = lerp(0, tx + 260, eIO(seg(t, 9.1, 9.35))); }
+  else {
+    x = ST[1].x;
+    for (let i = 2; i < ST.length; i++) {
+      const s = ST[i].t, k = eIO(seg(t, s - .22, s + .08));
+      if (t > s - .22) x = lerp(ST[i - 1].x, ST[i].x, k);
+    }
+    // 从车停的位置甩到第一站
+    if (t < 10.08) x = lerp(truckX(9.95) + 260, ST[1].x, eIO(seg(t, 9.8, 10.08)));
+  }
+  let z = 1 + pulse(t, 7) * .025 + (t > 10 ? ((t - 10) % 2) * .02 : 0);
+  if (t > 20 && t < 23) z = 1.05 + seg(t, 20, 23) * .05;
+  return {x, y: 0, z};
+}
+function truckX(t) {
+  if (t < 8.9) return 1500;
+  if (t < 9.5) return lerp(1500, -1900, eOut(seg(t, 8.9, 9.5)));   // 冲过头
+  return lerp(-1900, -1520, eIO(seg(t, 9.5, 9.95)));               // 嘀嘀嘀倒车回位
+}
+function s2BG(c, t, camx) {
+  c.fillStyle = '#0D1E47'; c.fillRect(camx - 1400, -1400, 2800, 2800);
+  // 远景墙：视差 0.5
+  c.save(); c.translate(camx * .5, 0);
+  c.fillStyle = '#12306B';
+  const base = Math.floor((camx * .5 - 1400) / 480);
+  for (let i = base; i < base + 7; i++) { const xx = i * 480; c.fillRect(xx, -1100, 300, 1500); c.fillStyle = 'rgba(34,211,238,.18)'; c.fillRect(xx + 40, -900, 220, 380); c.fillStyle = '#12306B'; }
+  c.restore();
+  c.fillStyle = '#081330'; c.fillRect(camx - 1400, 640, 2800, 900);
+  c.fillStyle = C.yellow;
+  const b2 = Math.floor((camx - 1400) / 90);
+  for (let i = b2; i < b2 + 34; i++) { c.save(); c.translate(i * 90, 640); c.transform(1, 0, -.6, 1, 0, 0); c.fillRect(0, 0, 45, 30); c.restore(); }
+}
+function stationTitle(c, t, s, idx, zh, en, sub) {
+  // 屏幕空间的工位标题：01 / 大字 / 副标
+  const k = pop(t, s, s + 1.78), k2 = pop(t, s + BEAT, s + 1.78);
+  if (k <= 0) return;
+  txt(c, '0' + idx, 150, 300, {size: 90, sc: k, fill: C.orange, stroke: C.dark, sw: 14, rot: -.1});
+  caption(c, t, s, s + 1.78, zh, en, 330, {size: 124, dx: 40});
+  if (k2 > 0) txt(c, sub, W / 2, 1580, {size: 64, font: 'NotoBlack', sc: k2, fill: C.dark, box: {fill: C.yellow, r: 20, shadow: 1}});
+}
+function drawS2(c, t) {
+  c.save(); c.fillStyle = C.navy; c.fillRect(0, 0, W, H);
+  if (t < 8.0) { // 来电界面
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1A2F6B'); g.addColorStop(1, '#050B1C');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    [0, 1, 2].forEach(i => { const k = ((t - 7) * 1.5 + i / 3) % 1; c.strokeStyle = `rgba(255,106,19,${(1 - k) * .8})`; c.lineWidth = 14; c.beginPath(); c.arc(540, 700, 200 + k * 260, 0, TAU); c.stroke(); });
+    kmEmblem(c, 540, 700, 1.05, t * .8);
+    txt(c, '武汉开明高新', 540, 1030, {size: 104, font: 'NotoBlack'});
+    txt(c, '来电中…', 540, 1150, {size: 64, fill: C.steel, font: 'NotoBlack'});
+    const press = seg(t, 7.62, 7.75);
+    c.fillStyle = C.red; c.beginPath(); c.arc(300, 1560, 100, 0, TAU); c.fill();
+    c.save(); c.translate(780, 1560); c.scale(1 + Math.sin(press * Math.PI) * .25 + Math.sin(t * 14) * .04, 1 + Math.sin(press * Math.PI) * .25 + Math.sin(t * 14) * .04);
+    c.fillStyle = C.green; c.beginPath(); c.arc(0, 0, 100, 0, TAU); c.fill(); c.restore();
+    txt(c, '接听', 780, 1720, {size: 54, font: 'NotoBlack'}); txt(c, '挂断', 300, 1720, {size: 54, font: 'NotoBlack'});
+    if (t > 7.75) { c.globalAlpha = seg(t, 7.75, 8.0); c.fillStyle = C.white; c.fillRect(0, 0, W, H); c.globalAlpha = 1; }
+    c.restore(); return;
+  }
+  const cm = s2cam(t);
+  c.save(); cam(c, cm.x, cm.y, cm.z);
+  s2BG(c, t, cm.x);
+  // logo 墙 8–9.5
+  if (cm.x > -1300) {
+    const k = eBack(seg(t, 8.0, 8.35));
+    c.save(); c.translate(0, -120); c.rotate((1 - k) * -.6);
+    kmEmblem(c, 0, 0, lerp(3.2, 1.5, k), t * .6); c.restore();
+    burst(c, 0, -120, t, 8.0, C.yellow, 16, 420);
+  }
+  // 窑（车停靠的位置）
+  kiln(c, t, {x: ST[0].x - 200, y: 60, len: 1700, r: 170, spin: t * 1.2, worn: 1, mood: 'shock', faceX: .05, faceDy: -10});
+  // 卡车：冲过头 → 倒车
+  const tx = truckX(t);
+  if (t > 8.9) {
+    const moving = t < 9.95, rev = t > 9.5;
+    truck(c, t, tx, 380, {wheel: -tx / 64, bounce: moving ? Math.sin(t * 40) * 4 : 0, tilt: t > 9.35 && t < 9.6 ? -.04 * Math.sin(seg(t, 9.35, 9.6) * Math.PI) : 0, lights: 1});
+    // 急刹烟
+    if (t > 9.3 && t < 10.2) for (let i = 0; i < 14; i++) {
+      const b = 9.3 + i * .03, age = t - b; if (age < 0 || age > .8) continue;
+      c.globalAlpha = (1 - age / .8) * .6; c.fillStyle = '#C9D3E3';
+      c.beginPath(); c.arc(truckX(b) + 330 + hash(i) * 60 + age * 160, 500 - age * 120 - hash(i + 3) * 40, 40 + age * 120, 0, TAU); c.fill();
+    }
+    c.globalAlpha = 1;
+    if (rev && t < 10.0) {
+      const on = Math.floor(t / .125) % 2 === 0;
+      if (on) txt(c, '嘀 嘀 嘀', tx + 150, 60, {size: 84, fill: C.yellow, stroke: C.dark, sw: 14, rot: .05});
+    }
+  }
+  // 01 轮带修复
+  { const X = ST[1].x, s = ST[1].t, rep = seg(t, s + .15, s + 1.7);
+    const R = 440, spin = t * 2.6;
+    c.save(); c.translate(X - 90, 40);
+    c.fillStyle = '#2A1A14'; c.beginPath(); c.arc(0, 0, R * .72, 0, TAU); c.fill();
+    c.fillStyle = steelGrad(c, -R, R); c.beginPath(); c.arc(0, 0, R, 0, TAU); c.arc(0, 0, R * .74, 0, TAU, true); c.fill();
+    c.strokeStyle = C.dark; c.lineWidth = 10; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.stroke();
+    // 磨损带：刀走过的角度范围恢复光亮
+    for (let k = 0; k < 64; k++) {
+      const a = k / 64 * TAU + spin, fixed = (k / 64) < rep;
+      c.strokeStyle = fixed ? 'rgba(235,245,255,.95)' : `rgba(170,40,30,${.75 + .25 * hash(k)})`;
+      c.lineWidth = fixed ? 20 : 26 + hash(k + 1) * 14;
+      c.beginPath(); c.arc(0, 0, R - 20, a, a + TAU / 64 + .01); c.stroke();
+    }
+    // 车刀
+    c.fillStyle = '#39465E'; c.fillRect(R + 10, -60, 420, 120); c.fillStyle = C.orange; c.beginPath(); c.moveTo(R - 12, 0); c.lineTo(R + 40, -40); c.lineTo(R + 40, 40); c.closePath(); c.fill();
+    c.restore();
+    sparks(c, X - 90 + R - 10, 40, t, s + .1, s + 1.8, {dir: -Math.PI / 2 - .5, spread: 1.6, speed: 1100, seed: 3, rate: 110});
+    glow(c, X - 90 + R - 10, 40, 160, 'rgba(255,200,120,.9)', t > s + .1 && t < s + 1.8 ? 1 : 0);
+    // 螺旋铁屑
+    for (let i = 0; i < 10; i++) { const b = s + .1 + i * .15, age = t - b; if (age < 0 || age > .9) continue;
+      c.save(); c.translate(X - 90 + R + age * 300, 40 + age * 500 + age * age * 300); c.rotate(age * 10); c.strokeStyle = '#D9E2EF'; c.lineWidth = 6; c.beginPath();
+      for (let q = 0; q < 40; q++) { const a = q * .4, rr_ = 6 + q * .9; c.lineTo(Math.cos(a) * rr_, Math.sin(a) * rr_ * .6); } c.stroke(); c.restore(); }
+  }
+  // 02 托轮修复
+  { const X = ST[2].x, s = ST[2].t;
+    c.save(); c.translate(X, 0);
+    c.fillStyle = steelGrad(c, -700, -330); c.beginPath(); c.arc(0, -1180, 900, .25 * Math.PI, .75 * Math.PI); c.lineTo(0, -1180); c.fill();
+    [-260, 260].forEach((rx, i) => {
+      const ry = 120, R = 230, fixd = i === 0 ? seg(t, s + .2, s + 1.6) : 1;
+      c.fillStyle = steelGrad(c, ry - R, ry + R, '#3B4760', '#C7D5E8'); c.beginPath(); c.arc(rx, ry, R, 0, TAU); c.fill();
+      c.strokeStyle = C.dark; c.lineWidth = 8; c.stroke();
+      if (fixd < 1) { c.strokeStyle = `rgba(170,40,30,${1 - fixd})`; c.lineWidth = 26; c.setLineDash([22, 16]); c.beginPath(); c.arc(rx, ry, R - 14, 0, TAU); c.stroke(); c.setLineDash([]); }
+      c.strokeStyle = 'rgba(7,15,36,.6)'; c.lineWidth = 14;
+      for (let k = 0; k < 3; k++) { const a = (i ? -1 : 1) * t * 3 + k * TAU / 3; c.beginPath(); c.moveTo(rx, ry); c.lineTo(rx + Math.cos(a) * R * .8, ry + Math.sin(a) * R * .8); c.stroke(); }
+      c.fillStyle = C.orange; c.beginPath(); c.arc(rx, ry, 44, 0, TAU); c.fill();
+    });
+    // 砂轮
+    c.save(); c.translate(-500, 360); c.fillStyle = '#6E7B92'; c.beginPath(); c.arc(0, 0, 110, 0, TAU); c.fill();
+    c.strokeStyle = '#2A3345'; c.lineWidth = 10; for (let k = 0; k < 6; k++) { const a = t * 30 + k; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * 100, Math.sin(a) * 100); c.stroke(); }
+    c.fillStyle = '#39465E'; c.fillRect(-60, 90, 120, 360); c.restore();
+    c.restore();
+    sparks(c, X - 423, 283, t, s + .15, s + 1.8, {dir: Math.PI * .75, spread: 1.0, speed: 1200, seed: 7, rate: 120, g: 1400});
+  }
+  // 03 大齿圈断齿重生
+  { const X = ST[3].x, s = ST[3].t, R = 400, n = 36, rot = (t - s) * .35 - Math.PI / 2 - Math.PI / n;
+    const grow = eOut(seg(t, s + .5, s + 1.3)), weld = t > s + .5 && t < s + 1.3;
+    c.save(); c.translate(X, 60);
+    c.fillStyle = '#34425C'; c.beginPath(); c.arc(0, 0, R * .8, 0, TAU); c.fill();
+    c.fillStyle = steelGrad(c, -R, R, '#566683', '#D5E0EF');
+    c.beginPath();
+    for (let i = 0; i < n; i++) {
+      const a0 = rot + i / n * TAU, a1 = a0 + TAU / n;
+      const h = i === 0 ? 70 * grow : 70;
+      const pts = [[a0, R], [a0 + (a1 - a0) * .2, R + h], [a0 + (a1 - a0) * .55, R + h], [a0 + (a1 - a0) * .75, R]];
+      pts.forEach(([a, rr_]) => c.lineTo(Math.cos(a) * rr_, Math.sin(a) * rr_));
+    }
+    c.closePath(); c.arc(0, 0, R * .8, 0, TAU, true); c.fill('evenodd');
+    c.strokeStyle = C.dark; c.lineWidth = 7; c.stroke();
+    c.fillStyle = C.orange; c.beginPath(); c.arc(0, 0, 90, 0, TAU); c.fill();
+    const ta = rot + TAU / n * .37, tx0 = Math.cos(ta) * (R + 40), ty0 = Math.sin(ta) * (R + 40);
+    if (t < s + .5 && t > s) { c.strokeStyle = C.red; c.lineWidth = 12; c.setLineDash([18, 12]); c.beginPath(); c.arc(tx0, ty0, 90, 0, TAU); c.stroke(); c.setLineDash([]);
+      txt(c, '断齿!', tx0 + 240, ty0 - 30, {size: 80, fill: C.red, stroke: C.white, sw: 12, sc: pop(t, s + .05, s + .5)}); }
+    c.restore();
+    if (weld) { glow(c, X + tx0, 60 + ty0, 300, 'rgba(160,220,255,.95)', .6 + .4 * Math.sin(t * 60)); sparks(c, X + tx0, 60 + ty0, t, s + .5, s + 1.3, {dir: -Math.PI / 2, spread: 3, speed: 800, seed: 11, rate: 140, c2: C.cyan}); }
+    if (t > s + 1.35 && t < s + 1.8) { const k = seg(t, s + 1.35, s + 1.7); c.save(); c.globalAlpha = 1 - k; c.fillStyle = 'rgba(255,255,255,.9)'; c.translate(X + tx0, 60 + ty0); c.rotate(.6); c.fillRect(-10 - 60 + k * 120, -80, 20, 160); c.restore(); }
+  }
+  // 04 测量：表针乱跳后归零
+  { const X = ST[4].x, s = ST[4].t, R = 330;
+    c.save(); c.translate(X, 40);
+    c.fillStyle = '#C9D3E3'; c.beginPath(); c.arc(0, 0, R + 40, 0, TAU); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 10; c.stroke();
+    c.fillStyle = C.white; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill();
+    for (let k = 0; k < 50; k++) { const a = k / 50 * TAU - Math.PI / 2, l = k % 5 ? 24 : 50; c.strokeStyle = C.dark; c.lineWidth = k % 5 ? 4 : 8;
+      c.beginPath(); c.moveTo(Math.cos(a) * (R - 10), Math.sin(a) * (R - 10)); c.lineTo(Math.cos(a) * (R - 10 - l), Math.sin(a) * (R - 10 - l)); c.stroke(); }
+    const settle = seg(t, s + .7, s + 1.0);
+    const wild = Math.sin((t - s) * 31) * 1.3 + Math.sin((t - s) * 17) * .8;
+    const na = -Math.PI / 2 + wild * (1 - eBack(settle)) * (t > s ? 1 : 0);
+    c.strokeStyle = C.red; c.lineWidth = 14; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(na) * (R - 60), Math.sin(na) * (R - 60)); c.stroke();
+    c.fillStyle = C.dark; c.beginPath(); c.arc(0, 0, 34, 0, TAU); c.fill();
+    c.fillStyle = '#39465E'; c.fillRect(-26, R + 40, 52, 300); c.fillStyle = C.orange; c.fillRect(-12, R + 340, 24, 60);
+    if (t > s + 1.0) { const k = pop(t, s + 1.0, s + 1.8); c.save(); c.scale(k, k); c.fillStyle = C.green; c.beginPath(); c.arc(260, -260, 90, 0, TAU); c.fill();
+      c.strokeStyle = C.white; c.lineWidth = 24; c.lineCap = 'round'; c.beginPath(); c.moveTo(215, -262); c.lineTo(250, -225); c.lineTo(310, -300); c.stroke(); c.restore(); }
+    c.restore();
+    burst(c, X, 40 - 360, t, s + 1.0, C.green, 12, 260);
+  }
+  // 05 调窑找正
+  { const X = ST[5].x, s = ST[5].t, snap = eBack(seg(t, s + 1.0, s + 1.25));
+    const mis = t < s + 1.0 ? 1 : 1 - snap;
+    const dy = [0, -60 * mis + Math.sin(t * 16) * 10 * mis, 20 * mis];
+    kiln(c, t, {x: X, y: 20, len: 1000, r: 150, spin: t * 1.4, segDy: dy, tyres: [-.3, .32]});
+    const ok = t > s + 1.0;
+    c.save(); c.strokeStyle = ok ? C.green : C.red; c.lineWidth = 6; c.setLineDash([30, 18]); c.lineDashOffset = -t * 300;
+    glow(c, X - 700, 20, 120, ok ? 'rgba(46,229,157,.9)' : 'rgba(255,59,78,.9)');
+    c.beginPath(); c.moveTo(X - 700, 20); c.lineTo(X + 700, 20); c.stroke(); c.restore();
+    if (ok) txt(c, '嗒!', X + 330, -260, {size: 120, fill: C.green, stroke: C.dark, sw: 16, sc: pop(t, s + 1.0, s + 1.8), rot: .1});
+  }
+  // 06 咖啡测试（音乐暂停的“意外”）
+  { const X = ST[6].x, s = ST[6].t;
+    const bounce = t > 22.5 ? Math.sin(seg(t, 22.5, 22.9) * Math.PI) * -40 : 0;
+    kiln(c, t, {x: X, y: 120 + bounce, len: 1500, r: 210, spin: t * 1.6, mood: t > 22.4 ? 'wink' : 'happy', faceX: -.12, faceDy: 0, tyres: [-.36, .32]});
+    // 杯子：放上去后纹丝不动
+    const place = eOut(seg(t, 20.35, 20.8));
+    const grab = seg(t, 21.95, 22.25);
+    const cupX = X + 330 - grab * 170, cupY = lerp(120 - 210 - 90 + bounce - 700 * (1 - place), 420, eIO(grab));
+    if (t > 20.3) {
+      c.save(); c.translate(cupX, cupY);
+      c.fillStyle = C.white; c.beginPath(); c.moveTo(-70, -90); c.lineTo(70, -90); c.lineTo(55, 90); c.lineTo(-55, 90); c.closePath(); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 8; c.stroke();
+      c.beginPath(); c.arc(78, 0, 36, -1.2, 1.2); c.stroke();
+      c.fillStyle = '#6B3A1E'; c.beginPath(); c.ellipse(0, -84, 64, 12, 0, 0, TAU); c.fill();
+      txt(c, 'KM', 0, 10, {size: 60, fill: C.orange});
+      if (t < 22.0) for (let i = 0; i < 3; i++) { const k = (t * .8 + i / 3) % 1; c.strokeStyle = `rgba(255,255,255,${.6 * (1 - k)})`; c.lineWidth = 7;
+        c.beginPath(); c.moveTo(-30 + i * 30, -110 - k * 120); c.bezierCurveTo(-60 + i * 30, -150 - k * 120, 0 + i * 30, -170 - k * 120, -30 + i * 30, -220 - k * 120); c.stroke(); }
+      c.restore();
+    }
+    // 伸进来的手（放杯）
+    if (t > 20.2 && t < 20.95) { const k = Math.sin(seg(t, 20.2, 20.95) * Math.PI);
+      c.fillStyle = C.skin; c.strokeStyle = C.dark; c.lineWidth = 8; rr(c, cupX + 30, cupY - 1000 - (1 - k) * 800, 100, 960, 50); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(cupX + 80, cupY - 40 - (1 - k) * 800, 70, 55, 0, 0, TAU); c.fill(); c.stroke(); }
+    // 水平仪：气泡居中
+    if (t > 20.9 && t < 22.0) { const k = pop(t, 20.9, 21.9); c.save(); c.translate(X - 260, -200); c.scale(k, k);
+      c.fillStyle = C.yellow; rr(c, -170, -40, 340, 80, 40); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 8; c.stroke();
+      c.fillStyle = '#B8FFD9'; rr(c, -110, -22, 220, 44, 22); c.fill(); c.fillStyle = C.white; c.beginPath(); c.ellipse(Math.sin(t * 3) * 2, 0, 30, 16, 0, 0, TAU); c.fill(); c.restore(); }
+    // 老板偷喝
+    if (t > 21.85) { const k = eOut(seg(t, 21.85, 22.15));
+      const hk = seg(t, 22.5, 23.0);
+      boss(c, t, X + 290, lerp(1300, 560, k), {mood: 'happy', hatUp: Math.sin(hk * Math.PI) * 360, hatRot: hk * TAU});
+      if (t > 22.15) txt(c, '嘶溜~', X - 120, 420, {size: 90, fill: C.cyan, stroke: C.dark, sw: 14, sc: pop(t, 22.15, 22.6), rot: -.1}); }
+  }
+  c.restore();
+  // 屏幕层：logo 口号 + 工位标题
+  caption(c, t, 8.5, 9.4, '别拆！', "Don't dismantle it!", 1250, {size: 150, fill: C.yellow});
+  caption(c, t, 8.75, 9.4, '现场修！', 'Fix it on site!', 1460, {size: 150});
+  if (t > 8.02 && t < 9.2) txt(c, '开明高新 上门啦', 540, 300, {size: 96, sc: pop(t, 8.05, 9.1), font: 'NotoBlack', fill: C.white, box: {fill: C.orange, r: 24, shadow: 1}});
+  stationTitle(c, t, 10.0, 1, '轮带修复', 'Tyre repair · in-situ turning', '不拆窑 · 在线车削');
+  stationTitle(c, t, 12.0, 2, '托轮修复', 'Support roller repair', '磨损面 现场恢复');
+  stationTitle(c, t, 14.0, 3, '大齿圈修复', 'Girth gear: broken tooth reborn', '断齿 · 磨损 · 裂纹');
+  stationTitle(c, t, 16.0, 4, '精度 找得准', 'Measure → machine → re-check', '测量 → 加工 → 复检');
+  stationTitle(c, t, 18.0, 5, '调窑找正', 'Kiln alignment', '转得稳 · 跑得久');
+  // 咖啡段
+  if (t > 20 && t < 20.35) { c.fillStyle = `rgba(255,255,255,${.5 * (1 - seg(t, 20, 20.35))})`; c.fillRect(0, 0, W, H); }
+  caption(c, t, 20.0, 20.9, '等等…', 'Wait for it…', 330, {size: 120, fill: C.yellow});
+  caption(c, t, 21.0, 21.9, '稳到——', 'So smooth—', 330, {size: 120});
+  caption(c, t, 21.4, 21.9, '咖啡一滴不洒！', 'not a drop spilled!', 520, {size: 108, fill: C.yellow});
+  caption(c, t, 22.25, 23.3, '老板：香！', 'Boss: Delicious!', 330, {size: 130, fill: C.white, box: {fill: C.orange, r: 26, shadow: 1}});
+  c.restore();
+}
+
+// ---------- S3：服务版图 → 片尾（23–30s）----------
+const SPH = (() => { const p = [], N = 1100; for (let i = 0; i < N; i++) { const y = 1 - (i + .5) / N * 2, r = Math.sqrt(1 - y * y), a = i * 2.39996; p.push([Math.cos(a) * r, y, Math.sin(a) * r]); } return p; })();
+function sphereP(lat, lon) { const la = lat * Math.PI / 180, lo = lon * Math.PI / 180; return [Math.cos(la) * Math.sin(lo), -Math.sin(la), Math.cos(la) * Math.cos(lo)]; }
+function rotY(p, a) { const [x, y, z] = p; return [x * Math.cos(a) + z * Math.sin(a), y, -x * Math.sin(a) + z * Math.cos(a)]; }
+function rotX(p, a) { const [x, y, z] = p; return [x, y * Math.cos(a) - z * Math.sin(a), y * Math.sin(a) + z * Math.cos(a)]; }
+const WUHAN = sphereP(30.6, 114.3);
+const PINS = [[39.9, 116.4], [31.2, 121.5], [23.1, 113.3], [30.6, 104.1], [43.8, 87.6], [45.8, 126.5], [36.1, 103.8], [25, 102.7], [34.3, 108.9], [1.35, 103.8], [13.7, 100.5], [21, 105.8], [-6.2, 106.8], [24.7, 46.7], [41.3, 69.2], [51.2, 71.4], [33.7, 73.1], [23.8, 90.4], [30.0, 31.2], [-1.3, 36.8], [6.5, 3.4], [55.8, 37.6]];
+function globeProj(p, t, cx, cy, R) {
+  const yaw = -114.3 * Math.PI / 180 - (t - 24.5) * .12, tilt = -.45;
+  let q = rotX(rotY(p, yaw), tilt);
+  return [cx + q[0] * R, cy + q[1] * R, q[2]];
+}
+function drawS3(c, t) {
+  c.save();
+  const g = c.createRadialGradient(540, 1000, 100, 540, 1000, 1300); g.addColorStop(0, '#16357A'); g.addColorStop(1, '#050B1C');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const endK = seg(t, 27.1, 28.0);
+  const cx = 540, cy = 1070, R = 340 * (1 + eIO(endK) * 5);
+  c.save(); c.globalAlpha = 1 - seg(t, 27.7, 28.0);
+  // 点阵地球
+  glow(c, cx, cy, R * 1.35, 'rgba(34,211,238,.35)');
+  for (const p of SPH) { const [x, y, z] = globeProj(p, t, cx, cy, R); if (z < 0) continue; c.fillStyle = `rgba(160,220,255,${.2 + z * .7})`; c.fillRect(x - 2.5, y - 2.5, 5 + z * 2, 5 + z * 2); }
+  const [wx, wy] = globeProj(WUHAN, t, cx, cy, R);
+  // 连线与落点：按八分音符依次点亮
+  PINS.forEach((ll, i) => {
+    const bt = 24.9 + i * .1; if (t < bt) return;
+    const [px, py, pz] = globeProj(sphereP(ll[0], ll[1]), t, cx, cy, R); if (pz < -.05) return;
+    const k = seg(t, bt, bt + .3);
+    const mx = (wx + px) / 2 + (cx - (wx + px) / 2) * -.25, my = (wy + py) / 2 - 90 - Math.hypot(px - wx, py - wy) * .25;
+    c.strokeStyle = 'rgba(255,210,63,.8)'; c.lineWidth = 4; c.beginPath(); c.moveTo(wx, wy);
+    for (let q = 1; q <= 20; q++) { const u = q / 20 * k, a = (1 - u) * (1 - u), b = 2 * u * (1 - u), d = u * u; c.lineTo(a * wx + b * mx + d * px, a * wy + b * my + d * py); } c.stroke();
+    if (k >= 1) { c.fillStyle = C.orange; c.beginPath(); c.arc(px, py, 11 * eBack(seg(t, bt + .3, bt + .5)), 0, TAU); c.fill(); }
+  });
+  glow(c, wx, wy, 90 + pulse(t) * 40, 'rgba(255,106,19,.95)');
+  c.fillStyle = C.white; c.beginPath(); c.arc(wx, wy, 14, 0, TAU); c.fill();
+  if (t > 25.0) txt(c, '武汉', wx - 80, wy - 50, {size: 50, font: 'NotoBlack', sc: pop(t, 25.0, 27.1), stroke: C.dark, sw: 10});
+  c.restore();
+  // 缩小的 S2 画面 → 武汉落点
+  if (t < 25.05) {
+    const k = eIO(seg(t, 23.0, 24.9));
+    const s = Math.exp(lerp(0, Math.log(.1), k));
+    const bx = lerp(540, wx, k), by = lerp(960, wy, k), cr = lerp(1110, 540, k);
+    c.save(); c.globalAlpha = 1 - seg(t, 24.8, 25.05);
+    c.translate(bx, by); c.scale(s, s);
+    c.beginPath(); c.arc(0, 0, cr, 0, TAU); c.save(); c.clip(); c.drawImage(off2, -540, -960); c.restore();
+    c.lineWidth = 12 / s; c.strokeStyle = C.orange; c.stroke();
+    c.restore();
+  }
+  // 数据
+  const hideT = 27.1;
+  const cnt = Math.round(lerp(0, 10000, eOut(seg(t, 24.5, 25.4))));
+  if (t > 24.5) {
+    const k = pop(t, 24.5, hideT);
+    txt(c, '近', 190, 300, {size: 90, sc: k, font: 'NotoBlack', fill: C.white});
+    txt(c, cnt.toLocaleString('en-US'), 540, 290, {size: 210, sc: k * (1 + pulse(t) * .05), fill: C.yellow, stroke: C.dark, sw: 20});
+    txt(c, '家企业信赖', 540, 440, {size: 86, sc: k, font: 'NotoBlack'});
+    txt(c, 'trusted by ~10,000 companies', 540, 520, {size: 42, sc: k, fill: C.cyan});
+  }
+  [[25.5, 290, '30+', '省份', 'provinces'], [26.0, 790, '18', '个国家', 'countries']].forEach(([t0, x, big, zh, en]) => {
+    const k = pop(t, t0, hideT); if (k <= 0) return;
+    txt(c, big, x, 1500, {size: 150, sc: k, fill: C.yellow, stroke: C.dark, sw: 18});
+    txt(c, zh, x, 1620, {size: 64, sc: k, font: 'NotoBlack'});
+    txt(c, en, x, 1680, {size: 38, sc: k, fill: C.cyan});
+  });
+  ['冶金', '建材', '矿山', '冶炼', '电厂', '石油'].forEach((s, i) => {
+    const k = pop(t, 26.5 + i * .0833, hideT), a = -Math.PI / 2 + (i - 2.5) * .42;
+    if (k <= 0) return;
+    const x = 540 + Math.cos(a + Math.PI / 2) * 0 + (i - 2.5) * 165, y = 630;
+    txt(c, s, x, y, {size: 52, sc: k, font: 'NotoBlack', fill: C.navy, box: {fill: i % 2 ? C.yellow : C.cyan, r: 30, pad: 18}});
+  });
+  // 片尾卡
+  if (t > 27.75) {
+    const k = seg(t, 27.75, 28.0);
+    c.fillStyle = C.navy; c.globalAlpha = k; c.fillRect(0, 0, W, H); c.globalAlpha = 1;
+    if (t > 27.9) { c.globalAlpha = 1 - seg(t, 28.0, 28.35); c.fillStyle = C.white; c.fillRect(0, 0, W, H); c.globalAlpha = 1; }
+    if (t >= 28.0) {
+      c.save(); c.translate(540, 760); c.rotate(t * .25);
+      for (let i = 0; i < 18; i++) { c.fillStyle = i % 2 ? 'rgba(255,106,19,.16)' : 'rgba(255,210,63,.10)'; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 1600, i / 18 * TAU, (i + 1) / 18 * TAU); c.fill(); }
+      c.restore();
+      const kk = eBack(seg(t, 28.0, 28.35));
+      kmEmblem(c, 540, 700, kk * 1.25 * (1 + pulse(t) * .04), t * .7);
+      txt(c, '武汉开明高新科技有限公司', 540, 1010, {size: 66, font: 'NotoBlack', sc: pop(t, 28.1)});
+      txt(c, '大型设备 · 在线修复', 540, 1140, {size: 112, sc: pop(t, 28.25), fill: C.yellow, stroke: C.dark, sw: 16});
+      txt(c, 'On-site repair for heavy equipment', 540, 1230, {size: 42, sc: pop(t, 28.25), fill: C.cyan});
+      ['免拆运', '现场修', '少停机'].forEach((s, i) => txt(c, s, 250 + i * 290, 1350, {size: 58, font: 'NotoBlack', sc: pop(t, 28.5 + i * .25), fill: C.navy, box: {fill: C.white, r: 30, pad: 22}}));
+      txt(c, '抖音搜索 @WHKM2020', 540, 1480, {size: 60, font: 'NotoBlack', sc: pop(t, 28.75), fill: C.white, box: {fill: C.orange, r: 34, pad: 30, shadow: 1}});
+      // 窑宝探头
+      const pk = eBack(seg(t, 28.7, 29.1));
+      c.save(); c.translate(230, 1960 - pk * 250);
+      c.fillStyle = steelGrad(c, -200, 200, '#8C3B1F', '#F28A4B', '#3E1A10'); c.beginPath(); c.arc(0, 0, 200, 0, TAU); c.fill(); c.strokeStyle = C.dark; c.lineWidth = 10; c.stroke();
+      c.strokeStyle = steelGrad(c, -200, 200); c.lineWidth = 34; c.beginPath(); c.arc(0, 0, 184, 0, TAU); c.stroke();
+      face(c, 0, -40, .8, t > 29.1 ? 'wink' : 'happy', t);
+      c.restore();
+      if (t > 29.1) { const bk = pop(t, 29.1); bubble(c, 650, 1640, 600, 150, 400, 1770, bk);
+        if (bk > 0) txt(c, '坏了？找开明！', 650, 1640, {size: 70, font: 'NotoBlack', fill: C.dark, sc: bk}); }
+    }
+  }
+  c.restore();
+}
+
+// ---------- 合成 ----------
+function frameAt(c, t) {
+  if (t >= 7.0 && t < 8.0) drawS2(off2.getContext('2d'), t);
+  if (t >= 23.0 && t < 25.05) drawS2(off2.getContext('2d'), Math.min(t, 23.25));
+  if (t < 8.0) drawS1(c, t); else if (t < 23.0) drawS2(c, t); else drawS3(c, t);
+  // 全局：鼓点边缘闪 + 暗角 + 右上角账号水印
+  const p = pulse(t, 10);
+  if (p > .02) { const g = c.createRadialGradient(540, 960, 600, 540, 960, 1200); g.addColorStop(0, 'rgba(255,106,19,0)'); g.addColorStop(1, `rgba(255,106,19,${.28 * p})`); c.fillStyle = g; c.fillRect(0, 0, W, H); }
+  const v = c.createRadialGradient(540, 960, 700, 540, 960, 1250); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.45)'); c.fillStyle = v; c.fillRect(0, 0, W, H);
+  if (t < 27.8) txt(c, '@WHKM2020', 900, 120, {size: 40, fill: 'rgba(255,255,255,.8)', stroke: 'rgba(0,0,0,.4)', sw: 6});
+}
+// 甩镜时段做时间超采样，得到真实运动模糊
+const BLUR = [[3.6, 4.15], [7.3, 8.0], [9.0, 10.1], [11.78, 12.08], [13.78, 14.08], [15.78, 16.08], [17.78, 18.08], [19.78, 20.08], [23.0, 24.2], [27.2, 27.9]];
+window.renderAt = function (t, fps) {
+  const inBlur = BLUR.some(([a, b]) => t >= a && t < b);
+  if (!inBlur) { ctx.setTransform(1, 0, 0, 1, 0, 0); frameAt(ctx, t); return; }
+  const n = 6, sh = 1 / fps * .6, a = acc.getContext('2d'), tc = tmp.getContext('2d');
+  a.setTransform(1, 0, 0, 1, 0, 0); a.globalAlpha = 1; a.clearRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    tc.setTransform(1, 0, 0, 1, 0, 0); tc.globalAlpha = 1; frameAt(tc, t - sh / 2 + sh * i / (n - 1));
+    a.globalAlpha = 1 / (i + 1); a.drawImage(tmp, 0, 0);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(acc, 0, 0);
+};
+window.ready = document.fonts.load('100px Smiley', '开明').then(() => document.fonts.load('100px NotoBlack', '开明高新')).then(() => true);
+</script></body></html>
