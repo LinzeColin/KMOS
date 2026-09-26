@@ -6,7 +6,7 @@
 
 你负责把 KMDY-RF 配方工坊部署到本机和 SMB，并跑通第一部片子的出片流程。
 
-**输入**：Owner 给你的压缩包 `KMDY-RF_全量包.zip`，以及 `KMDY-RF_成片母版.zip.001/.002/...` 分卷（可选）。
+**输入**：Owner 给你的两组分卷：`KMDY-RF_全量包.zip.000…`（工坊全部代码、依赖库、字体、配乐、成片发送版、WIP）与 `KMDY-RF_成片母版.zip.000…`（INK-002 母版，可选）。
 
 **硬规则**：
 - 正式工作间不连 GitHub：不 clone、不 push、不 pull、不下载 GitHub 上的东西。全部在本机和 SMB 上完成。
@@ -15,7 +15,7 @@
 - 后台任务自己起的自己收，收工时不留任何后台进程。
 
 **步骤**：
-1. 解压到本机缓存目录，例如 `~/KMDY-RF_cache/KMDY-RF/`。分卷用 `cat KMDY-RF_成片母版.zip.* > 母版.zip && unzip 母版.zip` 合并后，把 mp4 放进 `成片/`。
+1. 合并分卷并解压到本机缓存目录，例如 `~/KMDY-RF_cache/`：`cat KMDY-RF_全量包.zip.* > 全量包.zip && unzip 全量包.zip`；母版同理 `cat KMDY-RF_成片母版.zip.* > 母版.zip && unzip 母版.zip`，把 mp4 放进 `KMDY-RF/成片/`。合并前核对分卷齐全（编号连续），`unzip -t` 无报错再继续。
 2. 先读 `部署说明.md`，再读 `KMVideo/recipe_factory/LOCAL_SETUP.md` 全文。§5 的踩坑表是云端已经验证过的结论，照做，不用重新试错。
 3. 运行 `bash KMVideo/recipe_factory/setup_local.sh`，按打印的 ✗ 补齐环境，直到打印「环境就绪」。
 4. 按 LOCAL_SETUP.md §3 填 `KMVideo/recipe_factory/workspace.yaml`：`paths.root` 指向 SMB 上的 KMDY-RF 目录；六个空位按本机实际填，没有的留空；本机没有的能力改成 false。
