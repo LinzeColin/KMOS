@@ -357,7 +357,7 @@
   }
   function worldBooms(t, ks) {
     const at = (x, y) => toScreen(x, y);
-    [[EV.clunk1, -.12], [EV.clunk2, .1], [EV.clunk3, -.06]].forEach(([t0, r], i) => { const [sx, sy] = at(KILN.x + (i - 1) * 120, 1180); boom('咯噔!', sx, sy, 84, HARD, t, t0, { rot: r, life: .6 }); });
+    [[EV.clunk1, -.12, 300, 1240], [EV.clunk2, .1, 780, 1180], [EV.clunk3, -.06, 540, 1300]].forEach(([t0, r, sx, sy]) => boom('咯噔!', sx, sy, 96, HARD, t, t0, { rot: r, life: .6 }));   // 屏幕坐标：开场镜头推得很近，世界坐标会落进字幕下方
     [[EV.nclunk1, -.1, 90], [EV.nclunk2, .12, 100], [EV.nclunk3, -.08, 140]].forEach(([t0, r, s], i) => { const [sx, sy] = at(KILN.x + 170 + i * 40, 330 - i * 20); boom(i === 2 ? '咯噔!!' : '咯噔!', sx, sy, s, HARD, t, t0, { rot: r, life: .6 }); });
     { const [sx, sy] = at(MGR.x, MGR.y - 520); boom('啪', sx, sy, 70, CREAM, t, EV.noodleHat, { life: .45 }); }
     { const [sx, sy] = at(CRATE.x, CRATE.y - 380); boom('咚!!', sx, sy, 180, HARD, t, EV.crateLand, { life: .7 }); }
@@ -365,7 +365,7 @@
     { const [sx, sy] = at(MGR.x - 40, MGR.y - 560); boom('叮!', sx, sy, 76, CREAM, t, EV.chipLand, { life: .5 }); }
     { const [sx, sy] = at(ROLL_TOP[0], ROLL_TOP[1] - 250); boom('滋滋滋', sx, sy, 90, HARD, t, 24.4, { life: 1.4, rot: -.1 }); }
     { const [sx, sy] = at(KILN.x + 230, KILN.y - 250); boom('嗝~', sx, sy, 130, '#F4A7B9', t, EV.burp, { life: 1.0, rot: -.08, grow: .15 }); }
-    { const [sx, sy] = at(KILN.x + 40, 1180); boom('咯噔!', sx, sy, 96, HARD, t, EV.lastClunk, { rot: .1, life: .55 }); }
+    { const [sx, sy] = at(KILN.x + 60, 1050); boom('咯噔!', sx, sy, 96, HARD, t, EV.lastClunk, { rot: .1, life: .55 }); }
     { const [sx, sy] = at(MGR.x - 10, MGR.y - 560); boom('……?', sx, sy, 80, CREAM, t, EV.lastClunk + .45, { life: .6 }); }
   }
   function skyIsles(t) {
