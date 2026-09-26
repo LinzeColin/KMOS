@@ -1,0 +1,23 @@
+id: R007
+title: ''
+status: draft
+factors:
+  value_core: expression
+  narrative: object_monologue
+  protagonist: part
+  medium: watercolor
+  business: tyre
+  emotion_arc: curiosity_aha
+  hook: direct_address
+  camera: macro
+  music: chiptune
+  voice: none
+  duration: s30
+  text_policy: no_text
+  palette: warm_sunset
+  transition: match_cut
+  cta: series_next
+brief: ''
+facts: []
+storyboard: ''
+output: ''
