@@ -36,4 +36,4 @@ npm install
 node render.mjs --frames=0:156.6 --workers=4   # 需要 assets/pdoom.mp3
 node render.mjs --encode --out=out/pdoom.mp4
 ```
-没有显卡的机器上，水彩填充每帧要数十秒；参照 `ClaudeAnimationBase` 的 `--flat` 平涂模式改造后，每帧约 0.1 秒。
+没有显卡的机器上，水彩填充每帧要数十秒；参照 `ClaudeAnimationBase` 的 `--flat` 平涂模式改造后，1080p 每帧约 3 秒。

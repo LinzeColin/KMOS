@@ -7,7 +7,7 @@
 | 引擎 | 起步文件 | 状态 | 车道 |
 |---|---|---|---|
 | canvas2d | `../../promo_30s/render.html` + `music.py` | 云端出过 30 秒成片（R001） | TOON |
-| p5brush | `../../../KMBearAnimationBase/`（开明小熊 + Clawd；`node render.mjs --clip --soft-gl`） | 云端出片 INK-002（62 秒讲解片）；无显卡用平涂模式约 0.1 秒/帧 | INK |
+| p5brush | `../../../KMBearAnimationBase/`（开明小熊 + Clawd；`node render.mjs --clip --soft-gl`） | 云端出片 INK-002（62 秒讲解片）；无显卡用平涂模式 1080p 约 3 秒/帧 | INK |
 | threejs | `threejs/template.html` | 云端 SwiftShader 出过接触表 | VOX |
 | svg_gsap | `svg_gsap/template.html` | 云端出过接触表与 6 秒 mp4 | TYPE |
 | manim | `manim/template.py` | 模板已写，本机装 manim 后验证 | MATH |

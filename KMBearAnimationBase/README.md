@@ -10,7 +10,7 @@
 
 ```bash
 npm install
-node render.mjs --sheet=1,3,5 --soft-gl --out=out/check.jpg     # 无显卡机器：软件渲染 + 平涂（每帧约 0.1 秒）
+node render.mjs --sheet=1,3,5 --soft-gl --out=out/check.jpg     # 无显卡机器：软件渲染 + 平涂（1080p 每帧约 3 秒）
 node render.mjs --clip --out=out/demo.mp4                         # 有显卡机器：原版水彩
 node render.mjs --clip --soft-gl --out=out/demo.mp4               # 无显卡机器出片
 ```
@@ -54,7 +54,7 @@ clawd(1250, 900, 18, { ...feel('happy', t), flip: true });   // 同台
 | 项 | 本套件 |
 |---|---|
 | 角色 | 开明小熊（`src/kmbear.js`）+ Clawd |
-| 平涂模式 | `--flat` / `--soft-gl` 自动启用：水彩填充改成等效平涂，无显卡机器每帧约 0.1 秒（原来数十秒） |
+| 平涂模式 | `--flat` / `--soft-gl` 自动启用：水彩填充改成等效平涂，无显卡机器 1080p 每帧约 3 秒（水彩填充时 40 秒以上）；接触表打印的 ms/frame 只算下发绘制指令，真实耗时在读回画面时 |
 | 字体 | 本地字体，离线可用：Permanent Marker（Apache 2.0）、得意黑 Smiley Sans（OFL，中文） |
 | 中文字 | `letter(txt, x, y, size, col, { font: '64px Smiley' })` |
 

@@ -15,7 +15,7 @@
 //     node render.mjs --loop=emotions --png --out=out/loop_emotions                          one cycle as PNGs (for GIFs)
 //   Music: --audio=assets/song.mp3 (or PROJECT.audio) is muxed into --clip and --encode. Other flags: --fps=24,
 //   --chrome=<path to Chrome/Chromium>, --page=<another studio page>, --flat (watercolour fills painted as flat washes;
-//   on by default with --soft-gl, where a fill costs seconds per frame).
+//   on by default with --soft-gl, where a fill costs tens of seconds per 1080p frame and a flat wash about 3).
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, statSync, renameSync, readdirSync } from 'node:fs';
