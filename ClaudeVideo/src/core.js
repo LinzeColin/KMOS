@@ -1,7 +1,6 @@
 // core.js: constants, helpers, paper, paint wrapper, compositing and render hooks.
-// Length and rhythm come from PROJECT in config.js.
 const W = 1920, H = 1080;
-const BPM = PROJECT.bpm, BEAT = 60 / BPM, OFF = PROJECT.offset || 0, BOIL = 12, DUR = PROJECT.duration;
+const BPM = 88, BEAT = 60 / BPM, OFF = 0.21, BOIL = 12, DUR = 156.6;
 const TAU = Math.PI * 2;
 const PAL = {
   paper: '#F3EBDC', ink: '#2B2233', clay: '#D97757', clayDk: '#A84D33', clayLt: '#F2A283',
@@ -18,12 +17,6 @@ const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x
 const bpOf = t => (t - OFF) / BEAT;
 // Seeded by the boil frame, so linework "boils" at BOIL fps like hand-drawn animation.
 const jit = a => (random() * 2 - 1) * a;
-// Each boil drawing holds for several frames, so whatever isn't moving must draw the same until the next one. But a moving
-// thing uses a different amount of randomness each frame, which shifts the stream for everything drawn after it and makes
-// that re-boil every frame (jitter). boilSeed(key) restarts the stream from the boil frame and a key (any string or
-// number) that's the same every frame: call it before each separate element. clawd() does this for itself and its parts.
-let BOILN = 0, CLAWD_N = 0;
-const boilSeed = key => { let h = 2166136261; for (const c of key + '|' + BOILN) h = Math.imul(h ^ c.charCodeAt(0), 16777619); randomSeed(h >>> 0); };
 
 // ---------- timing helpers (everything is a pure function of t; no state survives between frames) ----------
 const seg = (t, a, b) => clamp((t - a) / (b - a));                 // 0..1 progress of t through [a, b]
@@ -53,67 +46,20 @@ function mixCol(a, b, k) {
 // small deterministic camera shake, changes at 24 fps
 const shakeXY = (t, amt) => { const f = Math.floor(t * 24); return [(hash(f * 1.7) - .5) * 2 * amt, (hash(f * 2.3 + 9) - .5) * 2 * amt]; };
 
-// ---------- motion principles, as pure functions of t ----------
-// Damped spring kicked at t0: 0 before, then a wobble that dies away. Use it for secondary motion and settles: a body
-// after landing, a hat that jiggles, a stack that sways, a tail that drags. k = damping, w = wobble speed (rad/s).
-const spring = (t, t0, k = 6, w = 18) => t < t0 ? 0 : Math.exp(-k * (t - t0)) * Math.sin(w * (t - t0));
-const ring = (t, evs, k = 6, w = 18) => evs.reduce((s, e) => s + spring(t, e, k, w), 0);    // one kick per event time
-// Hold each drawing for two frames (12 drawings a second), like hand-drawn animation "on twos". Wrap a shot's t in it.
-const onTwos = t => Math.floor(t * 12 + 1e-6) / 12;
-// Point on a thrown or jumping arc from p0 to p1, peaking h px above the straight line; k = 0..1 along the flight.
-const arcPt = (p0, p1, h, k) => [lerp(p0[0], p1[0], k), lerp(p0[1], p1[1], k) - h * 4 * k * (1 - k)];
-// A hop that takes off at t0 and lands at t1, h body units high: crouch (anticipation), stretch on takeoff,
-// round at the top, squash on landing and spring back. Returns { dy, sq } to spread into clawd().
-function jump(t, t0, t1, h = 3) {
-  if (t < t0 - .12) return { dy: 0, sq: 0 };
-  if (t < t0) return { dy: 0, sq: .18 * ease(seg(t, t0 - .12, t0)) };
-  if (t < t1) { const k = (t - t0) / (t1 - t0); return { dy: -h * 4 * k * (1 - k), sq: -.16 * Math.abs(1 - 2 * k) }; }
-  const a = t - t1; return { dy: 0, sq: .22 * Math.exp(-8 * a) * Math.cos(20 * a) };
-}
-// A surprise "take" peaking at t0: a quick squash, then a big stretch up that springs back. amt scales it.
-function take(t, t0, amt = 1) {
-  if (t < t0 - .1) return { sq: 0, dy: 0 };
-  if (t < t0) return { sq: .12 * amt * ease(seg(t, t0 - .1, t0)), dy: 0 };
-  const a = t - t0; return { sq: -.26 * amt * Math.exp(-6 * a) * Math.cos(16 * a), dy: -1.2 * amt * Math.exp(-7 * a) * Math.max(0, Math.cos(9 * a)) };
-}
-// Walk from x0 to x1 (px) between t0 and t1, for a character of unit u: eases in and out, faces the way it's
-// going in 3/4 view, and faces front when it stops. Returns { x, walk, view, flip, dy } for clawd().
-function stroll(t, t0, t1, x0, x1, u) {
-  const x = lerp(x0, x1, ease(seg(t, t0, t1))), d = Math.abs(x - x0) / (4 * u), moving = t > t0 && t < t1;
-  return { x, walk: d, view: moving ? 'q' : 'front', flip: x1 < x0, dy: moving ? -Math.abs(Math.sin(d * Math.PI)) * .5 : 0 };
-}
-
 // ---------- camera ----------
 // camBegin(cx, cy, zoom, rot): world point (cx, cy) lands at screen centre. Letters queued while a camera is
 // active are placed through it automatically (pass {screen:true} to opt out). One level only: always pair with camEnd().
-// LAST_CAM stays set after camEnd(), until the next frame: renderSheet's crops that follow a world point use it.
-let CAM = null, LAST_CAM = null;
-function camBegin(cx = W / 2, cy = H / 2, zoom = 1, rot = 0) { push(); translate(W / 2, H / 2); rotate(rot); scale(zoom); translate(-cx, -cy); CAM = LAST_CAM = { cx, cy, zoom, rot }; }
+let CAM = null;
+function camBegin(cx = W / 2, cy = H / 2, zoom = 1, rot = 0) { push(); translate(W / 2, H / 2); rotate(rot); scale(zoom); translate(-cx, -cy); CAM = { cx, cy, zoom, rot }; }
 function camEnd() { pop(); CAM = null; }
-function toScreen(x, y, cam = CAM) {
-  if (!cam) return [x, y];
-  const c = Math.cos(cam.rot), s = Math.sin(cam.rot), dx = (x - cam.cx) * cam.zoom, dy = (y - cam.cy) * cam.zoom;
+function toScreen(x, y) {
+  if (!CAM) return [x, y];
+  const c = Math.cos(CAM.rot), s = Math.sin(CAM.rot), dx = (x - CAM.cx) * CAM.zoom, dy = (y - CAM.cy) * CAM.zoom;
   return [W / 2 + dx * c - dy * s, H / 2 + dx * s + dy * c];
 }
 
 // ---------- full-frame effects (call outside a camera, in screen space) ----------
-function flash(k, col = '#FFFDF6') { if (k > .01) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, washOp: 255 * clamp(k), ink: null }); }
-// Light: glow(x, y, r, col, a) ADDS a soft halo of light for anything that shines (stars, lamps, fireflies, magic).
-// p5.brush mixes every colour like pigment, so yellow painted over blue turns green and light can't be painted; this
-// is the one non-paint mark in the kit. It lands on what's painted so far, under anything painted after it, follows
-// the camera, and boils a little. Keep a = 1 on dark grounds; on light grounds it barely shows (as light would).
-function glow(x, y, r, col = '#FFC766', a = 1) {
-  if (a <= 0 || r < 1) return;
-  flushBrush();
-  const c = color(col), rr = r * (1 + jit(.03));
-  push(); blendMode(ADD); tint(red(c), green(c), blue(c), 150 * clamp(a)); image(glowTex, x - rr, y - rr, 2 * rr, 2 * rr); noTint(); blendMode(BLEND); pop();
-}
-function makeGlowTex() {
-  const g = createGraphics(256, 256); g.pixelDensity(1); const c = g.drawingContext, gr = c.createRadialGradient(128, 128, 0, 128, 128, 128);
-  [[0, 1], [.18, .8], [.45, .32], [.75, .08], [1, 0]].forEach(([s, a]) => gr.addColorStop(s, `rgba(255,255,255,${a})`));
-  c.fillStyle = gr; c.fillRect(0, 0, 256, 256);
-  return g;
-}
+function flash(k, col = '#FFFDF6') { if (k > .01) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, washOp: 255 * clamp(k), ink: null }); if (k > .6) METER_SHOWN = true; }
 // Paint everything OUTSIDE a star-shaped hole (irises, mouth-shaped reveals, keyholes).
 function irisShape(pts, col = PAL.ink, far = 4000) {
   const n = pts.length; let cx = 0, cy = 0; for (const p of pts) { cx += p[0]; cy += p[1]; } cx /= n; cy /= n;
@@ -124,10 +70,10 @@ function irisShape(pts, col = PAL.ink, far = 4000) {
     paint([a2, b2, out(b2), out(a2)], { wash: col, washOp: 255, ink: null });
   }
 }
-function iris(cx, cy, r, col = PAL.ink) { if (r < 4) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, ink: null }); else irisShape(ellPts(cx, cy, r, r, 40), col); }
+function iris(cx, cy, r, col = PAL.ink) { if (r < 60) METER_SHOWN = true; if (r < 4) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, ink: null }); else irisShape(ellPts(cx, cy, r, r, 40), col); }
 
-let T = 0, paperG = null, grainC = null, letG = null, glowTex = null, outC = null, outX = null;
-let LETTERS = [];
+let T = 0, paperG = null, grainC = null, letG = null, outC = null, outX = null;
+let LETTERS = [], KARAOKE = null;
 
 // ---------- geometry ----------
 function rectPts(x, y, w, h, j = 0) {
@@ -146,48 +92,10 @@ function rrPts(x, y, w, h, r, j = 0) {
 function starPts(cx, cy, r, inner = .38, n = 4, rot = -Math.PI / 2) {
   const p = []; for (let i = 0; i < n * 2; i++) { const a = rot + i * Math.PI / n, q = i % 2 ? r * inner : r; p.push([cx + Math.cos(a) * q, cy + Math.sin(a) * q]); } return p;
 }
-// Smooth curve through the points (Catmull-Rom), n samples per span.
-function through(P, n = 6) {
-  if (P.length < 3) return P.slice();
-  const out = [];
-  for (let i = 0; i < P.length - 1; i++) {
-    const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
-    for (let k = 0; k < n; k++) {
-      const u = k / n, u2 = u * u, u3 = u2 * u;
-      out.push([0, 1].map(d => .5 * (2 * p1[d] + (p2[d] - p0[d]) * u + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * u2 + (3 * p1[d] - p0[d] - 3 * p2[d] + p3[d]) * u3)));
-    }
-  }
-  out.push(P[P.length - 1]);
-  return out;
-}
-// Tapered ribbon around a path (w0 wide at the start, w1 at the end), as one closed outline for paint().
-// Tails, tentacles, noodly arms, painted glyphs: one shape with one outline, so nothing looks glued on.
-function ribbon(P, w0, w1 = w0) {
-  const C = through(P), n = C.length, L = [], R = [];
-  for (let i = 0; i < n; i++) {
-    const a = C[Math.max(0, i - 1)], b = C[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, w = lerp(w0, w1, i / Math.max(1, n - 1)) / 2;
-    L.push([C[i][0] - dy / d * w, C[i][1] + dx / d * w]); R.push([C[i][0] + dy / d * w, C[i][1] - dx / d * w]);
-  }
-  return L.concat(R.reverse());
-}
 
 // ---------- paint wrapper ----------
 // One call = one painted shape: optional flat wash, optional watercolor fill, optional hatch, optional ink outline.
-// p5.brush 2.2.3 loses strokes drawn far from the origin under a zoomed camera (from zoom ~2, an outline or a line
-// leaves only a dot at its first vertex), so every shape and line is drawn around its own centre.
-function centred(pts, draw) {
-  if (!pts.length) return;
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const [x, y] of pts) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  push(); translate(cx, cy); draw(pts.map(([x, y]) => [x - cx, y - cy])); pop();
-}
-function paint(pts, o = {}) { centred(pts, (P) => paintAt(P, o)); }
-// Flat mode (PROJECT.flat, ?flat, or render.mjs --flat / --soft-gl): watercolour fills become an equivalent flat wash.
-// Software WebGL paints a fill in seconds and a wash in milliseconds; the ink, boil and paper grain stay the same.
-const FLAT = !!PROJECT.flat || /[?&]flat\b/.test(location.search);
-function paintAt(pts, o) {
-  if (FLAT && o.fill) o = { ...o, fill: null, wash: o.wash || o.fill, washOp: o.wash ? (o.washOp ?? 255) : Math.round(191 * clamp((o.fillOp ?? 170) / 255)) };
+function paint(pts, o = {}) {
   if (o.wash || o.fill || o.hatch) {
     if (o.wash) brush.wash(o.wash, o.washOp ?? 255); else brush.noWash();
     if (o.fill) { brush.fill(o.fill, o.fillOp ?? 170); brush.fillBleed(o.bleed ?? .1); brush.fillTexture(o.tex ?? .4, o.border ?? .35); } else brush.noFill();
@@ -203,11 +111,10 @@ function paintAt(pts, o) {
   }
 }
 function inkLine(pts, sw = 1, col = PAL.ink, br = 'ink', curv = .5) {
-  centred(pts, (P) => { brush.noFill(); brush.noWash(); brush.noHatch(); brush.set(br, col, sw); brush.spline(P, curv); });
+  brush.noFill(); brush.noWash(); brush.noHatch(); brush.set(br, col, sw); brush.spline(pts, curv);
 }
 
 // ---------- lettering (drawn on the 2D compositor, under the paper grain) ----------
-// Use sparingly: see "No text" in ANIMATION_GUIDE.md. Clawd's emotes are painted and never need these.
 function letter(txt, x, y, size, color, o = {}) {
   if (CAM && !o.screen) { [x, y] = toScreen(x, y); size *= CAM.zoom; o = { ...o, rot: (o.rot || 0) + CAM.rot }; if (o.font) o.font = o.font.replace(/(\d+(\.\d+)?)px/, (m, v) => (v * CAM.zoom) + 'px'); }
   LETTERS.push({ txt, x, y, size, color, ...o });
@@ -230,21 +137,17 @@ function drawLetters(c) {
   }
 }
 
-// p5.brush defers washes and strokes into a mask layer; a (tiny, off-screen) watercolor fill forces it to composite
-// now, so everything painted before this call really lands under whatever p5 draws next (letters, glow).
-function flushBrush() {
-  push(); resetMatrix(); translate(-W / 2, -H / 2);
-  brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill('#000000', 1); brush.fillBleed(0); brush.fillTexture(0, 0);
-  brush.polygon([[-50, -50], [-40, -50], [-40, -40]]); brush.noFill(); pop();
-}
-// Paint the queued lettering into the scene itself, so later layers (wipes) cover it. drawWorld calls this after each
-// frame; call it yourself before a wipe or iris if the shot has lettering, or the letters will sit on top of it.
+// Paint the queued lettering into the scene itself, so later layers (wipes) cover it.
 function flushLetters() {
   if (!LETTERS.length) return;
   letG.clear(); drawLetters(letG.drawingContext); LETTERS = [];
-  flushBrush();
+  // p5.brush defers washes and strokes into a mask layer; a (tiny, off-screen) watercolor fill forces it to composite
+  // now, so everything painted before this call really lands under the letters.
   // Letters are already in screen space, so composite them with the base transform even inside camBegin().
-  push(); resetMatrix(); translate(-W / 2, -H / 2); image(letG, 0, 0); pop();
+  push(); resetMatrix(); translate(-W / 2, -H / 2);
+  brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill('#000000', 1); brush.fillBleed(0); brush.fillTexture(0, 0);
+  brush.polygon([[-50, -50], [-40, -50], [-40, -40]]); brush.noFill();
+  image(letG, 0, 0); pop();
 }
 
 // ---------- paper ----------
@@ -277,20 +180,19 @@ function defineBrushes() {
 
 // ---------- frame ----------
 async function setup() {
-  createCanvas(W, H, WEBGL); pixelDensity(+(new URLSearchParams(location.search).get('density')) || PROJECT.density || 1); noLoop();
+  createCanvas(W, H, WEBGL); pixelDensity(1); noLoop();
   brush.scaleBrushes(5); defineBrushes();
-  paperG = makePaper(); grainC = makeGrain(); glowTex = makeGlowTex(); letG = createGraphics(W, H); letG.pixelDensity(1);
+  paperG = makePaper(); grainC = makeGrain(); letG = createGraphics(W, H); letG.pixelDensity(1);
   outC = document.getElementById('out'); outX = outC.getContext('2d');
-  await document.fonts.load('100px "Permanent Marker"');
-  await Promise.all(window.PRELOAD || []);   // scenes push image decodes / font loads here
+  await Promise.all([document.fonts.load('100px "Permanent Marker"'), document.fonts.load('800 50px "Shantell Sans"')]);
   window.ready = true;
   if (!location.search.includes('render')) devUI();
 }
 function draw() {
   if (!window.ready) return;
-  LETTERS = []; CAM = LAST_CAM = null;
+  LETTERS = []; KARAOKE = null; METER_SHOWN = false; CAM = null;
   push(); translate(-W / 2, -H / 2);
-  BOILN = Math.floor(T * BOIL); CLAWD_N = 0; boilSeed('frame'); noiseSeed(77);
+  randomSeed(1000 + Math.floor(T * BOIL)); noiseSeed(77);
   image(paperG, 0, 0);
   drawWorld(T);
   pop();
@@ -302,28 +204,24 @@ function composite(t) {
   drawLetters(c);
   c.globalCompositeOperation = 'multiply'; c.drawImage(grainC, 0, 0);
   c.globalCompositeOperation = 'source-over';
+  drawKaraokeText(c);
 }
 window.renderAt = async (t, type = 'image/png', q = .92) => { T = t; await redraw(); composite(t); return outC.toDataURL(type, q); };
-// Contact sheet of several times, for visual checks: returns { url, ms[] }. crop = [x, y, w, h] fills each cell with just
-// that region of the frame, at full resolution (for checking faces, hands and contacts up close). at = [x, y, w, h]
-// instead crops w × h around the WORLD point (x, y), wherever each frame's camera put it (a foot, a splash, a prop on
-// a moving shot); x and y may be expressions evaluated in the page.
-window.renderSheet = async (times, cols = 3, w = 640, crop = null, at = null) => {
-  if (at) at = at.map((v) => typeof v === 'string' ? (0, eval)(v) : v);
-  const [, , cw, ch] = at || crop || [0, 0, W, H], h = Math.round(w * ch / cw), rows = Math.ceil(times.length / cols), sc = document.createElement('canvas');
+// Contact sheet of several times, for quick visual checks: returns { url, ms[] }.
+window.renderSheet = async (times, cols = 3, w = 640) => {
+  const h = Math.round(w * 9 / 16), rows = Math.ceil(times.length / cols), sc = document.createElement('canvas');
   sc.width = cols * w; sc.height = rows * h; const c = sc.getContext('2d'), ms = [];
   for (let i = 0; i < times.length; i++) {
     const t0 = performance.now(); T = times[i]; await redraw(); composite(times[i]); ms.push(Math.round(performance.now() - t0));
     const x = (i % cols) * w, y = Math.floor(i / cols) * h;
-    const [cx, cy] = at ? toScreen(at[0], at[1], LAST_CAM).map((v, j) => v - (j ? ch : cw) / 2) : crop || [0, 0];
-    c.drawImage(outC, cx, cy, cw, ch, x, y, w, h); c.fillStyle = 'rgba(0,0,0,.65)'; c.fillRect(x, y, 84, 24); c.fillStyle = '#fff'; c.font = '15px sans-serif'; c.fillText(times[i].toFixed(2) + 's', x + 6, y + 17);
+    c.drawImage(outC, x, y, w, h); c.fillStyle = 'rgba(0,0,0,.65)'; c.fillRect(x, y, 96, 26); c.fillStyle = '#fff'; c.font = '16px sans-serif'; c.fillText(times[i].toFixed(2) + 's', x + 6, y + 18);
   }
-  return { url: sc.toDataURL('image/jpeg', .9), ms };
+  return { url: sc.toDataURL('image/jpeg', .88), ms };
 };
 window.gpuInfo = () => { const gl = drawingContext, e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); };
 
 function devUI() {
-  const s = document.getElementById('scrub'), lab = document.getElementById('tt'); s.max = window.LOOP ? window.LOOP.len : DUR;
+  const s = document.getElementById('scrub'), lab = document.getElementById('tt');
   let busy = false, want = null;
   const go = async () => { if (busy) return; busy = true; while (want != null) { const t = want; want = null; const t0 = performance.now(); await window.renderAt(t); lab.textContent = `${t.toFixed(2)}s  ·  ${Math.round(performance.now() - t0)} ms/frame`; } busy = false; };
   s.addEventListener('input', () => { want = +s.value; go(); });

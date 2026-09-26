@@ -1,0 +1,56 @@
+# KMDY-RF 配方工坊 · 部署配置（本机 + SMB）
+# 部署时只改这一个文件。factory.py 读 capabilities 决定哪些取值能被抽到，读 paths 决定配方和登记写到哪。
+# 路径里的默认值取自 KMDY 工作间现有目录；标「空位」的由部署 agent 按本机实际填写。
+
+name: KMDY-RF
+display: 配方工坊
+identity: KMDY-RF          # 广播与登记里的发送方身份；各车道用 KMDY-RF-<车道>，如 KMDY-RF-TOON
+
+paths:
+  root: /Volumes/share/03_资料库/KMDouyin/KMDY-RF          # 工坊根目录（SMB 为权威）
+  recipes: "{root}/配方"                                   # 所有车道的配方；factory.py 在此加锁读写
+  productions: "{root}/车道/{lane}/{rid}"                  # 每部片子的代码、分镜、成片、接触表
+  ledger: "{root}/登记/事件.jsonl"                          # 本工坊事件账，只追加
+  outbox: "{root}/00_广播/发件.KMDY-RF.jsonl"
+  local_cache: ~/KMDY-RF_cache                             # 本机渲染中转，完成后 rsync -a --inplace 回 SMB 并读回
+  # 只读上游（本工坊不写）
+  standard: /Volumes/share/03_资料库/KMDouyin/02_通用资产/统一标准与分析/通用基准.md
+  editorial_gate: /Users/linzezhang/.codex/skills/kmdouyin-editorial-gate/SKILL.md
+  industrial_3d: /Users/linzezhang/.local/share/industrial-3d-toolkit/使用入口.md
+  kmbid_matrix: /Volumes/share/03_资料库/MetaData/IDS_MetaData/20_项目与商务/KMBID/代码/kmbid_fanwei.py
+  kmdy_styles: /Volumes/share/03_资料库/KMDouyin/KMDY/资料/风格与候选.json
+  blender_ledger: /Volumes/share/03_资料库/KMDouyin/KMDY/登记/事件.jsonl   # Blender 工作间成片登记，EXT 车道从这里导入
+  footage_registry: ""        # 空位：SMB 素材登记表路径
+  evidence_root: ""           # 空位：公司原件（宣传册/方案/验收单）目录
+  fonts: ""                   # 空位：本机字体目录（得意黑、思源黑 Heavy 等）
+  music_library: ""           # 空位：已授权曲库目录
+  tts_entry: ""               # 空位：本机 Qwen TTS 调用入口
+  remotion_project: ""        # 空位：本机 Remotion 工程模板
+  blender_entry: ""           # 空位：Blender 工作间入口（只读）
+  comfyui_entry: ""           # 空位
+
+capabilities:                 # true = 本机已具备；改成 true 后对应取值才会被抽到
+  chromium: true
+  ffmpeg: true
+  node: true
+  gsap: true
+  remotion: true
+  tts: true                   # 本机 Qwen
+  footage: true               # 需 footage_registry 可读
+  blender: true               # 仅 EXT 车道登记用
+  manim: false                # 本机 pip install manim 后改 true
+  comfyui: false
+  gpu: false
+  music_library: false
+  real_source: false          # 有真实人物/访谈/现场记录可用时改 true，写实真人主角才会被抽到
+  real_data: false            # 有带出处的数据集时改 true，数据可视化才会被抽到
+  evidence_anticorrosion: false   # 防腐保温与砌筑有公司原件后改 true
+
+agents:                       # 车道 → 负责的 agent，部署时填
+  TOON: ""
+  INK: ""
+  TYPE: ""
+  MATH: ""
+  VOX: ""
+  REAL: ""
+  QC: ""                      # 质检与调度，全工坊一个

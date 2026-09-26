@@ -1,0 +1,31 @@
+id: REAL-001
+lane: REAL
+parent: null
+title: ''
+status: draft
+score: null
+factors:
+  value_core: empathy
+  narrative: before_after
+  twist: scale_jump
+  protagonist: machine
+  audience_role: public
+  medium: footage_doc
+  business: thermal
+  emotion_arc: laugh_warm
+  industry: paper
+  hook: direct_address
+  camera: split
+  music: chiptune
+  voice: tts_vo
+  duration: s45
+  text_policy: zh_kinetic
+  palette: mono_gold
+  transition: match_cut
+  cta: series_next
+brief: ''
+facts: []
+storyboard: ''
+output: ''
+qc: ''
+metrics: {}

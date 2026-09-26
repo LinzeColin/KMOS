@@ -1,102 +1,112 @@
-# 配方工厂：固定一部分根本因素、改变另一部分，批量量产不雷同的短视频
+# KMDY-RF 配方工坊
 
-一部短视频 = 一份**配方**（15 个因子各取一个值）。批量量产时，调度者**固定**本批要统一的因子
-（如业务方向、时长），其余因子由 `factory.py` 抽取，并用三道闸保证每部片子彼此不同；
-每份配方交给一条 Opus agent 流水线（编剧 → 制作 → 质检）独立做完。
+**名字**：KMDY-RF（Recipe Foundry，配方工坊）。与 KMDY 同一个抖音内容域，RF 表明它的方法：
+用配方组合出片。本机的 Blender 工作间以 **7 维 + 4 要素** 把每部片子做好，
+配方工坊以 **3 层因素 + 配方组合** 让每部片子彼此不同；两边共用同一套质量闸门（`GATES.md`），
+配方库互相登记，自动避开对方用过的组合。
 
-```
-factors.yaml ──► factory.py sample ──► recipes/R00x.yaml ──► 编剧 agent ──► 制作 agent ──► 质检 agent ──► Owner 人眼验收
-   因子库          固定 + 抽取 + 去同质化        配方            分镜+四要素自评     按引擎出片       规格/事实/合规      发布
-                                                   ▲                                                         │
-                                                   └──────── 发布后 24h/7d 数据写回配方，调整因子权重 ◄──────────┘
-```
+## 1. 两套东西各管什么
 
-## 1. 三层因素
-
-| 层 | 含义 | 因子（详见 factors.yaml） |
+| | 管什么 | 在哪 |
 |---|---|---|
-| **L0 根本因素** | 换一个值，整部片子就是另一部片子 | 价值主打（精选四要素）、叙事母型、视角与主角、媒介与画风、业务入口、情绪弧 |
-| **L1 结构因素** | 还是那部片子，但节奏、观感、传播方式明显不同 | 开头钩子、镜头语言、音乐风格、人声策略、时长、字幕策略 |
-| **L2 表层因素** | 同一部片子的皮肤，用于同配方 A/B | 色彩、转场主招、结尾引导 |
+| 3 层因素 + 配方 | **差异**：这部片子和别的片子哪里根本不同 | `factors.yaml` `lanes.yaml` `factory.py` |
+| 4 要素 + 7 维 | **质量**：这部片子够不够好 | `GATES.md`（执行 KMDY《通用基准.md》） |
 
-**去同质化靠 L0**：两部片子 L0 至少 3 项不同，才算两部片子。只改 L1/L2 得到的是同一部片子的变体
-（例如 R001 去掉水印、改文案、换 logo，都属于 L2）。
+一部片子 = 一份配方 = 18 个因子各取一个值。改 L0 得到另一部片子；改 L1 得到同一部片子的另一种讲法；
+改 L2 得到同一部片子的皮肤。**两部片子 L0 至少 3 项不同才算两部片子。**
 
-**批量量产靠"固定 + 抽取"**：
-- 按方向量产：`--fix business=tyre` → 6 部都讲轮带，但叙事、主角、画风、情绪全不同
-- 按系列量产：`--fix medium=watercolor --fix protagonist=machine` → 同一画风同一 IP 的系列剧，每集叙事与业务不同
-- 按平台量产：`--fix duration=s15 --fix text_policy=bilingual_kinetic` → 海外短版
+Blender 工作间现有 3 部成片（N03 / N04 / N06）用配方语言登记在 `recipes/EXT/`，可以看出它开始趋同的原因：
+三部都是获得感主打、无人物、面向检修负责人、惊喜机制都是「信息差 / 先演错法」、标题都是「A ≠ B」句式。
+它只有一条生成轴（STY 叙事风格目录）；配方工坊把惊喜机制、观众、主角、画风拆成独立的 L0 轴，
+每条轴都参与去同质化。
 
-## 2. 可以换的画风（媒介与画风因子）
+## 2. 三层因素
 
-| 画风 | 引擎 | 适合 | 现状 |
-|---|---|---|---|
-| 扁平矢量卡通 | Canvas2D | 拟人、喜剧、快节奏卡点 | **已跑通**：R001 / `KMVideo/promo_30s` |
-| 手绘水彩、线条抖动 | p5.brush | 温情、感染力、慢叙事 | **引擎在库**：`ClaudeAnimationBase/`（默认无字规则，可按配方放开） |
-| 国潮水墨 | p5.brush | 匠心、传承、师徒 | 复用 ClaudeAnimationBase 笔刷 |
-| 低多边形 3D / 写实金属 3D | three.js | 设备结构、环绕展示 | 需要搭建；无 GPU 时用 SwiftShader 软渲染，慢但可行 |
-| X 光 / 剖视 | three.js | 获得感：看穿设备内部为什么坏 | 同上 |
-| 赛博霓虹 | three.js | 惊喜感、年轻受众 | 同上 |
-| 工程蓝图线稿 | SVG + GSAP | 精度、测量、原理讲解 | 需要搭建 |
-| 纯文字排版动效 | SVG + GSAP | 清单揭秘、反常识问句 | 需要搭建 |
-| 数据可视化叙事 | SVG + GSAP / D3 | 规模、效率对比 | 需要搭建 |
-| 3Blue1Brown 式几何讲解 | manim | 齿形、同轴度、偏摆的原理 | 需要搭建 |
-| 黑板粉笔 / 像素游戏 / 剪纸拼贴 | Canvas2D | 科普、闯关、手作感 | 复用 promo_30s 的渲染管线 |
-| 实拍素材 + 动态包装 | ffmpeg（+ Canvas 叠层） | 真实感、可信度最高 | 需要 NAS 素材库可读（`requires: footage`） |
+| 层 | 因子 |
+|---|---|
+| **L0 根本**（8 个） | 价值主打、叙事母型（18）、惊喜机制（11）、主角（9）、目标观众（7）、画风（22，决定引擎）、业务入口（14，KMBID 分类）、情绪弧（8） |
+| **L1 结构**（7 个） | 行业场景（12，KMBID 分类）、开头钩子、镜头语言、音乐、人声、时长、字幕 |
+| **L2 表层**（3 个） | 品牌色配比、转场主招、结尾引导 |
 
-## 3. 固定层（所有配方共用，任何 agent 都按此执行）
+行业放 L1：同一个故事换一个行业名，正是 KMDY 退回条件里的「换名词、换皮肤」。
+带 `requires` 的取值只在 `workspace.yaml capabilities` 为 true 时开放：写实真人主角要真实来源，
+数据可视化要带出处的数据，防腐保温业务要公司原件。
 
-- **品牌三线**（来自故事型广告创作基准 S1）：同一组剧情事件同时推进 ① 观众的判断与情绪 ② 人物对服务的需求与服务的作用 ③ 观众对开明的认识。技术服务在故事里承担关键因果作用。
-- **精选四要素全部及格**：获得感（学到判断/方法）、惊喜感（选题或形式新）、表达力（清晰生动、印象深）、感染力（真诚、引发共鸣）。`value_core` 指定的那一项做到最强，自评 ≥4/5。
-- **事实**：品牌能力、技术效果、项目与数字只用有出处的资料（宣传册、官网、素材登记表、项目资料）；人物、对白、情节可以艺术化创作。每部片子的事实逐条写进配方 `facts`。
-- **合规**：广告性质清楚标识；AI 生成内容按《人工智能生成合成内容标识办法》第 10 条主动声明并使用平台标识功能；服务效果与实际可实现条件对应（广告法第 8、14、28 条）。
-- **技术规格**：1080×1920 竖屏、30fps、H.264 High + AAC、-14 LUFS；平台 UI 安全区（顶部 250px、底部 350px、右侧 150px）；先接触表自查再全量渲染；成片与字体不入仓。
-- **声音版权**：原创合成（numpy，参照 `promo_30s/music.py`）或已核实商用授权的曲库；授权信息写进配方。
+## 3. 车道：每个 agent 领一个大类组合
 
-## 4. 引擎表：制作 agent 要用的技术与工具
+车道固定画风家族（同一引擎、同一套手艺），其余 L0 因子在车道内持续演化。
 
-| engine | 技术栈 | 许可 | 说明 |
-|---|---|---|---|
-| canvas2d | HTML Canvas + Playwright/Chromium 逐帧 `renderAt(t)` → PNG 流 → ffmpeg | 自有代码 | R001 实测 900 帧约 2.5 分钟（无 GPU） |
-| p5brush | p5.js + p5.brush + puppeteer（`ClaudeAnimationBase/render.mjs`） | MIT / LGPL | 水彩填充在无 GPU 时每帧数秒，可改用平涂 |
-| threejs | three.js + 同一套逐帧捕获；`preserveDrawingBuffer: true` | MIT | 无 GPU 用 `--use-angle=swiftshader` |
-| svg_gsap | SVG + GSAP 时间线 `tl.seek(t)` 逐帧 | GSAP 标准许可（发布前核对条款） | 适合排版与线稿 |
-| manim | Manim Community | MIT | Python 原生，直接出 mp4 |
-| ffmpeg_footage | ffmpeg 剪辑 + Canvas 生成透明叠层（字幕/贴纸/标注） | LGPL/GPL 工具，产物不受限 | 素材读自 NAS，按 KMVideo 素材登记表选片 |
-| 音乐/音效 | numpy + scipy 合成；ffmpeg `loudnorm` | 自有 | 需要人声时 TTS 走外包顺序并先查 public-apis 选型 |
+| 车道 | 画风 | 引擎 | 偏向 | 状态 |
+|---|---|---|---|---|
+| TOON | 扁平卡通 / 像素 / 剪纸 / 粉笔 | Canvas2D | 惊喜、幽默、卡点 | 成片 R001 + 配方 TOON-001 |
+| INK | 水彩 / 国潮水墨 / 蜡笔 | p5.brush（KMBearAnimationBase） | 感染力、温度；开明小熊 IP | 成片 INK-002 讲解片 + 配方 INK-001 |
+| TYPE | 蓝图 / 排版 / 数据 / 信息图 | SVG + GSAP | 获得感、出片最快 | 配方 TYPE-001，模板已测 |
+| MATH | 几何讲解 / 物理曲线 | manim | 原理的「为什么」 | 待本机装 manim |
+| VOX | 低多边形 / X 光剖视 / 霓虹 / 黏土感 3D | three.js | 表达力、看穿结构 | 配方 VOX-001，模板已测 |
+| REAL | 实拍包装 / 照片图解 / 现场纪实 | Remotion + ffmpeg | 可信度、真实处境 | 配方 REAL-001，需 SMB 素材 |
+| EXT | Blender 3D + 真实照片 | Blender | — | Blender 工作间，只登记不出片 |
 
-Remotion 也能做，但公司使用需购买公司许可，列为备选。
+**建议开 7 个 agent**：6 条车道各 1 个 + 1 个质检调度。
+- 按引擎分车道，agent 的手艺（`手艺.md`）会越积越深，出片越来越快
+- 每条车道只放一个 agent：同车道两个 agent 会互相抢组合空间，车道窗口也会失效
+- 质检调度单独一个：打分的人不做片，七维评分才可信
+- 首批先开 6 个：TOON、INK、TYPE、VOX、REAL 五条车道 + 质检调度。本机装好 manim 后再开 MATH
 
-## 5. 多 agent 流水线怎么搭
+## 4. 演化与衍变
 
-| 站 | agent | 输入 → 输出 | 提示词 |
-|---|---|---|---|
-| 0 | 调度 | 本批目标 → N 份配方（`factory.py sample` + `check` 0 趋同） | AGENT_PROMPTS.md · D |
-| 1 | 编剧 ×N（并行） | 配方 → 分镜、四要素自评、facts | A |
-| 2 | 制作 ×N（并行，每个独立 worktree） | 分镜 → 代码 + 成片 | B |
-| 3 | 质检 | 成片 → pass / return | C |
-| 4 | Owner | 人眼验收 → 发布 | — |
+- **抽样** `sample`：车道刚开工，或想换全新方向
+- **演化** `evolve`：从本车道得分最高的片子出发，继承它的价值主打（`--keep` 可指定更多基因，最多 5 个），
+  其余 L0 重新抽；子代记录 `parent`，形成谱系。Owner 打的分写进配方 `score`
+- **衍变**：闸门开始拒绝（组合空间收窄），车道 agent 提议新的因子取值，质检调度收录进 `factors.yaml`。
+  因子库随生产持续变大，量产与不趋同同时成立
+- **四道闸**：L0 ≥3 项不同；(叙事, 惊喜机制, 画风) 全库唯一；车道最近 4 部叙事与惊喜机制不重复；
+  批内同值 ≤ ceil(n/3)。`status` 显示各车道剩余三元组
 
-每个 agent 只读配方与本 README，零上下文可接手；配方 `status` 字段（draft → storyboarded → rendered → qc_pass → published）就是全局进度表。
+## 5. 部署（全部在本机与 SMB，不连接 GitHub）
 
-## 6. 复盘回路
+1. 解压，按 `AGENT_PROMPTS.md §0` 派一个部署 agent：填 `workspace.yaml`，建 SMB 目录，装依赖，验证引擎，登记 Blender 工作间成片
+2. 每条车道派一个车道 agent（`§1`），把 `{LANE}` 换成车道 ID
+3. 派一个质检调度 agent（`§2`）
+4. Owner 只做两件事：人眼验收（给 `score`）、决定发布
 
-发布后把 24h / 7d 数据（完播率、互动率、搜索账号数）写进配方 `metrics`。
-按因子取值汇总表现，表现好的取值提高抽样权重，差的降低，但任何取值都保留非零概率，保证持续出新。
+目录（SMB，`paths.root`）：
 
-## 7. 命令
+```
+KMDY-RF/
+  配方/<车道>/<RID>.yaml      全局进度表：draft → storyboarded → rendered → qc_pass → owner_accepted → published
+  车道/<车道>/手艺.md          本车道引擎经验（车道 agent 追加）
+  车道/<车道>/<RID>/           代码、分镜、接触表、成片
+  登记/事件.jsonl              只追加：待质检、质检结论、发布回执
+  登记/提议.md                 新因子取值提议
+  00_广播/发件.KMDY-RF.jsonl
+```
+
+## 6. 命令
 
 ```bash
-cd KMVideo/recipe_factory
-python3 factory.py sample --n 6 --fix business=tyre --fix duration=s30   # 抽 6 份并写入 recipes/
-python3 factory.py sample --n 4 --fix medium=watercolor --dry            # 只看不写
-python3 factory.py check                                                 # 全库趋同检查，0 对才放行
-python3 factory.py show R003
+python3 factory.py status                                     # 各车道进度与剩余组合空间
+python3 factory.py sample --lane TYPE --n 2                   # 抽样
+python3 factory.py sample --lane TOON --fix business=rotary_kiln --fix duration=s30
+python3 factory.py evolve --lane TOON --parent R001 --keep value_core,twist
+python3 factory.py check                                      # 全库趋同检查，0 处才放行
+python3 factory.py show VOX-001
+python3 engines/capture.py 页面.html 成片.mp4 --audio bgm.wav   # 页面引擎出片
+python3 engines/capture.py 成片.mp4 接触表.png --sheet 20       # 任意成片拼接触表
 ```
 
-## 8. 当前库存
+## 7. 文件
 
-| RID | 状态 | 固定 | 叙事 / 主角 / 画风 / 情绪 |
-|---|---|---|---|
-| R001 | shipped | — | 困境—救星—反转 / 拟人窑 / 扁平矢量 / 焦虑→释然 |
-| R002–R007 | draft | 轮带修复 · 30 秒 | 由 `factory.py sample --seed 7` 抽出，`check` 0 对趋同，待编剧 agent 写分镜 |
+| 文件 | 内容 |
+|---|---|
+| `factors.yaml` | 因子库与引擎表 |
+| `lanes.yaml` | 车道定义 |
+| `workspace.yaml` | 本机/SMB 路径与能力开关（部署时只改它） |
+| `factory.py` | 抽样、演化、闸门、状态 |
+| `GATES.md` | 固定层、四要素、七维 |
+| `AGENT_PROMPTS.md` | 部署 / 车道 / 质检调度 / 单片提示词 |
+| `engines/` | 通用采集器与各引擎模板 |
+| `recipes/` | R001、INK-002 两部成片的配方，5 条车道首份配方，EXT 登记的 3 部 Blender 成片 |
+| `refs/` | 《故事型广告 S1 创作基准》《KMDY 共同底座》原文 |
+
+相关项目（仓库根目录）：`ClaudeAnimationBase/`（Clawd 手绘底座）、`KMBearAnimationBase/`（开明小熊手绘底座，INK 车道引擎）、
+`ClaudeVideo/`（PDoomVideo 长片源码，分章并行与舞台秀递进的范例）。

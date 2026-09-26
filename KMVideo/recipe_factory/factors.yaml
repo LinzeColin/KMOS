@@ -1,137 +1,226 @@
-# 视频配方因子库：一部短视频 = 每个因子各取一个值。
-# layer 决定改动它会让片子变多少：
-#   L0 根本因素：换一个值，整部片子就是另一部片子（去同质化靠它们）
-#   L1 结构因素：片子还是那部，但观感、节奏、传播方式明显不同
-#   L2 表层因素：同一部片子的皮肤，只用于同配方微调与 A/B
-# weight 用于 diversity.py 计算两份配方的距离。
-# requires 标注该值依赖的外部条件（素材 / 配音 / GPU），sampler 只在条件满足时选它。
+# KMDY-RF 配方工坊 · 因子库
+# 一部短视频 = 每个因子各取一个值（= 一份配方）。layer 决定改它会让片子变多少：
+#   L0 根本因素：换一个值，整部片子就是另一部片子。去同质化只认 L0。
+#   L1 结构因素：片子还是那部，但节奏、观感、传播方式、适用行业明显不同。
+#   L2 表层因素：同一部片子的皮肤，只用于同配方 A/B。
+# weight：计算两份配方距离时的权重。
+# requires：该值依赖的本机/SMB 能力，名字与 workspace.yaml 的 capabilities 对应，能力为 true 才会被抽到。
+# sty：与 KMDY 工作间 STY01–STY06 叙事风格目录的对应关系，便于两边登记互认。
+# 行业放在 L1：同一个故事换一个行业名，属于 KMDY 质量表里退回的「换名词、换皮肤」，不算新片。
+
+engines:
+  canvas2d:       {requires: [chromium, ffmpeg], kit: ../promo_30s,             status: 云端跑通（R001）}
+  p5brush:        {requires: [chromium, ffmpeg, node], kit: ../../KMBearAnimationBase, status: 云端出片（INK-002）；无显卡用 --soft-gl 平涂模式 + --density=0.6667，1080p 约 1.7 秒/帧}
+  threejs:        {requires: [chromium, ffmpeg], kit: engines/threejs,          status: 云端跑通模板（SwiftShader）}
+  svg_gsap:       {requires: [chromium, ffmpeg, gsap], kit: engines/svg_gsap,   status: 云端跑通模板}
+  manim:          {requires: [manim], kit: engines/manim,                       status: 模板已写，待本机安装后验证}
+  remotion:       {requires: [remotion, node], kit: engines/remotion,           status: 本机空位}
+  ffmpeg_footage: {requires: [footage, ffmpeg], kit: engines/ffmpeg_footage,    status: 本机空位（素材在 SMB）}
+  blender:        {requires: [blender], kit: engines/blender,                   status: 由 Blender 工作间承担，本工坊只登记}
+  comfyui:        {requires: [comfyui, gpu], kit: engines/comfyui,              status: 本机空位}
 
 factors:
 
   # ───────────── L0 根本因素 ─────────────
   - id: value_core
-    name: 价值主打（精选计划四要素中占 C 位的一项）
+    name: 价值主打（精选四要素里做到最强的一项）
     layer: L0
     weight: 3
-    note: 四项都要做到及格，这里选"最强的一项"。片子的开头钩子和结尾回报都围绕它设计。
+    note: 四项都要及格（GATES.md），这里选 C 位。开头钩子与结尾回报围绕它设计。
     values:
-      - {id: gain,       label: 获得感, note: 看完学会一个判断/方法/冷知识，深入浅出}
-      - {id: surprise,   label: 惊喜感, note: 选题或表现形式让人眼前一亮，与众不同}
-      - {id: expression, label: 表达力, note: 画面/剪辑/声音的完成度本身就是看点，印象深刻}
-      - {id: empathy,    label: 感染力, note: 真实体验与真诚情感，引发共鸣}
+      - {id: gain,       label: 获得感, note: 看完多会一个判断/方法，深入浅出}
+      - {id: surprise,   label: 惊喜感, note: 选题立意或表现方式让人眼前一亮}
+      - {id: expression, label: 表达力, note: 画面/剪辑/声音完成度本身就是看点}
+      - {id: empathy,    label: 感染力, note: 来自真实处境与约束的共鸣}
 
   - id: narrative
     name: 叙事母型
     layer: L0
     weight: 3
     values:
-      - {id: rescue_reversal, label: 困境—救星—反转, note: R001 用的就是它}
-      - {id: mystery,         label: 悬疑解谜, note: 先给异常现象，逐层揭开原因}
-      - {id: before_after,    label: 反差对比, note: 修前修后/拆运 vs 现场，分屏或同机位对照}
-      - {id: mockumentary,    label: 伪纪录片/采访, note: 一本正经地拍一件很小的事}
-      - {id: pov_challenge,   label: 第一人称挑战, note: 我要在 X 小时内让这台窑重新转起来}
-      - {id: object_monologue,label: 物件独白, note: 一个零件讲它的一生 / 一天}
-      - {id: countdown_list,  label: 清单揭秘, note: 3 个你不知道的…，每条一个认知更新}
-      - {id: experiment,      label: 实验测试, note: 硬核测试或离谱测试（咖啡测试、硬币立住）}
-      - {id: mentor,          label: 师徒传承, note: 老师傅带新人，技术在对话里自然讲清}
-      - {id: time_lapse_life, label: 时间压缩, note: 一天 / 十年 / 一台设备的寿命压进 30 秒}
-      - {id: misunderstanding,label: 误会喜剧, note: 观众以为是 A，揭晓其实是 B}
-      - {id: letter,          label: 书信/告白, note: 客户写给设备、设备写给工人}
-      - {id: process_asmr,    label: 纯过程快感, note: 无剧情，靠工艺过程本身的解压感}
+      - {id: rescue_reversal,  label: 困境—救星—反转, note: R001}
+      - {id: mystery,          label: 悬疑解谜, sty: STY02, note: 先给异常现象，逐层揭开原因}
+      - {id: before_after,     label: 条件对比, sty: STY03, note: 修前修后 / 拆运 vs 现场 / 两种工况}
+      - {id: myth_bust,        label: 边界纠错, sty: STY06, note: 常见但误导的判断讲清楚；Blender 工作间已密集使用}
+      - {id: project_progress, label: 项目推进, sty: STY05, note: 围绕任务变化与可见后果保持期待}
+      - {id: mockumentary,     label: 伪纪录片/采访, note: 一本正经地拍一件很小的事（风格化角色）}
+      - {id: pov_challenge,    label: 第一人称挑战, sty: STY04, note: 我要在停机窗口内让它重新转起来}
+      - {id: object_monologue, label: 物件独白, note: 一个零件讲它的一生 / 一天}
+      - {id: countdown_list,   label: 清单揭秘, note: 3 个你不知道的…，每条一个认知更新}
+      - {id: experiment,       label: 实验测试, note: 硬核或离谱测试（硬币立住、咖啡不洒）}
+      - {id: mentor,           label: 师徒传承, sty: STY04, note: 老师傅带新人；真人需真实来源，否则用风格化角色}
+      - {id: time_lapse_life,  label: 时间压缩, note: 一天 / 十年 / 一台设备的寿命压进 30 秒}
+      - {id: misunderstanding, label: 误会喜剧, note: 观众以为是 A，揭晓其实是 B}
+      - {id: letter,           label: 书信/告白, note: 设备写给工人、零件写给窑}
+      - {id: process_asmr,     label: 纯过程快感, sty: STY01, note: 无剧情，靠工艺过程本身的解压感}
+      - {id: quiz,             label: 观众竞猜, note: 开头出选择题，结尾揭晓，评论区自然互动}
+      - {id: news_report,      label: 新闻播报体, note: 设备界快讯、现场连线}
+      - {id: game_level,       label: 闯关游戏, note: 修设备 = 通关，血条/关卡/Boss}
+      - {id: stage_show,       label: 舞台秀递进, note: 同一个舞台、同一个道具每段升级一档（ClaudeVideo/PDoom 的结构）}
+      - {id: explainer_tour,   label: 讲解员带看, note: 讲解员角色带观众逐站看懂一件事（INK-001 KMBID 讲解片）}
+
+  - id: twist
+    name: 惊喜机制（全片那一下「没想到」靠什么）
+    layer: L0
+    weight: 2.5
+    note: 与叙事母型分开，专门防止「每片同一反转模板」。
+    values:
+      - {id: scale_jump,      label: 尺度跳跃, note: 从 0.1 毫米一路拉到整条生产线}
+      - {id: pov_swap,        label: 视角置换, note: 从设备/零件/物料的眼睛看}
+      - {id: info_gap,        label: 信息差揭晓, note: 最后一秒才知道真相}
+      - {id: analogy,         label: 生活类比, note: 用自行车、牙齿、锅盖讲工业原理}
+      - {id: rule_break,      label: 打破第四面墙, note: 角色和字幕、进度条、平台 UI 互动}
+      - {id: wrong_way_first, label: 先演错法, note: 常见做法的后果先上演；Blender 工作间已密集使用}
+      - {id: magnitude,       label: 数量级换算, note: 数字换成可感知的东西（需有出处的数字）}
+      - {id: physical_demo,   label: 物理演示, note: 硬币、水杯、激光线让原理可见}
+      - {id: time_fold,       label: 时间折叠, note: 十年磨损压进 3 秒，或一秒拉成十秒}
+      - {id: deadpan,         label: 一本正经的反差, note: 用最严肃的规格处理最小的事}
+      - {id: flow_only,       label: 无反转，靠流畅快感, note: 适合纯过程/解压}
+      - {id: pull_back_reveal,label: 拉远揭晓, note: 镜头拉远，原来整件事是另一回事（PDoom 结尾「原来是一场戏」）}
+      - {id: mess_to_order,   label: 乱到整齐, note: 开头的混乱母题在结尾变成整齐的一件东西}
 
   - id: protagonist
     name: 视角与主角
     layer: L0
     weight: 2
+    note: 写实真人（client/craftsman/apprentice）只用真实来源的人与事；其余情况用风格化角色并标明演绎。
     values:
-      - {id: machine,   label: 拟人设备（窑宝等）}
-      - {id: client,    label: 客户/厂长/老板}
-      - {id: craftsman, label: 一线技术工人}
-      - {id: apprentice,label: 学徒/新人}
-      - {id: part,      label: 一个零件（齿、轴、焊珠）}
-      - {id: child,     label: 孩子/外行旁观者}
-      - {id: expert_vo, label: 专家旁白（不露脸）}
-      - {id: none,      label: 无人物，只有过程}
+      - {id: machine,    label: 拟人设备（窑宝等）}
+      - {id: client,     label: 客户/厂长/设备负责人, requires: [real_source]}
+      - {id: craftsman,  label: 一线技术工人, requires: [real_source]}
+      - {id: apprentice, label: 学徒/新人, requires: [real_source]}
+      - {id: toon_cast,  label: 风格化人物（卡通/剪纸/像素小人）}
+      - {id: part,       label: 一个零件（齿、轴、焊珠）}
+      - {id: child,      label: 孩子/外行旁观者（风格化）}
+      - {id: expert_vo,  label: 专家旁白（不露脸）}
+      - {id: none,       label: 无人物，只有过程}
+      - {id: km_bear,    label: 开明小熊（公司 IP，KMBearAnimationBase）}
+      - {id: bear_clawd, label: 开明小熊 + Clawd 搭档（人做判断，AI 找机会）}
 
-  - id: medium
-    name: 媒介与画风（决定渲染引擎）
-    layer: L0
-    weight: 3
-    note: engine 字段就是制作 agent 要用的技术栈，见 README「引擎表」
-    values:
-      - {id: flat_vector,   label: 扁平矢量卡通, engine: canvas2d, note: R001 / KMVideo/promo_30s}
-      - {id: watercolor,    label: 手绘水彩线条抖动, engine: p5brush, note: ClaudeAnimationBase}
-      - {id: lowpoly_3d,    label: 低多边形 3D, engine: threejs}
-      - {id: realistic_3d,  label: 写实工业 3D（金属 PBR）, engine: threejs, requires: [gpu_or_patience]}
-      - {id: blueprint,     label: 工程蓝图线稿, engine: svg_gsap, note: 白线蓝底，尺寸标注动画}
-      - {id: xray_cutaway,  label: X 光/剖视, engine: threejs, note: 看穿设备内部}
-      - {id: chalkboard,    label: 黑板粉笔科普, engine: canvas2d}
-      - {id: pixel,         label: 像素游戏风, engine: canvas2d, note: 可做成「闯关修设备」}
-      - {id: papercut,      label: 剪纸拼贴定格感, engine: canvas2d}
-      - {id: ink_guochao,   label: 国潮水墨, engine: p5brush}
-      - {id: neon_cyber,    label: 赛博霓虹, engine: threejs}
-      - {id: kinetic_type,  label: 纯文字排版动效, engine: svg_gsap}
-      - {id: dataviz,       label: 数据可视化叙事, engine: svg_gsap}
-      - {id: footage_mograph,label: 实拍素材 + 动态包装, engine: ffmpeg_footage, requires: [footage]}
-      - {id: math_explainer,label: 3Blue1Brown 式几何讲解, engine: manim}
-
-  - id: business
-    name: 业务入口（技术服务 = 产品）
+  - id: audience_role
+    name: 目标观众（KMDY 矩阵的客户角色）
     layer: L0
     weight: 2
-    note: 只用有文档支持的业务名（宣传册/官网/素材登记表），具体数字需项目资料支持
+    note: 决定「获得感」给谁、给什么。
     values:
-      - {id: tyre,       label: 轮带在线车削修复}
-      - {id: roller,     label: 托轮修复}
-      - {id: girth_gear, label: 大齿圈/齿轮修复}
-      - {id: welding,    label: 焊接修复}
-      - {id: portable_machining, label: 现场便携式车、磨、铣、镗}
-      - {id: shaft_hole, label: 轴孔类修复}
-      - {id: offline_machining, label: 离线机加工}
-      - {id: kiln_inspection,   label: 回转窑检测}
-      - {id: kiln_alignment,    label: 调窑找正}
-      - {id: install_overhaul,  label: 安装检修与维修保驾}
-      - {id: relocation_lifting,label: 设备移位与吊装}
-      - {id: brand_overview,    label: 公司整体形象（多业务串联）}
+      - {id: equipment_head,  label: 设备负责人}
+      - {id: maint_engineer,  label: 检修与工程负责人}
+      - {id: procurement,     label: 采购/商务}
+      - {id: plant_boss,      label: 厂长/老板}
+      - {id: operator,        label: 一线操作与点检}
+      - {id: newcomer,        label: 行业新人/学生}
+      - {id: public,          label: 大众路人（好奇心）}
+
+  - id: medium
+    name: 媒介与画风（决定引擎，也决定车道）
+    layer: L0
+    weight: 3
+    values:
+      - {id: flat_vector,     label: 扁平矢量卡通, engine: canvas2d, note: R001}
+      - {id: pixel,           label: 像素游戏风, engine: canvas2d}
+      - {id: papercut,        label: 剪纸拼贴定格感, engine: canvas2d}
+      - {id: chalkboard,      label: 黑板粉笔科普, engine: canvas2d}
+      - {id: watercolor,      label: 手绘水彩线条抖动, engine: p5brush}
+      - {id: ink_guochao,     label: 国潮水墨, engine: p5brush}
+      - {id: crayon_kid,      label: 蜡笔儿童画, engine: p5brush}
+      - {id: blueprint,       label: 工程蓝图线稿, engine: svg_gsap}
+      - {id: kinetic_type,    label: 纯文字排版动效, engine: svg_gsap}
+      - {id: dataviz,         label: 数据可视化叙事, engine: svg_gsap, requires: [real_data]}
+      - {id: infographic,     label: 扁平信息图/图标流, engine: svg_gsap}
+      - {id: math_explainer,  label: 3Blue1Brown 式几何讲解, engine: manim}
+      - {id: sim_plot,        label: 物理量曲线与仿真动画, engine: manim}
+      - {id: lowpoly_3d,      label: 低多边形 3D, engine: threejs}
+      - {id: xray_cutaway,    label: X 光/剖视 3D, engine: threejs}
+      - {id: neon_cyber,      label: 赛博霓虹 3D, engine: threejs}
+      - {id: toy_3d,          label: 玩具/黏土感 3D, engine: threejs}
+      - {id: footage_mograph, label: 实拍素材 + 动态包装, engine: remotion, requires: [footage]}
+      - {id: photo_diagram,   label: 真实照片 + 2D 图解, engine: remotion, requires: [footage]}
+      - {id: footage_doc,     label: 现场纪实剪辑, engine: ffmpeg_footage, requires: [footage]}
+      - {id: blender_mix,     label: Blender 3D + 真实照片, engine: blender, note: Blender 工作间的主画风，本工坊只登记}
+      - {id: ai_illustration, label: AI 插画逐帧/图生视频, engine: comfyui}
+
+  - id: business
+    name: 业务入口（KMBID 业务分类，只读上游）
+    layer: L0
+    weight: 2
+    note: 分类来自 KMBID 矩阵；命中只代表「上游有线索」，具体服务、数字、项目要有公司原件。示例服务取自宣传册/官网。
+    values:
+      - {id: rotary_kiln,  label: 回转窑与回转设备, services: [轮带车削, 托轮修复, 筒体, 回转窑检测, 调窑找正]}
+      - {id: mill_crusher, label: 磨机与破碎设备}
+      - {id: gear_shaft,   label: 齿轮轴辊与重型机械修复, services: [大齿圈/齿轮修复, 轴孔类修复]}
+      - {id: thermal,      label: 冶炼与热工设备}
+      - {id: env_equip,    label: 除尘脱硫环保设备}
+      - {id: chem_piping,  label: 化工装置、管道与动设备}
+      - {id: conveyor,     label: 输送设备}
+      - {id: steel_struct, label: 工业土建与钢结构}
+      - {id: anticorrosion,label: 防腐保温与砌筑, requires: [evidence_anticorrosion], note: KMBID 标「未建立项目证据」，补齐原件后开放}
+      - {id: inspection,   label: 检验检测}
+      - {id: machining,    label: 机加工与备件制造, services: [现场便携式车磨铣镗, 离线机加工]}
+      - {id: overhaul,     label: 装置检修与零星维修, services: [焊接修复, 维修保驾]}
+      - {id: install_retrofit, label: 安装与技改工程, services: [安装检修, 设备移位与吊装]}
+      - {id: brand_overview,   label: 公司整体形象（多业务串联）}
+      - {id: internal_ai,      label: 内部 AI 工具推广（KMBID 搜标等），面向本公司同事}
 
   - id: emotion_arc
     name: 情绪弧
     layer: L0
     weight: 2
     values:
-      - {id: anxiety_relief,   label: 焦虑 → 释然}
-      - {id: curiosity_aha,    label: 好奇 → 顿悟}
-      - {id: doubt_respect,    label: 怀疑 → 佩服}
-      - {id: laugh_warm,       label: 好笑 → 温暖}
-      - {id: tension_release,  label: 紧张 → 爽}
-      - {id: calm_satisfaction,label: 平静 → 满足（解压）}
-      - {id: nostalgia_pride,  label: 怀旧 → 自豪}
+      - {id: anxiety_relief,    label: 焦虑 → 释然}
+      - {id: curiosity_aha,     label: 好奇 → 顿悟}
+      - {id: doubt_respect,     label: 怀疑 → 佩服}
+      - {id: laugh_warm,        label: 好笑 → 温暖}
+      - {id: tension_release,   label: 紧张 → 爽}
+      - {id: calm_satisfaction, label: 平静 → 满足（解压）}
+      - {id: nostalgia_pride,   label: 怀旧 → 自豪}
+      - {id: awe,               label: 平淡 → 震撼}
 
   # ───────────── L1 结构因素 ─────────────
+  - id: industry
+    name: 行业场景（KMBID 行业分类）
+    layer: L1
+    weight: 1
+    values:
+      - {id: cement,     label: 水泥建材}
+      - {id: steel,      label: 钢铁冶金}
+      - {id: nonferrous, label: 有色金属}
+      - {id: chemical,   label: 化工}
+      - {id: power,      label: 电力能源}
+      - {id: mining,     label: 矿山煤炭}
+      - {id: refractory, label: 耐材石灰}
+      - {id: paper,      label: 造纸轻工}
+      - {id: pharma_food,label: 医药食品}
+      - {id: env_waste,  label: 环保固废}
+      - {id: equip_mfg,  label: 制造装备}
+      - {id: generic,    label: 行业通用（不点名行业）}
+
   - id: hook
     name: 开头 2 秒钩子
     layer: L1
     weight: 1.5
     values:
-      - {id: anomaly,      label: 异常现象（设备在哭/在响）}
-      - {id: result_first, label: 结果先行（先给爽点再倒叙）}
+      - {id: anomaly,             label: 异常现象（设备在哭/在响）}
+      - {id: result_first,        label: 结果先行（先给爽点再倒叙）}
       - {id: counter_intuitive_q, label: 反常识提问}
-      - {id: sound_spectacle, label: 声音奇观（火花/金属声）}
-      - {id: countdown,    label: 倒计时/赌约}
-      - {id: direct_address, label: 直视镜头对观众说话}
+      - {id: sound_spectacle,     label: 声音奇观（火花/金属声）}
+      - {id: countdown,           label: 倒计时/赌约}
+      - {id: direct_address,      label: 直视镜头对观众说话}
+      - {id: quiz_card,           label: 选择题卡片}
+      - {id: extreme_closeup,     label: 极近特写猜物}
 
   - id: camera
     name: 镜头语言
     layer: L1
     weight: 1.5
     values:
-      - {id: oner,      label: 一镜到底（嵌套缩放/甩镜衔接）}
-      - {id: montage,   label: 快切蒙太奇}
-      - {id: split,     label: 分屏对照}
-      - {id: locked,    label: 固定机位}
-      - {id: pov,       label: 第一人称 POV}
-      - {id: macro,     label: 微距/显微推进}
-      - {id: orbit,     label: 环绕（3D 引擎专用）}
+      - {id: oner,    label: 一镜到底（嵌套缩放/甩镜衔接）}
+      - {id: montage, label: 快切蒙太奇}
+      - {id: split,   label: 分屏对照}
+      - {id: locked,  label: 固定机位}
+      - {id: pov,     label: 第一人称 POV}
+      - {id: macro,   label: 微距/显微推进}
+      - {id: orbit,   label: 环绕（3D 引擎）}
+      - {id: side_scroll, label: 横版卷轴}
 
   - id: music
     name: 音乐风格
@@ -139,22 +228,24 @@ factors:
     weight: 1.5
     values:
       - {id: electro_pop, label: 电子流行 120BPM, note: R001}
-      - {id: percussion,  label: 工业打击乐（用金属声做鼓）}
+      - {id: percussion,  label: 工业打击乐（金属声做鼓）}
       - {id: guofeng,     label: 国风电子}
       - {id: lofi,        label: lo-fi 慢节奏}
       - {id: orchestral,  label: 史诗管弦}
       - {id: chiptune,    label: 8-bit 芯片音乐}
       - {id: none_foley,  label: 无音乐，只有拟音/ASMR}
+      - {id: library,     label: 已授权曲库, requires: [music_library]}
+      - {id: playful_mallet, label: 轻快木琴/八音盒（numpy 合成）, note: INK-002}
 
   - id: voice
     name: 人声策略
     layer: L1
     weight: 1
     values:
-      - {id: none,       label: 无人声，全靠字幕和拟音, note: R001}
-      - {id: tts_vo,     label: TTS 旁白, requires: [tts]}
-      - {id: dialogue,   label: 角色对白（TTS 多音色）, requires: [tts]}
-      - {id: gibberish,  label: 无意义角色音（咿呀声，像动画片）}
+      - {id: none,      label: 无人声，靠高价值文字与完整声音设计, note: R001}
+      - {id: tts_vo,    label: 本机 Qwen 旁白（按实际音频排字幕）, requires: [tts]}
+      - {id: dialogue,  label: 角色对白（多音色）, requires: [tts]}
+      - {id: gibberish, label: 无意义角色音（动画片咿呀声）}
 
   - id: duration
     name: 时长
@@ -173,30 +264,30 @@ factors:
     values:
       - {id: bilingual_kinetic, label: 中英双语大字卡点, note: R001}
       - {id: zh_kinetic,        label: 中文大字卡点}
-      - {id: no_text,           label: 无字（ClaudeAnimationBase 默认规则）}
-      - {id: subtitle_bar,      label: 底部常规字幕条}
+      - {id: minimal_text,      label: 极少字（只留眉题与结论）}
+      - {id: subtitle_bar,      label: 透明底常规字幕}
 
   # ───────────── L2 表层因素 ─────────────
   - id: palette
-    name: 色彩世界
+    name: 品牌色的配比（品牌色固定为墨绿/米白/暖金，见 GATES.md）
     layer: L2
     weight: 0.5
     values:
-      - {id: navy_orange, label: 深蓝 + 橙黄, note: R001}
-      - {id: cream_ink,   label: 米白 + 墨黑}
-      - {id: steel_teal,  label: 钢灰 + 青绿}
-      - {id: warm_sunset, label: 暖夕阳}
-      - {id: mono_red,    label: 黑白 + 一点红}
+      - {id: green_lead, label: 墨绿主导}
+      - {id: cream_lead, label: 米白主导}
+      - {id: gold_night, label: 深底 + 暖金点亮}
+      - {id: mono_gold,  label: 黑白 + 暖金一点}
+      - {id: navy_orange,label: 深蓝 + 橙黄（R001 旧片用色，新片不抽）, retired: true}
   - id: transition
     name: 转场主招
     layer: L2
     weight: 0.5
     values:
-      - {id: whip, label: 甩镜}
+      - {id: whip,         label: 甩镜}
       - {id: zoom_through, label: 穿越缩放}
-      - {id: match_cut, label: 形状匹配剪辑}
-      - {id: brush_wipe, label: 笔刷擦除}
-      - {id: iris, label: 光圈}
+      - {id: match_cut,    label: 形状匹配剪辑}
+      - {id: brush_wipe,   label: 笔刷擦除}
+      - {id: iris,         label: 光圈}
   - id: cta
     name: 结尾引导
     layer: L2
@@ -205,3 +296,4 @@ factors:
       - {id: search_handle, label: 抖音搜索账号}
       - {id: comment_q,     label: 评论区提问}
       - {id: series_next,   label: 预告下一集}
+      - {id: visit_url,     label: 打开网址}

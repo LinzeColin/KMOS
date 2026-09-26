@@ -1,0 +1,58 @@
+# 车道 = 一个 agent 长期领取的「大类组合」。
+# 车道固定的是 medium 的一个家族（同一引擎、同一套手艺，越做越熟）；
+# 其余 L0 因素在车道内持续演化，靠 factory.py 的闸门保证车道内、车道间、工作间之间都不趋同。
+# tilt：本车道抽样时加权的取值（×2），只是偏好，不是限制。
+# window：车道最近 N 部片子里，narrative 与 twist 都不重复。
+
+window: 4
+
+lanes:
+  - id: TOON
+    name: 卡通漫画车道
+    media: [flat_vector, pixel, papercut, chalkboard]
+    engine: canvas2d
+    tilt: {value_core: [surprise], emotion_arc: [laugh_warm, tension_release]}
+    strength: 幽默、卡点、快节奏；R001 的同家族
+    seed: R001
+
+  - id: INK
+    name: 手绘笔触车道
+    media: [watercolor, ink_guochao, crayon_kid]
+    engine: p5brush
+    tilt: {value_core: [empathy], emotion_arc: [laugh_warm, nostalgia_pride, calm_satisfaction]}
+    strength: 温度、手作感、慢叙事；ClaudeAnimationBase 的角色 Clawd 是示例角色，开明片换成自有角色
+
+  - id: TYPE
+    name: 图形排版车道
+    media: [blueprint, kinetic_type, dataviz, infographic]
+    engine: svg_gsap
+    tilt: {value_core: [gain], twist: [magnitude, analogy]}
+    strength: 精度、测量、清单、数字；成本最低、出片最快
+
+  - id: MATH
+    name: 原理讲解车道
+    media: [math_explainer, sim_plot]
+    engine: manim
+    tilt: {value_core: [gain], emotion_arc: [curiosity_aha]}
+    strength: 同轴度、偏摆、齿形、受力的「为什么」
+
+  - id: VOX
+    name: 程序化 3D 车道
+    media: [lowpoly_3d, xray_cutaway, neon_cyber, toy_3d]
+    engine: threejs
+    tilt: {value_core: [expression, surprise], twist: [scale_jump, pov_swap]}
+    strength: 看穿结构、环绕展示；刻意走风格化，和 Blender 工作间的写实 3D 拉开
+
+  - id: REAL
+    name: 真实素材车道
+    media: [footage_mograph, photo_diagram, footage_doc]
+    engine: remotion
+    tilt: {value_core: [empathy, gain], narrative: [project_progress, process_asmr, before_after]}
+    strength: 可信度最高；素材读自 SMB 素材登记表，需 footage 能力
+
+  - id: EXT
+    name: Blender 工作间（外部登记，只读）
+    media: [blender_mix]
+    engine: blender
+    external: true
+    strength: 本工坊不在此车道出片；登记它的成片，让所有车道自动避开它已用过的组合

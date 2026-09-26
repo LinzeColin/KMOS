@@ -1,0 +1,31 @@
+id: INK-001
+lane: INK
+parent: null
+title: ''
+status: draft
+score: null
+factors:
+  value_core: empathy
+  narrative: mentor
+  twist: time_fold
+  protagonist: toon_cast
+  audience_role: procurement
+  medium: ink_guochao
+  business: inspection
+  emotion_arc: calm_satisfaction
+  industry: nonferrous
+  hook: sound_spectacle
+  camera: locked
+  music: lofi
+  voice: dialogue
+  duration: s15
+  text_policy: bilingual_kinetic
+  palette: mono_gold
+  transition: zoom_through
+  cta: comment_q
+brief: ''
+facts: []
+storyboard: ''
+output: ''
+qc: ''
+metrics: {}

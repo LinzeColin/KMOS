@@ -1,0 +1,32 @@
+本目录混合两种权属：
+
+1. 开明小熊（KM Bear）角色造型、src/kmbear.js、src/sheets.js、src/scenes/、reference/、docs/
+   © 2026 湖北（武汉）开明高新科技有限公司。保留所有权利，不对外授权。
+
+2. 来自 ClaudeAnimationBase 的引擎文件：src/core.js、src/timeline.js、src/clawd.js、render.mjs、gpu_probe.mjs、
+   ANIMATION_GUIDE.md（本目录对 core.js 与 render.mjs 增加了平涂模式与页面参数），按以下 MIT 许可使用：
+
+MIT License
+
+Copyright (c) 2026 John Heibel
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+3. assets/fonts/：Permanent Marker（Apache License 2.0）、得意黑 Smiley Sans（SIL Open Font License 1.1），
+   许可原文见同目录 LICENSE-*.txt。
