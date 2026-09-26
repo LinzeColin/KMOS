@@ -14,7 +14,7 @@
    （manim 装好后才改 true；footage 要求 footage_registry 可读）
 3. 在 paths.root 建目录：配方/ 车道/<TOON|INK|TYPE|MATH|VOX|REAL>/ 登记/ 00_广播/；
    把 recipe_factory/recipes/ 下的现有配方原样复制到 paths.recipes
-4. 安装依赖：pip install pyyaml pillow playwright imageio-ffmpeg；ClaudeAnimationBase 目录 npm install；
+4. 安装依赖：pip install pyyaml pillow playwright imageio-ffmpeg；KMBearAnimationBase 与 ClaudeAnimationBase 目录各 npm install；
    可选 pip install manim（Mac 先 brew install py3cairo pango）
 5. 验证：python3 factory.py status 与 check 通过；
    python3 engines/capture.py engines/svg_gsap/template.html /tmp/s.png --sheet 10 出图并人眼看一眼；
@@ -50,6 +50,11 @@
    status → rendered，output 写成片与代码路径
 4. 交质检：在 {root}/登记/事件.jsonl 追加一行 {"kind":"待质检","rid":…,"lane":…,"mp4":…}
 5. 沉淀：把这部片子里解决的引擎问题、可复用的函数、踩过的坑追加进 手艺.md（只写下一部用得上的）
+
+长片（45 秒以上，或 duration 为 s45/s60）按 ClaudeVideo（PDoomVideo）的做法分章：
+先写全片 STORYBOARD.md（一个贯穿的场景或道具、每章一次递进、首尾呼应），再写一份给子 agent 的章节简报，
+每章一个文件、一个子 agent 并行绘制，最后自己统一检查接缝处的转场。
+INK 车道用 KMBearAnimationBase：开明小熊 kmbear() 与 Clawd clawd() 同台，无显卡机器加 --soft-gl（平涂，约 0.1 秒/帧）。
 
 闸门拒绝时（factory.py 报「找不到满足闸门的配方」）：说明车道的组合空间在收窄。
 这时做一次衍变：给本车道提议一个新的因子取值（新画风子类、新叙事母型或新惊喜机制），

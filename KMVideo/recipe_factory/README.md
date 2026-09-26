@@ -39,7 +39,7 @@ Blender 工作间现有 3 部成片（N03 / N04 / N06）用配方语言登记在
 | 车道 | 画风 | 引擎 | 偏向 | 状态 |
 |---|---|---|---|---|
 | TOON | 扁平卡通 / 像素 / 剪纸 / 粉笔 | Canvas2D | 惊喜、幽默、卡点 | 成片 R001 + 配方 TOON-001 |
-| INK | 水彩 / 国潮水墨 / 蜡笔 | p5.brush | 感染力、温度 | 配方 INK-001 |
+| INK | 水彩 / 国潮水墨 / 蜡笔 | p5.brush（KMBearAnimationBase） | 感染力、温度；开明小熊 IP | 成片 INK-002 讲解片 + 配方 INK-001 |
 | TYPE | 蓝图 / 排版 / 数据 / 信息图 | SVG + GSAP | 获得感、出片最快 | 配方 TYPE-001，模板已测 |
 | MATH | 几何讲解 / 物理曲线 | manim | 原理的「为什么」 | 待本机装 manim |
 | VOX | 低多边形 / X 光剖视 / 霓虹 / 黏土感 3D | three.js | 表达力、看穿结构 | 配方 VOX-001，模板已测 |
@@ -105,4 +105,8 @@ python3 engines/capture.py 成片.mp4 接触表.png --sheet 20       # 任意成
 | `GATES.md` | 固定层、四要素、七维 |
 | `AGENT_PROMPTS.md` | 部署 / 车道 / 质检调度 / 单片提示词 |
 | `engines/` | 通用采集器与各引擎模板 |
-| `recipes/` | R001 成片配方、5 条车道首份配方、EXT 登记的 3 部 Blender 成片 |
+| `recipes/` | R001、INK-002 两部成片的配方，5 条车道首份配方，EXT 登记的 3 部 Blender 成片 |
+| `refs/` | 《故事型广告 S1 创作基准》《KMDY 共同底座》原文 |
+
+相关项目（仓库根目录）：`ClaudeAnimationBase/`（Clawd 手绘底座）、`KMBearAnimationBase/`（开明小熊手绘底座，INK 车道引擎）、
+`ClaudeVideo/`（PDoomVideo 长片源码，分章并行与舞台秀递进的范例）。

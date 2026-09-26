@@ -10,7 +10,7 @@
 
 engines:
   canvas2d:       {requires: [chromium, ffmpeg], kit: ../promo_30s,             status: 云端跑通（R001）}
-  p5brush:        {requires: [chromium, ffmpeg, node], kit: ../../ClaudeAnimationBase, status: 云端跑通（引擎自带 demo）}
+  p5brush:        {requires: [chromium, ffmpeg, node], kit: ../../KMBearAnimationBase, status: 云端出片（INK-001）；无显卡用 --soft-gl 平涂模式约 0.1 秒/帧}
   threejs:        {requires: [chromium, ffmpeg], kit: engines/threejs,          status: 云端跑通模板（SwiftShader）}
   svg_gsap:       {requires: [chromium, ffmpeg, gsap], kit: engines/svg_gsap,   status: 云端跑通模板}
   manim:          {requires: [manim], kit: engines/manim,                       status: 模板已写，待本机安装后验证}
@@ -56,6 +56,8 @@ factors:
       - {id: quiz,             label: 观众竞猜, note: 开头出选择题，结尾揭晓，评论区自然互动}
       - {id: news_report,      label: 新闻播报体, note: 设备界快讯、现场连线}
       - {id: game_level,       label: 闯关游戏, note: 修设备 = 通关，血条/关卡/Boss}
+      - {id: stage_show,       label: 舞台秀递进, note: 同一个舞台、同一个道具每段升级一档（ClaudeVideo/PDoom 的结构）}
+      - {id: explainer_tour,   label: 讲解员带看, note: 讲解员角色带观众逐站看懂一件事（INK-001 KMBID 讲解片）}
 
   - id: twist
     name: 惊喜机制（全片那一下「没想到」靠什么）
@@ -74,6 +76,8 @@ factors:
       - {id: time_fold,       label: 时间折叠, note: 十年磨损压进 3 秒，或一秒拉成十秒}
       - {id: deadpan,         label: 一本正经的反差, note: 用最严肃的规格处理最小的事}
       - {id: flow_only,       label: 无反转，靠流畅快感, note: 适合纯过程/解压}
+      - {id: pull_back_reveal,label: 拉远揭晓, note: 镜头拉远，原来整件事是另一回事（PDoom 结尾「原来是一场戏」）}
+      - {id: mess_to_order,   label: 乱到整齐, note: 开头的混乱母题在结尾变成整齐的一件东西}
 
   - id: protagonist
     name: 视角与主角
@@ -90,6 +94,8 @@ factors:
       - {id: child,      label: 孩子/外行旁观者（风格化）}
       - {id: expert_vo,  label: 专家旁白（不露脸）}
       - {id: none,       label: 无人物，只有过程}
+      - {id: km_bear,    label: 开明小熊（公司 IP，KMBearAnimationBase）}
+      - {id: bear_clawd, label: 开明小熊 + Clawd 搭档（人做判断，AI 找机会）}
 
   - id: audience_role
     name: 目标观众（KMDY 矩阵的客户角色）
@@ -153,6 +159,7 @@ factors:
       - {id: overhaul,     label: 装置检修与零星维修, services: [焊接修复, 维修保驾]}
       - {id: install_retrofit, label: 安装与技改工程, services: [安装检修, 设备移位与吊装]}
       - {id: brand_overview,   label: 公司整体形象（多业务串联）}
+      - {id: internal_ai,      label: 内部 AI 工具推广（KMBID 搜标等），面向本公司同事}
 
   - id: emotion_arc
     name: 情绪弧
@@ -228,6 +235,7 @@ factors:
       - {id: chiptune,    label: 8-bit 芯片音乐}
       - {id: none_foley,  label: 无音乐，只有拟音/ASMR}
       - {id: library,     label: 已授权曲库, requires: [music_library]}
+      - {id: playful_mallet, label: 轻快木琴/八音盒（numpy 合成）, note: INK-002}
 
   - id: voice
     name: 人声策略
@@ -288,3 +296,4 @@ factors:
       - {id: search_handle, label: 抖音搜索账号}
       - {id: comment_q,     label: 评论区提问}
       - {id: series_next,   label: 预告下一集}
+      - {id: visit_url,     label: 打开网址}

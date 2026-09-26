@@ -1,0 +1,36 @@
+id: INK-002
+lane: INK
+parent: null
+title: KMBID 搜标网站讲解片（62 秒，开明小熊 + Clawd）
+status: rendered
+score: null
+factors:
+  value_core: gain
+  narrative: explainer_tour
+  twist: mess_to_order
+  protagonist: bear_clawd
+  audience_role: procurement
+  medium: watercolor
+  business: internal_ai
+  emotion_arc: anxiety_relief
+  industry: generic
+  hook: anomaly
+  camera: montage
+  music: playful_mallet
+  voice: none
+  duration: s60
+  text_policy: zh_kinetic
+  palette: cream_lead
+  transition: brush_wipe
+  cta: visit_url
+brief: 小熊被招标公告纸堆压垮 → Clawd 带来 kmbid.linzezhang.com（零门槛）→ 几十个网站聚合 → 夜里自动更新 → 看一眼回一句、越用越准 → 公司业绩与个人收益一起涨 → 桌上只剩一张整齐的卡片。
+facts:
+  - 网站负责搜标、整理、推送；判断、投标由人负责 —— Owner 提供的 PPT《KMBID-AI 与业务》第 3、4 页
+  - 反馈方式：要 / 不要 / 待确认 —— 同上第 9 页
+  - 反馈越多越准、每轮复查 —— 同上第 8、11 页；Owner 本轮口述
+  - 收益以实际中标、项目利润及公司提成制度为准 —— 同上第 2 页（片中小字标注）
+  - 网站自动更新、无使用门槛 —— Owner 本轮口述
+storyboard: KMVideo/kmbid_explainer/STORYBOARD.md
+output: KMVideo/kmbid_explainer（kmbid.js / music.py / studio.html）；引擎 KMBearAnimationBase，--soft-gl 平涂出片
+qc: ""
+metrics: {}
