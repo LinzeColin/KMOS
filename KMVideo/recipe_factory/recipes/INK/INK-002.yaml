@@ -32,5 +32,5 @@ facts:
   - 网站自动更新、无使用门槛 —— Owner 本轮口述
 storyboard: KMVideo/kmbid_explainer/STORYBOARD.md
 output: KMVideo/kmbid_explainer（kmbid.js / music.py / studio.html）；引擎 KMBearAnimationBase，--soft-gl 平涂出片
-qc: ""
+qc: 云端自检：62.00 秒、1920×1080、24fps、H.264 High + AAC 256k、-13.1 LUFS；25 格接触表人眼看过，七镜齐全、字幕逐句、Logo 常驻与片尾放大；待 Owner 人眼验收
 metrics: {}
